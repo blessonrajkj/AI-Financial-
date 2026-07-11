@@ -39,7 +39,14 @@ class Settings(BaseSettings):
         env_file = ".env"
 
     def get_database_url(self) -> str:
-        # If POSTGRES_SERVER is set in the environment or config, use PostgreSQL
+        # Prioritize standard DATABASE_URL env var (e.g. from Render or Heroku)
+        env_db_url = os.environ.get("DATABASE_URL")
+        if env_db_url:
+            if env_db_url.startswith("postgres://"):
+                env_db_url = env_db_url.replace("postgres://", "postgresql://", 1)
+            return env_db_url
+
+        # If POSTGRES_SERVER is set, use PostgreSQL
         pg_server = os.environ.get("POSTGRES_SERVER") or self.POSTGRES_SERVER
         if pg_server:
             user = os.environ.get("POSTGRES_USER") or self.POSTGRES_USER
