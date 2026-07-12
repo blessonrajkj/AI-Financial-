@@ -30,6 +30,21 @@ def get_dashboard_summary(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     now = datetime.now()
+    
+    # Check if there are any transactions for the user in the current month/year
+    has_current_month_tx = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.date >= datetime(now.year, now.month, 1)
+    ).first()
+    
+    # If no transactions in the current month, fallback to the latest transaction's month and year
+    if not has_current_month_tx:
+        latest_tx = db.query(Transaction).filter(
+            Transaction.user_id == current_user.id
+        ).order_by(Transaction.date.desc()).first()
+        if latest_tx:
+            now = latest_tx.date
+            
     month_start = datetime(now.year, now.month, 1)
     
     # Calculate next month start for range filtering
@@ -269,7 +284,7 @@ def get_dashboard_summary(
                 "name": s.name,
                 "amount": s.amount,
                 "billing_cycle": s.billing_cycle,
-                "next_payment_date": s.next_payment_date.strftime("%Y-%m-%d") if s.next_payment_date else "N/A"
+                "next_payment_date": s.next_billing_date.strftime("%Y-%m-%d") if s.next_billing_date else "N/A"
             } for s in upcoming_subscriptions
         ],
         "upcoming_bills_cost": round(upcoming_bills_cost, 2),
@@ -336,8 +351,24 @@ def get_spending_trends(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
+    now = datetime.now()
+    
+    # Check if there are any transactions for the user in the current month/year
+    has_current_month_tx = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.date >= datetime(now.year, now.month, 1)
+    ).first()
+    
+    # If no transactions in the current month, fallback to the latest transaction's month and year
+    if not has_current_month_tx:
+        latest_tx = db.query(Transaction).filter(
+            Transaction.user_id == current_user.id
+        ).order_by(Transaction.date.desc()).first()
+        if latest_tx:
+            now = latest_tx.date
+
     # Aggregated spending by category (last 30 days)
-    start_date = datetime.now() - timedelta(days=days)
+    start_date = now - timedelta(days=days)
     
     category_sums = db.query(
         Category.name,
@@ -375,7 +406,7 @@ def get_spending_trends(
     # Structure into a daily dictionary matching the Recharts format:
     daily_dict = {}
     for d in range(days):
-        day_str = (datetime.now() - timedelta(days=d)).strftime("%Y-%m-%d")
+        day_str = (now - timedelta(days=d)).strftime("%Y-%m-%d")
         daily_dict[day_str] = {"date": day_str, "income": 0.0, "expense": 0.0, "savings": 0.0}
 
     for row in daily_sums:
@@ -891,6 +922,21 @@ def get_dashboard_ai_summary(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     now = datetime.now()
+    
+    # Check if there are any transactions for the user in the current month/year
+    has_current_month_tx = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.date >= datetime(now.year, now.month, 1)
+    ).first()
+    
+    # If no transactions in the current month, fallback to the latest transaction's month and year
+    if not has_current_month_tx:
+        latest_tx = db.query(Transaction).filter(
+            Transaction.user_id == current_user.id
+        ).order_by(Transaction.date.desc()).first()
+        if latest_tx:
+            now = latest_tx.date
+
     month_start = datetime(now.year, now.month, 1)
     today_start = datetime(now.year, now.month, now.day)
     
@@ -1059,8 +1105,8 @@ def get_dashboard_ai_summary(
             "action": "Renew Subscription"
         })
         for s in subs:
-            if s.next_payment_date:
-                days_rem = (s.next_payment_date - now).days
+            if s.next_billing_date:
+                days_rem = (s.next_billing_date - now).days
                 if 0 <= days_rem <= 5:
                     insights.append({
                         "title": f"Upcoming Renewal",
