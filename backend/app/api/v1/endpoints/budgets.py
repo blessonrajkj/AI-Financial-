@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime
 from typing import List, Dict
 
@@ -13,14 +14,72 @@ from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetOut
 
 router = APIRouter()
 
-@router.get("", response_model=List[BudgetOut])
+def _compute_budget_with_spent(budget: Budget, db: Session, user_id: int) -> dict:
+    """Compute the real spent amount for a budget from the transactions table."""
+    m = budget.month
+    y = budget.year
+    month_start = datetime(y, m, 1)
+    if m == 12:
+        month_end = datetime(y + 1, 1, 1)
+    else:
+        month_end = datetime(y, m + 1, 1)
+
+    total_spent = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.user_id == user_id,
+        Transaction.category_id == budget.category_id,
+        Transaction.type == "expense",
+        Transaction.date >= month_start,
+        Transaction.date < month_end
+    ).scalar() or 0.0
+
+    limit = budget.amount if budget.amount > 0 else 1.0
+    progress = (total_spent / limit) * 100
+    remaining = budget.amount - total_spent
+    exceeded = max(0.0, total_spent - budget.amount)
+
+    category_name = budget.category.name if budget.category else "Unknown"
+
+    if progress > 100:
+        bar_color = "dark_red"
+        status_label = "Exceeded"
+    elif progress >= 91:
+        bar_color = "red"
+        status_label = "Critical"
+    elif progress >= 71:
+        bar_color = "yellow"
+        status_label = "Warning"
+    else:
+        bar_color = "green"
+        status_label = "On Track"
+
+    return {
+        "id": budget.id,
+        "category_id": budget.category_id,
+        "category": {"id": budget.category_id, "name": category_name, "type": "expense"},
+        "amount": budget.amount,
+        "month": budget.month,
+        "year": budget.year,
+        "created_at": budget.created_at.isoformat() if budget.created_at else None,
+        "spent": round(total_spent, 2),
+        "remaining": round(remaining, 2),
+        "exceeded": round(exceeded, 2),
+        "progress_percentage": round(progress, 1),
+        "bar_color": bar_color,
+        "status_label": status_label,
+        "month_label": f"{datetime(y, m, 1).strftime('%B %Y')}"
+    }
+
+
+@router.get("", response_model=List[dict])
 def read_budgets(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    return db.query(Budget).filter(Budget.user_id == current_user.id).all()
+    budgets = db.query(Budget).filter(Budget.user_id == current_user.id).order_by(Budget.year.desc(), Budget.month.desc()).all()
+    return [_compute_budget_with_spent(b, db, current_user.id) for b in budgets]
 
-@router.post("", response_model=BudgetOut, status_code=status.HTTP_201_CREATED)
+
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_budget(
     budget_in: BudgetCreate,
     db: Session = Depends(get_db),
@@ -51,9 +110,10 @@ def create_budget(
     db.add(db_budget)
     db.commit()
     db.refresh(db_budget)
-    return db_budget
+    return _compute_budget_with_spent(db_budget, db, current_user.id)
 
-@router.put("/{id}", response_model=BudgetOut)
+
+@router.put("/{id}")
 def update_budget(
     id: int,
     budget_in: BudgetUpdate,
@@ -73,9 +133,10 @@ def update_budget(
     db.add(db_budget)
     db.commit()
     db.refresh(db_budget)
-    return db_budget
+    return _compute_budget_with_spent(db_budget, db, current_user.id)
 
-@router.delete("/{id}", response_model=BudgetOut)
+
+@router.delete("/{id}")
 def delete_budget(
     id: int,
     db: Session = Depends(get_db),
@@ -89,7 +150,8 @@ def delete_budget(
         
     db.delete(db_budget)
     db.commit()
-    return db_budget
+    return {"message": "Budget deleted successfully", "id": id}
+
 
 @router.get("/status", response_model=List[Dict])
 def get_budgets_status(
@@ -108,30 +170,4 @@ def get_budgets_status(
         Budget.year == y
     ).all()
     
-    results = []
-    for budget in budgets:
-        # Sum transactions in category
-        total_spent = db.query(Transaction).filter(
-            Transaction.user_id == current_user.id,
-            Transaction.category_id == budget.category_id,
-            Transaction.type == "expense",
-            Transaction.date >= datetime(y, m, 1),
-            # Approximate end date
-            Transaction.date < (datetime(y, m + 1, 1) if m < 12 else datetime(y + 1, 1, 1))
-        ).sum(Transaction.amount) or 0.0
-        
-        # Calculate forecast/pro-rata status
-        progress = (total_spent / budget.amount) * 100 if budget.amount > 0 else 0
-        
-        results.append({
-            "budget_id": budget.id,
-            "category_id": budget.category_id,
-            "category_name": budget.category.name,
-            "limit": budget.amount,
-            "spent": total_spent,
-            "remaining": max(0.0, budget.amount - total_spent),
-            "progress_percentage": progress,
-            "status": "alert" if progress >= 90 else "warning" if progress >= 75 else "normal"
-        })
-        
-    return results
+    return [_compute_budget_with_spent(b, db, current_user.id) for b in budgets]

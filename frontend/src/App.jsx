@@ -13,12 +13,14 @@ import BudgetsPage from './pages/BudgetsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ChatbotPage from './pages/ChatbotPage';
 import SettingsPage from './pages/SettingsPage';
+import ProfilePage from './pages/ProfilePage';
 import SavingsPage from './pages/SavingsPage';
 import InvestmentsPage from './pages/InvestmentsPage';
 import ReportsPage from './pages/ReportsPage';
 import SubscriptionsPage from './pages/SubscriptionsPage';
 import ImportPage from './pages/ImportPage';
 import UpiScannerPage from './pages/UpiScannerPage';
+import AIInsightsPage from './pages/AIInsightsPage';
 
 // Layout components
 import Navbar from './components/layout/Navbar';
@@ -51,15 +53,16 @@ const Layout = () => {
       <Navbar toggleSidebar={toggleSidebar} />
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
-      {/* Content wrapper panel */}
-      <div className="p-4 lg:ml-64 pt-24 min-h-screen transition-all">
-        <main className="max-w-7xl mx-auto">
+      {/* Content wrapper — offset by sidebar width on desktop */}
+      <div className="lg:ml-[240px] min-h-screen transition-all duration-300">
+        <main className="max-w-7xl mx-auto px-5 py-6 animate-page-enter">
           <Outlet />
         </main>
       </div>
     </div>
   );
 };
+
 
 const App = () => {
   return (
@@ -81,13 +84,16 @@ const App = () => {
                 <Route path="/budgets" element={<BudgetsPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/chat" element={<ChatbotPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/settings" element={<Navigate to="/settings/account" replace />} />
+                <Route path="/settings/account" element={<SettingsPage />} />
                 <Route path="/savings" element={<SavingsPage />} />
                 <Route path="/investments" element={<InvestmentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/subscriptions" element={<SubscriptionsPage />} />
                 <Route path="/import" element={<ImportPage />} />
                 <Route path="/upi-scanner" element={<UpiScannerPage />} />
+                <Route path="/ai-insights" element={<AIInsightsPage />} />
               </Route>
             </Route>
           </Routes>

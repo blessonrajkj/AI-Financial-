@@ -12,6 +12,7 @@ from app.models.chat_history import ChatHistory
 from app.models.voice_log import VoiceLog
 from app.models.savings_goal import SavingsGoal
 from app.models.india_post_investment import IndiaPostInvestment
+from app.models.profile import UserProfile, LinkedBank, UserSettings
 
 DEFAULT_CATEGORIES = [
     {"name": "Food", "type": "expense"},

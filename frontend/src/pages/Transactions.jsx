@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -14,14 +15,21 @@ import {
   UploadCloud
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
+import TransactionToast from '../components/ui/TransactionToast';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const Transactions = () => {
+  const navigate = useNavigate();
+  const { invalidateCache } = useThemeAndRefresh();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Toast state
+  const [toastData, setToastData] = useState(null);
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,7 +132,7 @@ const Transactions = () => {
       }
 
       // 3. Post transaction
-      await axios.post(`${API_URL}/transactions`, {
+      const txRes = await axios.post(`${API_URL}/transactions`, {
         amount: parseFloat(amount),
         type,
         category_id: finalCategoryId,
@@ -134,13 +142,24 @@ const Transactions = () => {
         payment_method: paymentMethod
       });
 
-      setSuccess('Transaction logged successfully!');
+      // Show success toast with transaction details
+      setToastData({
+        amount: parseFloat(amount),
+        category,
+        merchant: merchant.trim() || null,
+        date: date,
+        type,
+        id: txRes.data?.id || null
+      });
+
       setAmount('');
       setMerchant('');
       setDescription('');
       setPaymentMethod('Cash');
       setShowAddModal(false);
       fetchTransactions();
+      // Trigger real-time refresh on Dashboard, Budgets, Analytics, etc.
+      invalidateCache();
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || 'Failed to log transaction.');
@@ -652,8 +671,16 @@ const Transactions = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Transaction Success Toast */}
+      <TransactionToast
+        toast={toastData}
+        onDismiss={() => setToastData(null)}
+        onViewTransaction={() => navigate('/transactions')}
+      />
     </div>
   );
 };
+
 
 export default Transactions;

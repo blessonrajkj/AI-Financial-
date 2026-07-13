@@ -206,31 +206,74 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
     }
   };
 
-  // Client-side Exports
+  // Client-side Exports — Enhanced CSV with computed fields
   const handleExportCSV = () => {
-    const csvHeaders = ['ID', 'Scheme Name', 'Amount (Rs)', 'Rate (%)', 'Start Date', 'Maturity Date', 'Nominee', 'Account Number', 'Branch', 'Status'];
-    const csvRows = investments.map(i => [
-      i.id,
-      i.scheme_name,
-      i.amount,
-      i.interest_rate,
-      i.investment_date.split('T')[0],
-      i.maturity_date.split('T')[0],
-      i.nominee || '-',
-      i.account_number || '-',
-      i.branch_name || '-',
-      i.status
-    ]);
+    const now = new Date();
+    const csvHeaders = [
+      'ID', 'Scheme Name', 'Principal (Rs)', 'Rate (%)', 'Start Date', 'Maturity Date',
+      'Frequency', 'Nominee', 'Account Number', 'Branch', 'Status',
+      'Years Held', 'Interest Earned (Rs)', 'Current Value (Rs)', 'Expected Maturity Value (Rs)', 'Years Remaining'
+    ];
 
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [csvHeaders.join(','), ...csvRows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `IndiaPost_Investments_${new Date().toISOString().split('T')[0]}.csv`);
+    const csvRows = investments.map(i => {
+      const invDate = new Date(i.investment_date);
+      const matDate = new Date(i.maturity_date);
+      const rate = i.interest_rate / 100;
+      const yearsHeld = Math.max(0, (now - invDate) / (1000 * 60 * 60 * 24 * 365.25));
+      const yearsRemaining = Math.max(0, (matDate - now) / (1000 * 60 * 60 * 24 * 365.25));
+      const totalYears = Math.max(0, (matDate - invDate) / (1000 * 60 * 60 * 24 * 365.25));
+
+      let interestEarned = 0;
+      let maturityValue = 0;
+
+      if (i.frequency === 'Monthly') {
+        // RD — Recurring deposit
+        const monthsHeld = yearsHeld * 12;
+        const totalContrib = i.amount * Math.round(monthsHeld);
+        interestEarned = totalContrib * (rate / 2) * (yearsHeld / 1);
+        const totalMonths = totalYears * 12;
+        maturityValue = (i.amount * totalMonths) + (i.amount * totalMonths * rate * 0.5);
+      } else {
+        // Lumpsum compound interest
+        interestEarned = i.amount * (Math.pow(1 + rate, yearsHeld) - 1);
+        maturityValue = i.amount * Math.pow(1 + rate, totalYears);
+      }
+
+      const currentValue = i.amount + interestEarned;
+
+      // Escape commas in text fields
+      const esc = (v) => (v && String(v).includes(',')) ? `"${v}"` : (v || '-');
+
+      return [
+        i.id,
+        esc(i.scheme_name),
+        i.amount.toFixed(2),
+        i.interest_rate,
+        i.investment_date.split('T')[0],
+        i.maturity_date.split('T')[0],
+        esc(i.frequency),
+        esc(i.nominee),
+        esc(i.account_number),
+        esc(i.branch_name),
+        i.status,
+        yearsHeld.toFixed(2),
+        interestEarned.toFixed(2),
+        currentValue.toFixed(2),
+        maturityValue.toFixed(2),
+        yearsRemaining.toFixed(2)
+      ];
+    });
+
+    const csvContent = [csvHeaders.join(','), ...csvRows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `IndiaPost_Investments_${now.toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handlePrint = () => {

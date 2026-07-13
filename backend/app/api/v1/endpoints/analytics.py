@@ -448,7 +448,38 @@ def get_fraud_warnings(
 ):
     return fraud_detector.scan_for_anomalies(db, current_user.id)
 
-# EXPORTS & REPORTS
+
+@router.get("/top-merchants")
+def get_top_merchants(
+    limit: int = Query(10),
+    days: int = Query(90),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
+):
+    """Return the top N merchants by total spending in the last `days` days."""
+    from app.models.category_merchant import Merchant
+    start_date = datetime.now() - timedelta(days=days)
+
+    merchant_sums = db.query(
+        Merchant.name,
+        func.sum(Transaction.amount).label("total_spent"),
+        func.count(Transaction.id).label("tx_count")
+    ).join(Transaction, Transaction.merchant_id == Merchant.id).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.type == "expense",
+        Transaction.date >= start_date
+    ).group_by(Merchant.name).order_by(func.sum(Transaction.amount).desc()).limit(limit).all()
+
+    return [
+        {
+            "merchant_name": row[0],
+            "total_spent": round(float(row[1]), 2),
+            "tx_count": row[2]
+        }
+        for row in merchant_sums
+    ]
+
+
 @router.get("/export/csv")
 def export_csv(
     db: Session = Depends(get_db),
