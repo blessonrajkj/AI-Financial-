@@ -1,44 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet, 
-  Sparkles, 
-  Plus, 
-  ScanLine, 
-  Calendar,
-  Eye,
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Plus,
+  ScanLine,
   Smartphone,
   Target,
   UploadCloud,
   ArrowRight,
-  Zap,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronRight,
+  AlertTriangle,
   Info,
   CheckCircle,
-  HelpCircle,
-  XCircle
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
+const fmt = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
+const fmtPct = (n) => `${Math.abs(n || 0).toFixed(1)}%`;
+
+// Priority icon — functional, not decorative
+const PriorityIcon = ({ priority }) => {
+  switch ((priority || '').toLowerCase()) {
+    case 'critical': return <AlertTriangle className="w-3.5 h-3.5 text-danger flex-shrink-0" />;
+    case 'high':     return <AlertTriangle className="w-3.5 h-3.5 text-warning flex-shrink-0" />;
+    case 'medium':   return <Info className="w-3.5 h-3.5 text-primary flex-shrink-0" />;
+    default:         return <CheckCircle className="w-3.5 h-3.5 text-success flex-shrink-0" />;
+  }
+};
+
+const priorityStyle = (priority) => {
+  switch ((priority || '').toLowerCase()) {
+    case 'critical': return 'text-danger bg-danger/8 border-danger/20';
+    case 'high':     return 'text-warning bg-warning/8 border-warning/20';
+    case 'medium':   return 'text-primary bg-primary/8 border-primary/20';
+    default:         return 'text-success bg-success/8 border-success/20';
+  }
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
-  const { refreshTrigger, invalidateCache } = useThemeAndRefresh();
-  const [summary, setSummary] = useState(null);
-  const [trends, setTrends] = useState([]);
+  const { refreshTrigger } = useThemeAndRefresh();
+  const [summary, setSummary]     = useState(null);
+  const [trends, setTrends]       = useState([]);
   const [chartDays, setChartDays] = useState(30);
-  const [loading, setLoading] = useState(true);
-  
-  // AI Insights State
-  const [aiInsights, setAiInsights] = useState([]);
-  const [aiLoading, setAiLoading] = useState(true);
-  const [typingText, setTypingText] = useState('Initializing WealthPilot advisor...');
-  
+  const [loading, setLoading]     = useState(true);
+  const [aiInsights, setAiInsights]   = useState([]);
+  const [aiLoading, setAiLoading]     = useState(true);
   const navigate = useNavigate();
 
   const fetchDashboardData = async () => {
@@ -50,7 +69,7 @@ const Dashboard = () => {
       setSummary(summaryRes.data);
       setTrends(trendsRes.data?.daily_spending || []);
     } catch (err) {
-      console.error("Failed to fetch dashboard metrics", err);
+      console.error('Failed to fetch dashboard metrics', err);
     } finally {
       setLoading(false);
     }
@@ -58,18 +77,11 @@ const Dashboard = () => {
 
   const fetchAiSummary = async () => {
     setAiLoading(true);
-    setTypingText('Scanning accounts & ledger categories...');
     try {
-      // Small simulated delay for typing effect experience
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setTypingText('Formulating priority advisor checks...');
-      
       const res = await axios.get(`${API_URL}/analytics/dashboard/ai-summary?t=${Date.now()}`);
-      
-      await new Promise(resolve => setTimeout(resolve, 600));
       setAiInsights(res.data?.insights || []);
     } catch (err) {
-      console.error("Failed to fetch AI summary:", err);
+      console.error('Failed to fetch AI summary:', err);
     } finally {
       setAiLoading(false);
     }
@@ -81,232 +93,376 @@ const Dashboard = () => {
   }, [refreshTrigger]);
 
   useEffect(() => {
-    // Re-fetch trends only if days filter updates
     const fetchOnlyTrends = async () => {
       try {
-        const trendsRes = await axios.get(`${API_URL}/analytics/trends?days=${chartDays}&t=${Date.now()}`);
-        setTrends(trendsRes.data?.daily_spending || []);
-      } catch (err) {
-        console.error(err);
-      }
+        const res = await axios.get(`${API_URL}/analytics/trends?days=${chartDays}&t=${Date.now()}`);
+        setTrends(res.data?.daily_spending || []);
+      } catch (err) { console.error(err); }
     };
     fetchOnlyTrends();
   }, [chartDays]);
 
-  // Handle Insight Action Click
-  const handleActionClick = (insight, index) => {
-    const action = insight.action.toLowerCase();
-    
-    if (action.includes('transaction')) {
-      navigate('/transactions');
-    } else if (action.includes('budget')) {
-      navigate('/budgets');
-    } else if (action.includes('goal') || action.includes('increase')) {
-      navigate('/savings');
-    } else if (action.includes('investment')) {
-      navigate('/investments');
-    } else if (action.includes('subscription') || action.includes('renew')) {
-      navigate('/subscriptions');
-    } else if (action.includes('done') || action.includes('ignore')) {
-      // Locally dismiss insight with state filter
-      setAiInsights(prev => prev.filter((_, idx) => idx !== index));
-    }
+  const handleInsightAction = (insight, index) => {
+    const action = (insight.action || '').toLowerCase();
+    if (action.includes('transaction'))                 navigate('/transactions');
+    else if (action.includes('budget'))                 navigate('/budgets');
+    else if (action.includes('goal') || action.includes('increase')) navigate('/savings');
+    else if (action.includes('investment'))             navigate('/investments');
+    else if (action.includes('subscription'))           navigate('/subscriptions');
+    else setAiInsights(prev => prev.filter((_, i) => i !== index));
   };
 
   const getGreeting = () => {
     const hr = new Date().getHours();
-    if (hr < 12) return 'Good Morning';
-    if (hr < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hr < 12) return 'Good morning';
+    if (hr < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
-  const userName = user?.full_name ? user.full_name.split(' ')[0] : 'Blesson';
+  const userName = user?.full_name?.split(' ')[0] || 'there';
 
-  // Priority Badge colors
-  const getPriorityBadgeClass = (priority) => {
-    switch (priority.toLowerCase()) {
-      case 'critical':
-        return 'bg-danger/15 text-danger border-danger/25';
-      case 'high':
-        return 'bg-warning/15 text-warning border-warning/25';
-      case 'medium':
-        return 'bg-primary/15 text-primary border-primary/25';
-      default:
-        return 'bg-success/15 text-success border-success/25';
-    }
-  };
-
-  // Average confidence calculator
-  const averageConfidence = aiInsights.length > 0 
-    ? Math.round(aiInsights.reduce((sum, item) => sum + item.confidence, 0) / aiInsights.length) 
-    : 95;
+  const monthComp   = summary?.monthly_comparison || {};
+  const incomeDiff  = monthComp.income_diff_pct  ?? 0;
+  const expenseDiff = monthComp.expense_diff_pct ?? 0;
+  const budgetUsedPct = Math.min(100,
+    ((summary?.monthly_spending ?? 0) / (summary?.total_budget_limit ?? 1)) * 100
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Hero Grid */}
-      <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all">
+    <div className="space-y-5">
+
+      {/* ── Header card ── */}
+      <div className="bg-cardBg border border-borderColor rounded-2xl px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <span className="inline-flex items-center space-x-1.5 text-[10px] uppercase tracking-wider font-extrabold text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
-            <Zap className="w-3.5 h-3.5" />
-            <span>WealthPilot AI Engine Active</span>
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary mt-3">
+          <p className="text-[11px] font-medium text-textMuted tracking-wide">
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+          <h1 className="text-xl font-bold text-textPrimary mt-0.5 tracking-tight">
             {getGreeting()}, {userName}
           </h1>
-          
           {summary?.ai_insight && (
-            <div className="flex items-center space-x-2.5 mt-2.5 bg-hoverBg/50 border border-borderColor/60 rounded-xl p-3 max-w-xl">
-              <Info className="w-4 h-4 text-primary shrink-0" />
-              <div className="text-xs">
-                <span className="text-textSecondary">{summary.ai_insight.insight_text}</span>
-                <span className={`ml-2 px-1.5 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wider ${
-                  summary.ai_insight.savings_rate_diff >= 0 ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'
-                }`}>
-                  {summary.ai_insight.savings_rate_diff >= 0 ? '▲ Improved' : '▼ Decreased'}
-                </span>
+            <p className="text-[11px] text-textMuted mt-1 max-w-lg leading-relaxed">
+              {summary.ai_insight.insight_text}
+              {' '}
+              <span className={`font-semibold ${summary.ai_insight.savings_rate_diff >= 0 ? 'text-success' : 'text-danger'}`}>
+                {summary.ai_insight.savings_rate_diff >= 0 ? '↑' : '↓'} {Math.abs(summary.ai_insight.savings_rate_diff || 0).toFixed(1)}% vs last month
+              </span>
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={() => navigate('/transactions')}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primaryHover text-white text-sm font-semibold rounded-xl transition-colors self-start sm:self-auto flex-shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Add Transaction
+        </button>
+      </div>
+
+      {/* ── KPI row ── */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-32 rounded-2xl skeleton" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+          {/* Balance */}
+          <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Balance</span>
+              <Wallet className="w-4 h-4 text-textMuted" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-textPrimary font-mono tracking-tight">
+                {fmt(summary?.current_balance)}
+              </p>
+              <p className="text-[11px] text-success font-medium mt-1">Live balance</p>
+            </div>
+          </div>
+
+          {/* Income */}
+          <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Income</span>
+              <TrendingUp className="w-4 h-4 text-textMuted" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-textPrimary font-mono tracking-tight">
+                {fmt(summary?.monthly_income)}
+              </p>
+              <div className={`flex items-center gap-1 text-[11px] font-semibold mt-1 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
+                {incomeDiff >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                {fmtPct(incomeDiff)} vs last month
               </div>
+            </div>
+          </div>
+
+          {/* Spending */}
+          <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Spending</span>
+              <TrendingDown className="w-4 h-4 text-textMuted" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-textPrimary font-mono tracking-tight">
+                {fmt(summary?.monthly_spending)}
+              </p>
+              <div className={`flex items-center gap-1 text-[11px] font-semibold mt-1 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
+                {expenseDiff <= 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                {fmtPct(expenseDiff)} vs last month
+              </div>
+            </div>
+          </div>
+
+          {/* Budget */}
+          <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Budget</span>
+              <span className="text-[11px] font-mono font-bold text-textMuted">
+                {budgetUsedPct.toFixed(0)}%
+              </span>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-textPrimary font-mono tracking-tight">
+                {fmt(summary?.budget_remaining)}
+              </p>
+              <div className="mt-2 h-1.5 bg-borderColor rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    budgetUsedPct >= 90 ? 'bg-danger' : budgetUsedPct >= 70 ? 'bg-warning' : 'bg-success'
+                  }`}
+                  style={{ width: `${budgetUsedPct}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-textMuted mt-1">
+                of {fmt(summary?.total_budget_limit)} limit
+              </p>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ── Main two-column grid ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* Cashflow chart — 2/3 width */}
+        <div className="lg:col-span-2 bg-cardBg border border-borderColor rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-sm font-bold text-textPrimary">Cashflow</h2>
+              <p className="text-[11px] text-textMuted mt-0.5">Income, expense and net savings</p>
+            </div>
+            <div className="flex items-center gap-1 bg-background border border-borderColor rounded-lg p-0.5">
+              {[
+                { label: '7D', value: 7 },
+                { label: '30D', value: 30 },
+                { label: '90D', value: 90 },
+                { label: '1Y', value: 365 },
+              ].map(btn => (
+                <button
+                  key={btn.label}
+                  onClick={() => setChartDays(btn.value)}
+                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors ${
+                    chartDays === btn.value
+                      ? 'bg-textPrimary text-cardBg'
+                      : 'text-textMuted hover:text-textPrimary'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="h-60 w-full">
+            {trends.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trends} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#059669" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#059669" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#DC2626" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="#DC2626" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gSavings" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.1} />
+                      <stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    stroke="var(--text-muted)"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={v => v?.slice(5) || v}
+                  />
+                  <YAxis
+                    stroke="var(--text-muted)"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--card-bg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 10,
+                      fontSize: 12,
+                      boxShadow: 'var(--shadow-lg)',
+                    }}
+                    formatter={v => [`₹${(v||0).toLocaleString('en-IN')}`, undefined]}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    height={28}
+                    iconType="circle"
+                    iconSize={7}
+                    wrapperStyle={{ fontSize: 11, paddingBottom: 8 }}
+                  />
+                  <Area type="monotone" dataKey="income"  name="Income"  stroke="#059669" fill="url(#gIncome)"  strokeWidth={1.75} />
+                  <Area type="monotone" dataKey="expense" name="Expense" stroke="#DC2626" fill="url(#gExpense)" strokeWidth={1.75} />
+                  <Area type="monotone" dataKey="savings" name="Savings" stroke="#4F46E5" fill="url(#gSavings)" strokeWidth={1.75} dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-xs text-textMuted">No data for this period</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent transactions — 1/3 width */}
+        <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-textPrimary">Recent</h2>
+            <Link
+              to="/transactions"
+              className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5"
+            >
+              View all <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {summary?.recent_transactions?.length > 0 ? (
+            <div className="space-y-1 flex-1 overflow-y-auto">
+              {summary.recent_transactions.map(t => {
+                const isIncome = t.type?.toLowerCase() === 'income';
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => navigate('/transactions')}
+                    className="flex items-center justify-between py-2.5 px-1 border-b border-borderColor/50 last:border-0 cursor-pointer hover:bg-hoverBg rounded-lg transition-colors group"
+                  >
+                    <div className="overflow-hidden flex-1 mr-3">
+                      <p className="text-xs font-semibold text-textPrimary truncate group-hover:text-primary transition-colors">
+                        {t.merchant || t.category || 'Transaction'}
+                      </p>
+                      <p className="text-[10px] text-textMuted mt-0.5">
+                        {t.date} · {t.category}
+                      </p>
+                    </div>
+                    <span className={`text-xs font-bold font-mono tabular-nums flex-shrink-0 ${isIncome ? 'text-success' : 'text-danger'}`}>
+                      {isIncome ? '+' : '−'}{fmt(t.amount)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-xs text-textMuted text-center">No recent transactions</p>
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-3 text-textSecondary bg-background border border-borderColor p-3 rounded-2xl md:self-start">
-          <Calendar className="w-5 h-5 text-primary" />
-          <span className="text-xs font-bold">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </span>
-        </div>
       </div>
 
-      {/* ================================================== */}
-      {/* ✨ AI FINANCIAL SUMMARY CARD CENTERPIECE (Task 1-7) */}
-      {/* ================================================== */}
-      <div className="relative bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5 border border-borderColor/80 rounded-[24px] p-6 shadow-md transition-all duration-300 backdrop-blur-md overflow-hidden group">
-        
-        {/* Glow border element */}
-        <div className="absolute inset-0 border border-transparent rounded-[24px] bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"></div>
-
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          {/* Card Header & Subtitle */}
-          <div className="flex items-start space-x-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-extrabold text-xl shadow-lg shrink-0">
-              ✨
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-lg font-black text-textPrimary tracking-tight">AI Financial Summary</h2>
-                <span className="text-[9px] font-extrabold text-textSecondary uppercase tracking-widest bg-background/60 border border-borderColor/60 px-2 py-0.5 rounded-full">
-                  Real-time
-                </span>
-              </div>
-              <p className="text-xs text-textSecondary mt-0.5">
-                Personalized insights generated from your financial activity
-              </p>
-              <div className="text-[9px] text-textMuted font-bold mt-2">
-                Last Updated: <span className="text-textSecondary">Just now</span>
-              </div>
-            </div>
+      {/* ── AI Advisor ── */}
+      <div className="bg-cardBg border border-borderColor rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-borderColor">
+          <div>
+            <h2 className="text-sm font-bold text-textPrimary">Financial Advisor</h2>
+            <p className="text-[11px] text-textMuted mt-0.5">Insights based on your actual account activity</p>
           </div>
-
-          {/* AI Score / Confidence Progress Ring (Task 6) */}
-          <div className="flex items-center space-x-3 bg-background/50 border border-borderColor/60 px-4 py-2.5 rounded-2xl shrink-0">
-            <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="20" cy="20" r="16" stroke="var(--border)" strokeWidth="3" fill="transparent" />
-                <circle cx="20" cy="20" r="16" stroke="url(#aiGlow)" strokeWidth="3" fill="transparent" 
-                        strokeDasharray={100} strokeDashoffset={100 - averageConfidence} strokeLinecap="round" />
-                <defs>
-                  <linearGradient id="aiGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#2563EB" />
-                    <stop offset="100%" stopColor="#10B981" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <span className="absolute text-[10px] font-black text-textPrimary">{averageConfidence}%</span>
-            </div>
-            <div>
-              <p className="text-[9px] font-extrabold text-textSecondary uppercase tracking-wider">AI Confidence</p>
-              <p className="text-[10px] font-bold text-textPrimary mt-0.5">High Precision</p>
-            </div>
-          </div>
+          {!aiLoading && aiInsights.length > 0 && (
+            <Link
+              to="/ai-insights"
+              className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5"
+            >
+              View all <ChevronRight className="w-3 h-3" />
+            </Link>
+          )}
         </div>
 
-        {/* Insight list / Loader */}
-        <div className="mt-6 border-t border-borderColor/60 pt-5 relative">
+        <div className="p-5">
           {aiLoading ? (
-            <div className="flex items-center space-x-3 py-6 text-xs text-textSecondary">
-              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0"></div>
-              <span className="font-bold animate-pulse">{typingText}</span>
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-14 rounded-xl skeleton" />
+              ))}
             </div>
           ) : aiInsights.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {aiInsights.map((insight, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex justify-between items-start p-4 bg-background/40 hover:bg-hoverBg border border-borderColor/60 hover:border-borderColor rounded-2xl transition-all duration-200 shadow-sm"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {aiInsights.slice(0, 6).map((insight, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start gap-3 p-3.5 bg-background border border-borderColor rounded-xl hover:border-borderColor/80 transition-colors"
                 >
-                  <div className="space-y-1.5 overflow-hidden mr-3">
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[9px] font-extrabold text-textSecondary uppercase tracking-wider bg-borderColor px-2 py-0.5 rounded">
-                        {insight.category}
+                  <div className="mt-0.5">
+                    <PriorityIcon priority={insight.priority} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-textPrimary truncate">
+                        {insight.title}
                       </span>
-                      <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded border uppercase tracking-wider ${getPriorityBadgeClass(insight.priority)}`}>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide flex-shrink-0 ${priorityStyle(insight.priority)}`}>
                         {insight.priority}
                       </span>
                     </div>
-                    <p className="text-xs font-bold text-textPrimary leading-relaxed">
-                      {insight.title}
-                    </p>
-                    <p className="text-[11px] text-textSecondary leading-normal">
+                    <p className="text-[11px] text-textSecondary leading-relaxed line-clamp-2">
                       {insight.description}
                     </p>
                   </div>
-                  
-                  {/* Action Handler (Task 7) */}
-                  <button 
-                    onClick={() => handleActionClick(insight, idx)}
-                    className="shrink-0 flex items-center space-x-1 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-[10px] rounded-xl transition-all"
+                  <button
+                    onClick={() => handleInsightAction(insight, idx)}
+                    className="flex-shrink-0 mt-0.5 text-primary hover:text-primaryHover transition-colors"
+                    title={insight.action}
                   >
-                    <span>{insight.action}</span>
-                    <ArrowRight className="w-3 h-3" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}
             </div>
           ) : (
-            /* Empty State Container (Task 10) */
-            <div className="flex flex-col items-center justify-center py-8 text-center max-w-md mx-auto space-y-4">
-              <div className="w-14 h-14 rounded-full bg-borderColor/40 flex items-center justify-center text-textSecondary text-xl">
-                📝
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-textPrimary uppercase tracking-wider">Awaiting Ledger History</h4>
-                <p className="text-[11px] text-textSecondary mt-1 leading-relaxed">
-                  Add more transactions or sync account screenshots to unlock personalized AI financial insights.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2.5 justify-center pt-2">
-                <button 
-                  onClick={() => navigate('/transactions?add=true')}
-                  className="px-3.5 py-2 bg-primary hover:bg-primaryHover text-white font-bold text-[10px] rounded-xl shadow-sm transition-all"
+            <div className="py-8 text-center">
+              <p className="text-sm font-semibold text-textPrimary">No insights yet</p>
+              <p className="text-xs text-textMuted mt-1 max-w-sm mx-auto">
+                Add transactions, set budgets, or link investments — the advisor will surface recommendations automatically.
+              </p>
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <button
+                  onClick={() => navigate('/transactions')}
+                  className="px-3.5 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primaryHover transition-colors"
                 >
                   Add Transaction
                 </button>
-                <button 
-                  onClick={() => navigate('/import')}
-                  className="px-3.5 py-2 bg-background border border-borderColor hover:border-primary/40 text-textPrimary font-bold text-[10px] rounded-xl transition-all"
+                <button
+                  onClick={() => navigate('/budgets')}
+                  className="px-3.5 py-2 bg-background border border-borderColor text-xs font-semibold text-textPrimary rounded-lg hover:bg-hoverBg transition-colors"
                 >
-                  Import Excel
-                </button>
-                <button 
-                  onClick={() => navigate('/scanner')}
-                  className="px-3.5 py-2 bg-background border border-borderColor hover:border-success/40 text-textPrimary font-bold text-[10px] rounded-xl transition-all"
-                >
-                  Scan Receipt
-                </button>
-                <button 
-                  onClick={() => navigate('/upi-scanner')}
-                  className="px-3.5 py-2 bg-background border border-borderColor hover:border-info/40 text-textPrimary font-bold text-[10px] rounded-xl transition-all"
-                >
-                  UPI Screenshot
+                  Set Budget
                 </button>
               </div>
             </div>
@@ -314,265 +470,31 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="h-64 flex items-center justify-center">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      {/* ── Quick Actions strip ── */}
+      <div className="bg-cardBg border border-borderColor rounded-2xl p-5">
+        <h2 className="text-sm font-bold text-textPrimary mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          {[
+            { label: 'Add Transaction', icon: Plus,        path: '/transactions', accent: 'primary' },
+            { label: 'Import',          icon: UploadCloud, path: '/import',        accent: 'primary' },
+            { label: 'Scan Receipt',    icon: ScanLine,    path: '/scanner',       accent: 'primary' },
+            { label: 'UPI Scan',        icon: Smartphone,  path: '/upi-scanner',   accent: 'primary' },
+            { label: 'Investments',     icon: TrendingUp,  path: '/investments',   accent: 'primary' },
+            { label: 'Savings Goal',    icon: Target,      path: '/savings',       accent: 'primary' },
+            { label: 'Set Budget',      icon: Wallet,      path: '/budgets',       accent: 'primary' },
+          ].map(({ label, icon: Icon, path }) => (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className="flex flex-col items-center gap-2 p-3.5 bg-background border border-borderColor hover:border-primary/40 hover:bg-hoverBg rounded-xl text-textSecondary hover:text-primary transition-all group"
+            >
+              <Icon className="w-4.5 h-4.5" />
+              <span className="text-[10px] font-semibold text-center leading-tight">{label}</span>
+            </button>
+          ))}
         </div>
-      ) : (
-        <div className="space-y-6 animate-fade-in">
-          {/* Real-time KPI Bento Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            {/* Total Balance */}
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between h-40">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Current Balance</span>
-                <span className="p-2 bg-primary/10 text-primary rounded-xl"><Wallet className="w-4 h-4" /></span>
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-textPrimary">₹{(summary?.current_balance ?? 0).toLocaleString()}</h3>
-                <p className="text-[10px] text-success font-bold mt-1">● Real-time Balance Active</p>
-              </div>
-            </div>
+      </div>
 
-            {/* Monthly Income Card */}
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between h-40">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Monthly Income</span>
-                <span className="p-2 bg-success/10 text-success rounded-xl"><TrendingUp className="w-4 h-4" /></span>
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-textPrimary">₹{(summary?.monthly_income ?? 0).toLocaleString()}</h3>
-                <p className={`text-[10px] font-bold mt-1 flex items-center space-x-1 ${
-                  (summary?.monthly_comparison?.income_diff_pct ?? 0) >= 0 ? 'text-success' : 'text-danger'
-                }`}>
-                  <span>{(summary?.monthly_comparison?.income_diff_pct ?? 0) >= 0 ? '▲' : '▼'} {Math.abs(summary?.monthly_comparison?.income_diff_pct ?? 0)}% vs last month</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Monthly Spending Card */}
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between h-40">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Monthly Spending</span>
-                <span className="p-2 bg-danger/10 text-danger rounded-xl"><TrendingDown className="w-4 h-4" /></span>
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-textPrimary">₹{(summary?.monthly_spending ?? 0).toLocaleString()}</h3>
-                <p className={`text-[10px] font-bold mt-1 flex items-center space-x-1 ${
-                  (summary?.monthly_comparison?.expense_diff_pct ?? 0) <= 0 ? 'text-success' : 'text-danger'
-                }`}>
-                  <span>{(summary?.monthly_comparison?.expense_diff_pct ?? 0) <= 0 ? '▼' : '▲'} {Math.abs(summary?.monthly_comparison?.expense_diff_pct ?? 0)}% vs last month</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Budget Remaining Card */}
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between h-44">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Budget Remaining</span>
-                <span className="p-2 bg-warning/10 text-warning rounded-xl"><Sparkles className="w-4 h-4" /></span>
-              </div>
-              <div>
-                <div className="flex justify-between items-end">
-                  <h3 className="text-2xl font-black text-textPrimary">₹{(summary?.budget_remaining ?? 0).toLocaleString()}</h3>
-                  <span className="text-[9px] text-textSecondary font-bold mb-1">
-                    Limit: ₹{(summary?.total_budget_limit ?? 50000).toLocaleString()}
-                  </span>
-                </div>
-                
-                {/* Progress bar */}
-                <div className="w-full bg-borderColor/60 h-2.5 rounded-full mt-2.5 overflow-hidden">
-                  <div 
-                    className="bg-warning h-full rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${Math.min(100, ((summary?.monthly_spending ?? 0) / (summary?.total_budget_limit ?? 50000)) * 100)}%` 
-                    }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Quick Actions Panel */}
-          <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm">
-            <h3 className="text-sm font-extrabold text-textPrimary uppercase tracking-wider mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
-              
-              <button 
-                onClick={() => navigate('/transactions?add=true')}
-                className="p-4 bg-background border border-borderColor hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center space-y-2 text-textSecondary hover:text-primary transition-all group shadow-sm"
-              >
-                <Plus className="w-5 h-5 text-primary group-hover:scale-105 transition-transform" />
-                <span className="text-[11px] font-bold">Add Txn</span>
-              </button>
-
-              <button 
-                onClick={() => navigate('/import')}
-                className="p-4 bg-background border border-borderColor hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center space-y-2 text-textSecondary hover:text-primary transition-all group shadow-sm"
-              >
-                <UploadCloud className="w-5 h-5 text-secondary group-hover:scale-105 transition-transform" />
-                <span className="text-[11px] font-bold">Import Excel</span>
-              </button>
-
-              <button 
-                onClick={() => navigate('/scanner')}
-                className="p-4 bg-background border border-borderColor hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center space-y-2 text-textSecondary hover:text-primary transition-all group shadow-sm"
-              >
-                <ScanLine className="w-5 h-5 text-success group-hover:scale-105 transition-transform" />
-                <span className="text-[11px] font-bold">Scan Receipt</span>
-              </button>
-
-              <button 
-                onClick={() => navigate('/upi-scanner')}
-                className="p-4 bg-background border border-borderColor hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center space-y-2 text-textSecondary hover:text-primary transition-all group shadow-sm"
-              >
-                <Smartphone className="w-5 h-5 text-info group-hover:scale-105 transition-transform" />
-                <span className="text-[11px] font-bold">UPI Scan</span>
-              </button>
-
-              <button 
-                onClick={() => navigate('/investments')}
-                className="p-4 bg-background border border-borderColor hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center space-y-2 text-textSecondary hover:text-primary transition-all group shadow-sm"
-              >
-                <TrendingUp className="w-5 h-5 text-primary group-hover:scale-105 transition-transform" />
-                <span className="text-[11px] font-bold">Add Invest</span>
-              </button>
-
-              <button 
-                onClick={() => navigate('/savings')}
-                className="p-4 bg-background border border-borderColor hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center space-y-2 text-textSecondary hover:text-primary transition-all group shadow-sm"
-              >
-                <Target className="w-5 h-5 text-warning group-hover:scale-105 transition-transform" />
-                <span className="text-[11px] font-bold">Create Goal</span>
-              </button>
-
-              <button 
-                onClick={() => navigate('/budgets')}
-                className="p-4 bg-background border border-borderColor hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center space-y-2 text-textSecondary hover:text-primary transition-all group shadow-sm"
-              >
-                <Wallet className="w-5 h-5 text-danger group-hover:scale-105 transition-transform" />
-                <span className="text-[11px] font-bold">Set Budget</span>
-              </button>
-
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Chart Column (Dynamic Switcher) */}
-            <div className="lg:col-span-2 bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-sm font-extrabold text-textPrimary uppercase tracking-wider">Cashflow Metrics</h3>
-                
-                {/* Chart timeline controls */}
-                <div className="flex space-x-1.5 bg-background border border-borderColor p-1 rounded-xl">
-                  {[
-                    { label: '7D', value: 7 },
-                    { label: '30D', value: 30 },
-                    { label: '90D', value: 90 },
-                    { label: '1Y', value: 365 }
-                  ].map((btn) => (
-                    <button 
-                      key={btn.label}
-                      onClick={() => setChartDays(btn.value)}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-colors ${
-                        chartDays === btn.value ? 'bg-primary text-white' : 'text-textSecondary hover:bg-hoverBg'
-                      }`}
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="h-64 w-full">
-                {trends.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#EF4444" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
-                      <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border)' }} />
-                      <Legend verticalAlign="top" height={36} iconType="circle" />
-                      <Area type="monotone" dataKey="income" name="Income" stroke="#10B981" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="expense" name="Expense" stroke="#EF4444" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="savings" name="Savings" stroke="#3B82F6" fillOpacity={1} fill="url(#colorSavings)" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-textSecondary text-xs">
-                    <span>No cashflow timeseries details loaded</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Live activity feed */}
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-              <div>
-                <h3 className="text-sm font-extrabold text-textPrimary uppercase tracking-wider mb-4">Recent Activity</h3>
-                
-                {summary?.recent_transactions && summary.recent_transactions.length > 0 ? (
-                  <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
-                    {summary.recent_transactions.map((t) => {
-                      const isIncome = t.type.toLowerCase() === 'income';
-                      return (
-                        <div 
-                          key={t.id} 
-                          onClick={() => navigate('/transactions')}
-                          className="flex justify-between items-center text-xs p-2.5 bg-background/40 hover:bg-hoverBg border border-borderColor/40 hover:border-borderColor rounded-xl transition-all cursor-pointer"
-                        >
-                          <div className="overflow-hidden flex-1 mr-2">
-                            <p className="font-bold text-textPrimary truncate">{t.merchant || 'Unknown'}</p>
-                            <div className="flex items-center space-x-1.5 mt-0.5 text-[9px] text-textSecondary">
-                              <span>{t.date}</span>
-                              <span>•</span>
-                              <span className="px-1 py-0.2 bg-borderColor rounded text-[8px]">{t.category}</span>
-                              <span>•</span>
-                              <span>{t.payment_method}</span>
-                            </div>
-                          </div>
-                          <span className={`font-extrabold shrink-0 ${isIncome ? 'text-success' : 'text-danger'}`}>
-                            {isIncome ? '+' : '-'} ₹{t.amount.toLocaleString()}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="h-48 flex items-center justify-center text-textSecondary text-xs">
-                    <span>No recent activity logged</span>
-                  </div>
-                )}
-              </div>
-
-              <Link 
-                to="/transactions" 
-                className="w-full text-center py-2.5 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold text-xs rounded-xl border border-borderColor transition-colors mt-4 block"
-              >
-                View Full Ledger
-              </Link>
-            </div>
-
-          </div>
-        </div>
-      )}
     </div>
   );
 };
