@@ -403,6 +403,8 @@ def upload_and_parse_statement(
         duplicate_count = 0
         income_total = 0.0
         expense_total = 0.0
+        income_count = 0
+        expense_count = 0
         detected_categories = set()
         detected_accounts = set()
         
@@ -457,8 +459,10 @@ def upload_and_parse_statement(
             
             if t["type"] == "income":
                 income_total += t["amount"]
+                income_count += 1
             else:
                 expense_total += t["amount"]
+                expense_count += 1
                 
             if t.get("category"):
                 detected_categories.add(t["category"])
@@ -475,6 +479,8 @@ def upload_and_parse_statement(
                 "total": len(enriched_transactions),
                 "income_total": income_total,
                 "expense_total": expense_total,
+                "income_count": income_count,
+                "expense_count": expense_count,
                 "duplicate_count": duplicate_count,
                 "invalid_rows_count": len(invalid_rows),
                 "detected_categories": list(detected_categories),

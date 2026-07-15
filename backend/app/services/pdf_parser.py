@@ -155,20 +155,20 @@ class PDFStatementParser:
     def find_headers(self, cells) -> dict:
         header_map = {}
         for idx, cell in enumerate(cells):
-            txt = cell["text"].lower()
-            if any(k in txt for k in ["date", "txn dt", "tran dt", "value dt"]):
+            txt = cell["text"].lower().strip()
+            if any(k in txt for k in ["date", "txn dt", "tran dt", "value dt", "txn date", "tx date"]):
                 header_map["date"] = idx
-            elif any(k in txt for k in ["particulars", "description", "narration", "remarks", "details"]):
+            elif any(k in txt for k in ["particulars", "description", "narration", "remarks", "details", "transaction details", "particular"]):
                 header_map["desc"] = idx
-            elif any(k in txt for k in ["chq", "ref", "cheque", "utr", "instrument", "reference"]):
+            elif any(k in txt for k in ["chq", "ref", "cheque", "utr", "instrument", "reference", "ref no", "txn id", "transaction id"]):
                 header_map["ref"] = idx
-            elif any(k in txt for k in ["debit", "withdrawal", "dr", "payment"]):
+            elif any(k in txt for k in ["debit", "withdrawal", "dr", "payment", "outflow", "paid", "dr.", "debts", "withdrawals"]):
                 header_map["debit"] = idx
-            elif any(k in txt for k in ["credit", "deposit", "cr", "receipt"]):
+            elif any(k in txt for k in ["credit", "deposit", "cr", "receipt", "inflow", "received", "cr.", "credits", "deposits"]):
                 header_map["credit"] = idx
-            elif any(k in txt for k in ["amount", "value", "sum"]):
+            elif any(k in txt for k in ["amount", "value", "sum", "txn amt"]):
                 header_map["amount"] = idx
-            elif any(k in txt for k in ["balance", "bal", "closing"]):
+            elif any(k in txt for k in ["balance", "bal", "closing", "bal.", "available balance"]):
                 header_map["balance"] = idx
         return header_map
 
@@ -352,6 +352,50 @@ class PDFStatementParser:
         ref_match = re.search(r'(?:txn|ref|utr|id)[:\s-]*\s*([a-zA-Z0-9]+)', desc, re.IGNORECASE)
         return ref_match.group(1) if ref_match else None
 
+    def determine_type_from_text_and_color(self, amt_text: str, desc_str: str, color_type: str) -> str:
+        amt_lower = amt_text.lower().strip()
+        desc_lower = desc_str.lower().strip()
+        
+        # 1. Check direct prefix/suffix on amount text
+        if "+" in amt_text:
+            return "income"
+        if "-" in amt_text:
+            return "expense"
+        if "cr" in amt_lower or "credit" in amt_lower:
+            return "income"
+        if "dr" in amt_lower or "debit" in amt_lower:
+            return "expense"
+            
+        # 2. Check description keywords for Income
+        income_keywords = [
+            "cr", "credit", "received from", "received", "deposit", 
+            "salary", "interest", "refund", "payroll", "dividend", 
+            "cashback", "inflow", "deposit"
+        ]
+        # Check description keywords for Expense
+        expense_keywords = [
+            "dr", "debit", "withdrawal", "paid to", "upi payment", 
+            "purchase", "pos", "atm withdrawal", "payment", "outflow", 
+            "paid", "charge", "fee"
+        ]
+        
+        for kw in income_keywords:
+            if re.search(r'\b' + re.escape(kw) + r'\b', desc_lower) or desc_lower.startswith(kw):
+                return "income"
+                
+        for kw in expense_keywords:
+            if re.search(r'\b' + re.escape(kw) + r'\b', desc_lower) or desc_lower.startswith(kw):
+                return "expense"
+                
+        # 3. Fallback to color detection
+        if color_type == "green":
+            return "income"
+        elif color_type == "red":
+            return "expense"
+            
+        # Default fallback
+        return "expense"
+
     def parse_table_rows(self, rows: list, bank_name: str) -> tuple:
         transactions = []
         invalid_rows = []
@@ -399,47 +443,54 @@ class PDFStatementParser:
             
             amount = 0.0
             tx_type = "expense"
-            is_income = False
-            amount_color_type = "black"
             
             # Scenario 1: Separate Debit / Credit Columns
             if debit_idx is not None and debit_idx < len(cells) and credit_idx is not None and credit_idx < len(cells):
-                deb_val = self.parse_amount(cells[debit_idx]["text"])
-                cre_val = self.parse_amount(cells[credit_idx]["text"])
+                debit_cell_text = cells[debit_idx]["text"].strip()
+                credit_cell_text = cells[credit_idx]["text"].strip()
                 
-                if cre_val and cre_val > 0:
+                deb_val = self.parse_amount(debit_cell_text)
+                cre_val = self.parse_amount(credit_cell_text)
+                
+                has_debit = deb_val > 0 and any(c.isdigit() for c in debit_cell_text)
+                has_credit = cre_val > 0 and any(c.isdigit() for c in credit_cell_text)
+                
+                if has_credit:
                     amount = cre_val
                     tx_type = "income"
-                    is_income = True
-                    amount_color_type = self.get_text_color_type(cells[credit_idx]["color"])
-                elif deb_val and deb_val > 0:
+                elif has_debit:
                     amount = deb_val
                     tx_type = "expense"
-                    amount_color_type = self.get_text_color_type(cells[debit_idx]["color"])
+                else:
+                    # Fallback to check column positions even if amount is 0 or non-standard format
+                    if credit_cell_text and not debit_cell_text:
+                        amount = cre_val if cre_val > 0 else 0.0
+                        tx_type = "income"
+                    elif debit_cell_text and not credit_cell_text:
+                        amount = deb_val if deb_val > 0 else 0.0
+                        tx_type = "expense"
+                        
             # Scenario 2: Single Amount Column with Suffix / Indicators
             elif amount_idx is not None and amount_idx < len(cells):
                 amt_cell = cells[amount_idx]
-                amount_color_type = self.get_text_color_type(amt_cell["color"])
                 amt_text = amt_cell["text"]
+                amount_color_type = self.get_text_color_type(amt_cell["color"])
                 
-                if "cr" in amt_text.lower() or "credit" in amt_text.lower() or "+" in amt_text:
-                    is_income = True
-                    tx_type = "income"
-                elif "dr" in amt_text.lower() or "debit" in amt_text.lower() or "-" in amt_text:
-                    is_income = False
-                    tx_type = "expense"
-                else:
-                    is_income = self.check_description_for_income(desc_str)
-                    tx_type = "income" if is_income else "expense"
-                    
                 amount = self.parse_amount(amt_text)
+                tx_type = self.determine_type_from_text_and_color(amt_text, desc_str, amount_color_type)
             else:
                 # Fallback: check other cells for numerical amounts
+                found_amount = False
                 for c_idx in range(len(cells)):
                     if c_idx != date_idx and c_idx != desc_idx:
-                        val = self.parse_amount(cells[c_idx]["text"])
+                        amt_cell = cells[c_idx]
+                        amt_text = amt_cell["text"]
+                        val = self.parse_amount(amt_text)
                         if val > 0:
                             amount = val
+                            amount_color_type = self.get_text_color_type(amt_cell["color"])
+                            tx_type = self.determine_type_from_text_and_color(amt_text, desc_str, amount_color_type)
+                            found_amount = True
                             break
             
             # Stop if amount is not found or is 0
@@ -451,23 +502,6 @@ class PDFStatementParser:
             balance = None
             if bal_idx != -1 and bal_idx < len(cells):
                 balance = self.parse_amount(cells[bal_idx]["text"])
-                
-            # Color-based type detection override
-            if amount_color_type == "green":
-                tx_type = "income"
-                is_income = True
-            elif amount_color_type == "red":
-                tx_type = "expense"
-                is_income = False
-                
-            # Substrings type override
-            desc_lower = desc_str.lower()
-            if "received from" in desc_lower or "cr" in desc_lower or "credit" in desc_lower:
-                tx_type = "income"
-                is_income = True
-            elif "paid to" in desc_lower or "dr" in desc_lower or "debit" in desc_lower:
-                tx_type = "expense"
-                is_income = False
                 
             # Classify specific financial ledger type
             specific_type = self.classify_specific_type(desc_str, tx_type)

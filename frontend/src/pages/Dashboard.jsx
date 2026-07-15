@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import {
   TrendingUp,
@@ -54,6 +54,21 @@ const Dashboard = () => {
   const { refreshTrigger } = useThemeAndRefresh();
   const [summary, setSummary]     = useState(null);
   const [trends, setTrends]       = useState([]);
+  
+  const cashflowStats = useMemo(() => {
+    if (!trends || trends.length === 0) return { totalIncome: 0, totalExpense: 0, netSavings: 0, savingsRate: 0, avgDailySpending: 0 };
+    let totalIncome = 0;
+    let totalExpense = 0;
+    trends.forEach(day => {
+      totalIncome += (day.income || 0);
+      totalExpense += (day.expense || 0);
+    });
+    const netSavings = totalIncome - totalExpense;
+    const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
+    const avgDailySpending = totalExpense / Math.max(1, trends.length);
+    return { totalIncome, totalExpense, netSavings, savingsRate, avgDailySpending };
+  }, [trends]);
+
   const [chartDays, setChartDays] = useState(30);
   const [loading, setLoading]     = useState(true);
   const [aiInsights, setAiInsights]   = useState([]);
@@ -248,10 +263,10 @@ const Dashboard = () => {
       )}
 
       {/* ── Main two-column grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
         {/* Cashflow chart — 2/3 width */}
-        <div className="lg:col-span-2 bg-cardBg border border-borderColor rounded-2xl p-5">
+        <div className="lg:col-span-2 bg-cardBg border border-borderColor rounded-2xl p-5 h-[410px]">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-sm font-bold text-textPrimary">Cashflow</h2>
@@ -279,7 +294,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="h-60 w-full">
+          <div className="h-[320px] w-full">
             {trends.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trends} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
@@ -344,7 +359,7 @@ const Dashboard = () => {
         </div>
 
         {/* Recent transactions — 1/3 width */}
-        <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col">
+        <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col h-[410px] w-full">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-textPrimary">Recent</h2>
             <Link
@@ -356,7 +371,7 @@ const Dashboard = () => {
           </div>
 
           {summary?.recent_transactions?.length > 0 ? (
-            <div className="space-y-1 flex-1 overflow-y-auto">
+            <div className="space-y-1 flex-1 overflow-y-auto pr-1">
               {summary.recent_transactions.map(t => {
                 const isIncome = t.type?.toLowerCase() === 'income';
                 return (

@@ -79,3 +79,56 @@ def test_analytics_endpoints(client):
 
     res = client.get("/api/v1/analytics/reports/generate?report_type=monthly&period=2026-07&format=pdf", headers=headers)
     assert res.status_code == 200
+
+
+def test_pdf_parser_classification():
+    from app.services.pdf_parser import pdf_parser
+
+    # Header Row
+    headers = [
+        {"text": "Date", "color": 0},
+        {"text": "Description", "color": 0},
+        {"text": "Ref", "color": 0},
+        {"text": "Withdrawals (Debit)", "color": 0},
+        {"text": "Deposits (Credit)", "color": 0},
+        {"text": "Balance", "color": 0}
+    ]
+
+    # Row 1: Debit transaction (black text, no minus sign)
+    row_debit = [
+        {"text": "2026-07-15", "color": 0},
+        {"text": "UPI Payment to Swiggy", "color": 0},
+        {"text": "123456789012", "color": 0},
+        {"text": "345.50", "color": 0},
+        {"text": "", "color": 0},
+        {"text": "5000.00", "color": 0}
+    ]
+
+    # Row 2: Credit transaction (green text, no plus sign)
+    row_credit = [
+        {"text": "2026-07-15", "color": 0},
+        {"text": "Salary Credit", "color": 0},
+        {"text": "123456789013", "color": 0},
+        {"text": "", "color": 0},
+        {"text": "45000.00", "color": 65280},  # Green text
+        {"text": "50000.00", "color": 0}
+    ]
+
+    # Parse rows
+    rows = [headers, row_debit, row_credit]
+    transactions, invalid = pdf_parser.parse_table_rows(rows, "Test Bank")
+
+    assert len(transactions) == 2
+    
+    # Verify Row 1: Debit (Expense)
+    t_debit = transactions[0]
+    assert t_debit["type"] == "expense"
+    assert t_debit["amount"] == 345.50
+    assert t_debit["description"] == "UPI Payment to Swiggy"
+    
+    # Verify Row 2: Credit (Income)
+    t_credit = transactions[1]
+    assert t_credit["type"] == "income"
+    assert t_credit["amount"] == 45000.00
+    assert t_credit["description"] == "Salary Credit"
+

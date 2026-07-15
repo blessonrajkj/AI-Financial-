@@ -138,7 +138,7 @@ const AnalyticsPage = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-xs font-bold text-textSecondary uppercase tracking-wider">Total Income</p>
-                    <h3 className="text-2xl font-black text-success mt-2">{fmt(summary.total_income)}</h3>
+                    <h3 className="text-2xl font-black text-success mt-2">{fmt(summary.monthly_income)}</h3>
                     <p className={`text-[10px] font-bold mt-1.5 flex items-center space-x-1 ${(monthComp.income_diff_pct ?? 0) >= 0 ? 'text-success' : 'text-danger'}`}>
                       {(monthComp.income_diff_pct ?? 0) >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                       <span>{Math.abs(monthComp.income_diff_pct ?? 0)}% vs last month</span>
@@ -152,7 +152,7 @@ const AnalyticsPage = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-xs font-bold text-textSecondary uppercase tracking-wider">Total Expense</p>
-                    <h3 className="text-2xl font-black text-danger mt-2">{fmt(summary.total_expense)}</h3>
+                    <h3 className="text-2xl font-black text-danger mt-2">{fmt(summary.monthly_spending)}</h3>
                     <p className={`text-[10px] font-bold mt-1.5 flex items-center space-x-1 ${(monthComp.expense_diff_pct ?? 0) <= 0 ? 'text-success' : 'text-danger'}`}>
                       {(monthComp.expense_diff_pct ?? 0) <= 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
                       <span>{Math.abs(monthComp.expense_diff_pct ?? 0)}% vs last month</span>
@@ -167,12 +167,12 @@ const AnalyticsPage = () => {
                   <div>
                     <p className="text-xs font-bold text-textSecondary uppercase tracking-wider">Net Savings Rate</p>
                     <h3 className="text-2xl font-black text-primary mt-2">
-                      {summary.total_income > 0
-                        ? fmtPct(((summary.total_income - summary.total_expense) / summary.total_income) * 100)
+                      {summary.monthly_income > 0
+                        ? fmtPct(((summary.monthly_income - summary.monthly_spending) / summary.monthly_income) * 100)
                         : '0%'}
                     </h3>
                     <p className="text-[10px] text-textMuted mt-1.5">
-                      Net: {fmt((summary.total_income || 0) - (summary.total_expense || 0))}
+                      Net: {fmt((summary.monthly_income || 0) - (summary.monthly_spending || 0))}
                     </p>
                   </div>
                   <span className="p-2.5 bg-primary/10 text-primary rounded-xl"><Sparkles className="w-5 h-5" /></span>
