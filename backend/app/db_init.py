@@ -13,6 +13,7 @@ from app.models.voice_log import VoiceLog
 from app.models.savings_goal import SavingsGoal
 from app.models.india_post_investment import IndiaPostInvestment
 from app.models.profile import UserProfile, LinkedBank, UserSettings
+from app.models.import_log import ImportLog
 
 DEFAULT_CATEGORIES = [
     {"name": "Food", "type": "expense"},
@@ -52,9 +53,33 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
     print("Database tables created.")
     
+    # SQLite dynamic column migration check
     db = SessionLocal()
     try:
+        from sqlalchemy import text
+        # Check if transactions table has columns
+        cursor = db.execute(text("PRAGMA table_info(transactions);"))
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        migrations = [
+            ("import_batch_id", "ALTER TABLE transactions ADD COLUMN import_batch_id VARCHAR;"),
+            ("transaction_id", "ALTER TABLE transactions ADD COLUMN transaction_id VARCHAR;"),
+            ("reference_number", "ALTER TABLE transactions ADD COLUMN reference_number VARCHAR;"),
+            ("bank", "ALTER TABLE transactions ADD COLUMN bank VARCHAR;"),
+            ("balance", "ALTER TABLE transactions ADD COLUMN balance FLOAT;"),
+            ("time", "ALTER TABLE transactions ADD COLUMN time VARCHAR;")
+        ]
+        
+        for col_name, sql in migrations:
+            if col_name not in columns:
+                print(f"Migrating: Adding {col_name} column to transactions table...")
+                db.execute(text(sql))
+                db.commit()
+                print(f"{col_name} column added successfully.")
+        
         init_db(db)
+    except Exception as e:
+        print(f"Error during db table creation/migration: {e}")
     finally:
         db.close()
 

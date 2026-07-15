@@ -480,18 +480,74 @@ def get_top_merchants(
     ]
 
 
+def get_filtered_transactions_query(
+    db: Session,
+    user_id: int,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+    category_id: int | None = None,
+    merchant_id: int | None = None,
+    min_amount: float | None = None,
+    max_amount: float | None = None,
+    type: str | None = None,
+    payment_method: str | None = None,
+    search: str | None = None,
+    tags: str | None = None
+):
+    from sqlalchemy import or_
+    query = db.query(Transaction).filter(Transaction.user_id == user_id)
+    if start_date:
+        query = query.filter(Transaction.date >= start_date)
+    if end_date:
+        query = query.filter(Transaction.date <= end_date)
+    if category_id:
+        query = query.filter(Transaction.category_id == category_id)
+    if merchant_id:
+        query = query.filter(Transaction.merchant_id == merchant_id)
+    if min_amount:
+        query = query.filter(Transaction.amount >= min_amount)
+    if max_amount:
+        query = query.filter(Transaction.amount <= max_amount)
+    if type:
+        query = query.filter(Transaction.type == type)
+    if payment_method:
+        query = query.filter(Transaction.payment_method == payment_method)
+    if tags:
+        query = query.filter(Transaction.tags.like(f"%{tags}%"))
+    if search:
+        query = query.filter(
+            or_(
+                Transaction.description.ilike(f"%{search}%"),
+                Transaction.tags.ilike(f"%{search}%")
+            )
+        )
+    return query.order_by(Transaction.date.desc())
+
+
 @router.get("/export/csv")
 def export_csv(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_active_user),
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+    category_id: int | None = None,
+    merchant_id: int | None = None,
+    min_amount: float | None = None,
+    max_amount: float | None = None,
+    type: str | None = None,
+    payment_method: str | None = None,
+    search: str | None = None,
+    tags: str | None = None
 ):
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id
-    ).order_by(Transaction.date.desc()).all()
+    query = get_filtered_transactions_query(
+        db, current_user.id, start_date, end_date, category_id, merchant_id,
+        min_amount, max_amount, type, payment_method, search, tags
+    )
+    transactions = query.all()
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Date", "Description", "Merchant", "Category", "Amount", "Type", "Payment Method", "Tags"])
+    writer.writerow(["ID", "Date", "Description", "Merchant", "Category", "Amount", "Type", "Payment Method", "Tags", "Transaction ID", "Reference Number", "Bank", "Balance", "Time"])
     
     for t in transactions:
         writer.writerow([
@@ -503,7 +559,12 @@ def export_csv(
             t.amount,
             t.type,
             t.payment_method,
-            t.tags or ""
+            t.tags or "",
+            t.transaction_id or "",
+            t.reference_number or "",
+            t.bank or "",
+            t.balance or "",
+            t.time or ""
         ])
 
     output.seek(0)
@@ -513,25 +574,38 @@ def export_csv(
         headers={"Content-Disposition": "attachment; filename=transactions_export.csv"}
     )
 
+
 @router.get("/export/excel")
 def export_excel(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_active_user),
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+    category_id: int | None = None,
+    merchant_id: int | None = None,
+    min_amount: float | None = None,
+    max_amount: float | None = None,
+    type: str | None = None,
+    payment_method: str | None = None,
+    search: str | None = None,
+    tags: str | None = None
 ):
     try:
         from openpyxl import Workbook
     except ImportError:
         raise HTTPException(status_code=500, detail="openpyxl library not installed")
 
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id
-    ).order_by(Transaction.date.desc()).all()
+    query = get_filtered_transactions_query(
+        db, current_user.id, start_date, end_date, category_id, merchant_id,
+        min_amount, max_amount, type, payment_method, search, tags
+    )
+    transactions = query.all()
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Transactions"
     
-    ws.append(["ID", "Date", "Description", "Merchant", "Category", "Amount", "Type", "Payment Method", "Tags"])
+    ws.append(["ID", "Date", "Description", "Merchant", "Category", "Amount", "Type", "Payment Method", "Tags", "Transaction ID", "Reference Number", "Bank", "Balance", "Time"])
     for t in transactions:
         ws.append([
             t.id,
@@ -542,7 +616,12 @@ def export_excel(
             t.amount,
             t.type,
             t.payment_method,
-            t.tags or ""
+            t.tags or "",
+            t.transaction_id or "",
+            t.reference_number or "",
+            t.bank or "",
+            t.balance or "",
+            t.time or ""
         ])
 
     file_stream = io.BytesIO()
@@ -555,10 +634,21 @@ def export_excel(
         headers={"Content-Disposition": "attachment; filename=transactions_export.xlsx"}
     )
 
+
 @router.get("/export/pdf")
 def export_pdf(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_active_user),
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+    category_id: int | None = None,
+    merchant_id: int | None = None,
+    min_amount: float | None = None,
+    max_amount: float | None = None,
+    type: str | None = None,
+    payment_method: str | None = None,
+    search: str | None = None,
+    tags: str | None = None
 ):
     try:
         from reportlab.lib.pagesizes import letter
@@ -568,9 +658,11 @@ def export_pdf(
     except ImportError:
         raise HTTPException(status_code=500, detail="reportlab library not installed")
 
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id
-    ).order_by(Transaction.date.desc()).limit(100).all()
+    query = get_filtered_transactions_query(
+        db, current_user.id, start_date, end_date, category_id, merchant_id,
+        min_amount, max_amount, type, payment_method, search, tags
+    )
+    transactions = query.limit(1000).all()
 
     pdf_buffer = io.BytesIO()
     doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -595,18 +687,19 @@ def export_pdf(
     elements.append(Spacer(1, 20))
 
     # Table representation of Transactions
-    data = [["Date", "Description", "Merchant", "Category", "Amount", "Type"]]
+    data = [["Date", "Description", "Merchant", "Category", "Amount", "Type", "Bank"]]
     for t in transactions:
         data.append([
             t.date.strftime("%Y-%m-%d"),
             t.description[:20] if t.description else "",
-            t.merchant.name[:15] if t.merchant else "Unknown",
-            t.category.name[:15] if t.category else "Uncategorized",
+            t.merchant.name[:12] if t.merchant else "Unknown",
+            t.category.name[:12] if t.category else "Uncategorized",
             f"{t.amount}",
-            t.type.upper()
+            t.type.upper(),
+            t.bank[:10] if t.bank else "N/A"
         ])
 
-    table = Table(data, colWidths=[70, 140, 100, 100, 70, 60])
+    table = Table(data, colWidths=[65, 120, 85, 85, 60, 55, 70])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#3B82F6')),
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
@@ -625,7 +718,7 @@ def export_pdf(
     return StreamingResponse(
         pdf_buffer,
         media_type="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=transactions_report.pdf"}
+        headers={"Content-Disposition": "attachment; filename=transactions_export.pdf"}
     )
 
 @router.get("/reports/generate")
@@ -921,15 +1014,12 @@ def generate_custom_report(
     if format == "csv":
         output = io.StringIO()
         writer = csv.writer(output)
-        # Write Title
         writer.writerow([title])
         writer.writerow([])
-        # Write Summary KPIs
         writer.writerow(["SUMMARY METRICS"])
         for k, v in summary.items():
             writer.writerow([k, v])
         writer.writerow([])
-        # Write Table Data
         writer.writerow(headers)
         writer.writerows(rows)
         
@@ -938,6 +1028,125 @@ def generate_custom_report(
             io.BytesIO(output.getvalue().encode("utf-8")),
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename={report_type}_report_{period}.csv"}
+        )
+        
+    elif format == "excel":
+        try:
+            from openpyxl import Workbook
+        except ImportError:
+            raise HTTPException(status_code=500, detail="openpyxl library not installed")
+            
+        wb = Workbook()
+        ws = wb.active
+        ws.title = report_type.title()[:30]
+        
+        ws.append([title])
+        ws.append([])
+        ws.append(["SUMMARY METRICS"])
+        for k, v in summary.items():
+            ws.append([k, v])
+        ws.append([])
+        ws.append(headers)
+        for row in rows:
+            ws.append(row)
+            
+        file_stream = io.BytesIO()
+        wb.save(file_stream)
+        file_stream.seek(0)
+        
+        return StreamingResponse(
+            file_stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={report_type}_report_{period}.xlsx"}
+        )
+        
+    elif format == "pdf":
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib import colors
+        except ImportError:
+            raise HTTPException(status_code=500, detail="reportlab library not installed")
+            
+        pdf_buffer = io.BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'TitleStyle',
+            parent=styles['Heading1'],
+            fontName='Helvetica-Bold',
+            fontSize=22,
+            textColor=colors.HexColor('#1E293B'),
+            spaceAfter=15
+        )
+        
+        section_style = ParagraphStyle(
+            'SectionStyle',
+            parent=styles['Heading2'],
+            fontName='Helvetica-Bold',
+            fontSize=14,
+            textColor=colors.HexColor('#2563EB'),
+            spaceAfter=10
+        )
+        
+        body_style = styles['Normal']
+        
+        elements = []
+        elements.append(Paragraph(title, title_style))
+        elements.append(Paragraph(f"Generated for: {current_user.full_name or current_user.email}", body_style))
+        elements.append(Paragraph(f"Report Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}", body_style))
+        elements.append(Spacer(1, 20))
+        
+        elements.append(Paragraph("Summary Metrics", section_style))
+        summary_data = [["Metric", "Value"]]
+        for k, v in summary.items():
+            summary_data.append([k, str(v)])
+            
+        summary_table = Table(summary_data, colWidths=[200, 200])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#F1F5F9')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#334155')),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 25))
+        
+        elements.append(Paragraph("Details", section_style))
+        table_data = [headers]
+        for row in rows:
+            table_data.append([str(c) for c in row])
+            
+        num_cols = len(headers)
+        col_width = 480 / num_cols if num_cols > 0 else 100
+        col_widths = [col_width] * num_cols
+        
+        details_table = Table(table_data, colWidths=col_widths)
+        details_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#3B82F6')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+        ]))
+        elements.append(details_table)
+        
+        doc.build(elements)
+        pdf_buffer.seek(0)
+        
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={report_type}_report_{period}.pdf"}
         )
         
     return {

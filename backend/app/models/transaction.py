@@ -19,6 +19,12 @@ class Transaction(Base):
     receipt_id = Column(Integer, ForeignKey("receipts.id", ondelete="SET NULL"), nullable=True)
     voice_log_id = Column(Integer, ForeignKey("voice_logs.id", ondelete="SET NULL"), nullable=True)
     tags = Column(String, nullable=True)  # Comma-separated tags e.g., "vacation,dinner"
+    import_batch_id = Column(String, nullable=True, index=True)
+    transaction_id = Column(String, nullable=True, index=True)
+    reference_number = Column(String, nullable=True, index=True)
+    bank = Column(String, nullable=True)
+    balance = Column(Float, nullable=True)
+    time = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

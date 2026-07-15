@@ -43,7 +43,7 @@ class Forecaster:
         } for t in transactions])
 
         # Aggregate by day
-        df = df.groupby(df["ds"].dt.date).sum().reset_index()
+        df = df.groupby(df["ds"].dt.date)["y"].sum().reset_index()
         df["ds"] = pd.to_datetime(df["ds"])
 
         # Reindex to fill missing days with 0

@@ -58,29 +58,29 @@ const ReportsPage = () => {
     }
   };
 
-  const handleDownloadCSV = () => {
-    // Redirect to direct CSV download endpoint
-    const url = `${API_URL}/analytics/reports/generate?report_type=${selectedType}&period=${period}&format=csv`;
-    // Create temporary link to trigger browser download
-    const link = document.createElement('a');
-    link.href = url;
+  const handleDownload = (format) => {
+    const url = `${API_URL}/analytics/reports/generate?report_type=${selectedType}&period=${period}&format=${format}`;
+    const token = localStorage.getItem('token');
     
-    // Auth header fallback for standard downloads: since it's a GET file stream, we can also pass bearer token in header
-    // But since simple window redirect cannot pass headers, the backend also accepts token query parameter or we can fetch it as blob
-    // Let's fetch it as a blob and download it to support authorization headers cleanly!
-    axios.get(url, { responseType: 'blob' })
+    axios.get(url, { 
+      responseType: 'blob',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
       .then((response) => {
         const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = downloadUrl;
-        link.setAttribute('download', `${selectedType}_report_${period}.csv`);
+        const ext = format === 'excel' ? 'xlsx' : format;
+        link.setAttribute('download', `${selectedType}_report_${period}.${ext}`);
         document.body.appendChild(link);
         link.click();
         link.remove();
       })
       .catch((err) => {
         console.error(err);
-        setError('Failed to download CSV file.');
+        setError(`Failed to download ${format.toUpperCase()} file.`);
       });
   };
 
@@ -185,11 +185,25 @@ const ReportsPage = () => {
               <span>Print Sheet</span>
             </button>
             <button 
-              onClick={handleDownloadCSV}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary/10 hover:bg-primary/15 text-primary rounded-xl text-xs font-semibold transition-colors"
+              onClick={() => handleDownload('csv')}
+              className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               <span>Export CSV</span>
+            </button>
+            <button 
+              onClick={() => handleDownload('excel')}
+              className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Excel</span>
+            </button>
+            <button 
+              onClick={() => handleDownload('pdf')}
+              className="flex items-center space-x-2 px-3 py-2 bg-primary/10 hover:bg-primary/15 text-primary rounded-xl text-xs font-semibold transition-colors animate-fade-in"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export PDF</span>
             </button>
           </div>
 

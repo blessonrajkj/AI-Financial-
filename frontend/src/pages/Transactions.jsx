@@ -274,28 +274,41 @@ const Transactions = () => {
   };
 
   // Export handlers
-  const handleExportCSV = () => {
-    const headers = ['ID', 'Date', 'Merchant', 'Category', 'Type', 'Amount', 'Description'];
-    const rows = filteredTransactions.map(t => [
-      t.id,
-      t.date,
-      getMerchantName(t.merchant) || '-',
-      getCategoryName(t.category),
-      t.type,
-      t.amount,
-      t.description || '-'
-    ]);
-    
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Transactions_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExport = async (format) => {
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (filterType !== 'All') params.append('type', filterType);
+      
+      if (filterCategory !== 'All') {
+        const cat = categoriesList.find(c => c.name === filterCategory);
+        if (cat) {
+          params.append('category_id', cat.id);
+        }
+      }
+      
+      const token = localStorage.getItem('token');
+      const url = `${API_URL}/analytics/export/${format}?${params.toString()}`;
+      
+      const response = await axios.get(url, {
+        responseType: 'blob',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      const ext = format === 'excel' ? 'xlsx' : format;
+      link.setAttribute('download', `transactions_export_${new Date().toISOString().split('T')[0]}.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error(err);
+      setError(`Failed to export transactions as ${format.toUpperCase()}.`);
+    }
   };
 
   // Reset pagination to first page when filtering changes
@@ -340,11 +353,25 @@ const Transactions = () => {
             </button>
           )}
           <button 
-            onClick={handleExportCSV}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-sm font-semibold transition-colors shadow-sm"
+            onClick={() => handleExport('csv')}
+            className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
+          </button>
+          <button 
+            onClick={() => handleExport('excel')}
+            className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Excel</span>
+          </button>
+          <button 
+            onClick={() => handleExport('pdf')}
+            className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export PDF</span>
           </button>
           <label className="flex items-center space-x-2 px-4 py-2.5 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-sm font-semibold transition-colors shadow-sm cursor-pointer">
             <UploadCloud className="w-4 h-4 text-textMuted" />

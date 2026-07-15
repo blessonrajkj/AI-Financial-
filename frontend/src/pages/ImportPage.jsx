@@ -95,308 +95,49 @@ const ImportPage = () => {
     setProgress(0);
   };
 
-  const parseFile = (selectedFile) => {
+  const parseFile = async (selectedFile) => {
     setFile(selectedFile);
     setError('');
     setLoading(true);
+    setProgress(15);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    const formData = new FormData();
+    formData.append('file', selectedFile);
 
-        if (rows.length < 2) {
-          throw new Error("Spreadsheet contains insufficient rows. Must include headers and at least 1 record.");
-        }
-
-        setRawRows(rows);
-        detectAndProcessColumns(rows);
-      } catch (err) {
-        console.error(err);
-        setError(err.message || "Failed to parse file. Ensure it is a valid Excel or CSV file.");
-        setFile(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    reader.readAsArrayBuffer(selectedFile);
-  };
-
-  const parseAmountValue = (val) => {
-    if (val === undefined || val === null || val === '') return null;
-    if (typeof val === 'number') return val;
-    
-    // Clean string: remove commas, currency symbols, and whitespace
-    const cleanStr = val.toString()
-      .replace(/[₹$,\s]/g, '')
-      .trim();
-      
-    const num = parseFloat(cleanStr);
-    return isNaN(num) ? null : num;
-  };
-
-  const detectAndProcessColumns = (rows) => {
-    const headers = rows[0].map(h => h ? h.toString().trim().toLowerCase() : '');
-    
-    // Core detections matching required column aliases
-    const cols = {
-      date: headers.findIndex(h => h === 'date' || h === 'transaction date' || h.includes('date') || h.includes('time') || h.includes('txn date')),
-      merchant: headers.findIndex(h => h.includes('description') || h.includes('particulars') || h.includes('narration') || h.includes('merchant') || h.includes('payee')),
-      debit: headers.findIndex(h => 
-        h === 'debit' || 
-        h === 'debits' ||
-        h === 'dr' || 
-        h.includes('debit') || 
-        h.includes('withdrawal') || 
-        h.includes('outflow') || 
-        h.includes('payment') ||
-        h.includes('(dr)') ||
-        h.includes(' dr') ||
-        h.includes('dr ')
-      ),
-      credit: headers.findIndex(h => 
-        h === 'credit' || 
-        h === 'cr' || 
-        h === 'income' || 
-        h.includes('credit') || 
-        h.includes('deposit') || 
-        h.includes('inflow') || 
-        h.includes('received') ||
-        h.includes('income') ||
-        h.includes('(cr)') ||
-        h.includes(' cr') ||
-        h.includes('cr ')
-      ),
-      amount: headers.findIndex(h => h === 'amount' || h === 'value' || h === 'transaction amount' || h.includes('amount') || h.includes('value') || h.includes('sum')),
-      category: headers.findIndex(h => h.includes('category') || h.includes('tag')),
-      payment_method: headers.findIndex(h => h.includes('payment method') || h.includes('payment_method') || h.includes('method') || h.includes('mode') || h.includes('channel')),
-      balance: -1
-    };
-
-    // Scan from right to left to locate the first primarily numeric column (Balance)
-    let balanceIdx = -1;
-    for (let colIdx = headers.length - 1; colIdx >= 0; colIdx--) {
-      if (colIdx === cols.date || colIdx === cols.merchant || colIdx === cols.debit || colIdx === cols.credit || colIdx === cols.amount) {
-        continue;
-      }
-      let numericCount = 0;
-      let sampleCount = 0;
-      for (let r = 1; r < Math.min(rows.length, 10); r++) {
-        const val = rows[r][colIdx];
-        if (val !== undefined && val !== null && val !== '') {
-          sampleCount++;
-          const num = parseAmountValue(val);
-          if (num !== null) {
-            numericCount++;
-          }
-        }
-      }
-      if (sampleCount > 0 && numericCount / sampleCount >= 0.7) {
-        balanceIdx = colIdx;
-        break;
-      }
-    }
-    cols.balance = balanceIdx;
-
-    setDetectedColumns(cols);
-    generatePreview(rows, cols);
-  };
-
-  const generatePreview = async (rows, cols) => {
-    const dataRows = rows.slice(1);
-    const parsedTransactions = [];
-    const badRows = [];
-    
-    let totalIncome = 0;
-    let totalExpenses = 0;
-    let minDate = null;
-    let maxDate = null;
-
-    dataRows.forEach((row, rIdx) => {
-      // Skip completely empty rows
-      if (row.every(cell => cell === '')) return;
-
-      const errors = [];
-      
-      // 1. Resolve date
-      let rawDate = cols.date !== -1 ? row[cols.date] : null;
-      let dateString = '';
-      if (rawDate) {
-        if (rawDate instanceof Date) {
-          dateString = rawDate.toISOString();
-        } else {
-          // try converting string date
-          const cleanStr = rawDate.toString().trim();
-          const dObj = new Date(cleanStr);
-          if (!isNaN(dObj.getTime())) {
-            dateString = dObj.toISOString();
-          } else {
-            errors.push(`Invalid Date field format: "${rawDate}"`);
-          }
-        }
-      } else {
-        errors.push("Missing Date column cell");
-      }
-
-      // 2. Resolve amount and type
-      let amount = null;
-      let type = 'expense'; // default
-      if (cols.debit !== -1 || cols.credit !== -1) {
-        const rawDebit = cols.debit !== -1 ? row[cols.debit] : null;
-        const rawCredit = cols.credit !== -1 ? row[cols.credit] : null;
-        
-        const debitVal = parseAmountValue(rawDebit);
-        const creditVal = parseAmountValue(rawCredit);
-
-        if (creditVal !== null && creditVal > 0) {
-          amount = creditVal;
-          type = 'income';
-        } else if (debitVal !== null && debitVal > 0) {
-          amount = debitVal;
-          type = 'expense';
-        } else {
-          // fallback
-          const rawAmt = cols.amount !== -1 ? row[cols.amount] : null;
-          const amtVal = parseAmountValue(rawAmt);
-          if (amtVal !== null && amtVal !== 0) {
-            amount = Math.abs(amtVal);
-            type = amtVal < 0 ? 'expense' : 'income';
-          } else {
-            errors.push(`Missing or zero amount values. Scanned Debit/DEBITS field: "${rawDebit}", Credit/INCOME field: "${rawCredit}"`);
-          }
-        }
-      } 
-      // Case B: Single Amount column
-      else if (cols.amount !== -1) {
-        const rawAmt = row[cols.amount];
-        const amtVal = parseAmountValue(rawAmt);
-        if (amtVal !== null && amtVal !== 0) {
-          amount = Math.abs(amtVal);
-          type = amtVal < 0 ? 'expense' : 'income';
-        } else {
-          errors.push(`Invalid Amount field value: "${rawAmt}"`);
-        }
-      } else {
-        errors.push(`Missing Amount/Debit/Credit columns. Check column indexes: ${JSON.stringify(cols)}`);
-      }
-
-      // 3. Resolve Merchant/Description
-      let rawDesc = cols.merchant !== -1 ? row[cols.merchant] : '';
-      let merchantName = '';
-      let description = '';
-
-      if (rawDesc) {
-        const descStr = rawDesc.toString().trim();
-        description = descStr;
-        merchantName = descStr.replace(/(upi-|imps-|neft-|transfer to|pos |chg |interest )/gi, '').slice(0, 30).trim();
-      } else {
-        merchantName = 'Unspecified';
-      }
-
-      // 4. Auto Category Classification based on merchant/description
-      let category = cols.category !== -1 ? row[cols.category].toString().trim() : '';
-      if (!category) {
-        const descLower = description.toLowerCase();
-        const matched = AUTO_CATEGORIES.find(c => c.keywords.some(kw => descLower.includes(kw)));
-        category = matched ? matched.name : (type === 'income' ? 'Other Income' : 'Miscellaneous');
-      }
-
-      // 5. Payment method
-      let payment_method = cols.payment_method !== -1 ? row[cols.payment_method].toString().trim() : 'Cash';
-      if (!payment_method) {
-        const descLower = description.toLowerCase();
-        if (descLower.includes('upi') || descLower.includes('gpay') || descLower.includes('paytm') || descLower.includes('phonepe')) {
-          payment_method = 'UPI';
-        } else if (descLower.includes('card') || descLower.includes('pos') || descLower.includes('visa') || descLower.includes('mastercard')) {
-          payment_method = 'Card';
-        } else if (descLower.includes('net') || descLower.includes('bank') || descLower.includes('neft') || descLower.includes('imps') || descLower.includes('rtgs')) {
-          payment_method = 'Net Banking';
-        } else {
-          payment_method = 'Cash';
-        }
-      }
-
-      const txItem = {
-        date: dateString,
-        amount: amount,
-        type: type,
-        merchant: merchantName,
-        category: category,
-        description: description,
-        payment_method: payment_method
-      };
-
-      // Requirement: Print the parsed object for every row before validation
-      console.log(`[Import Row ${rIdx + 2}] Parsed Object:`, txItem);
-
-      if (errors.length > 0) {
-        badRows.push({
-          rowNum: rIdx + 2,
-          data: row,
-          reasons: errors
-        });
-      } else {
-        parsedTransactions.push(txItem);
-        const dTime = new Date(dateString).getTime();
-        if (!minDate || dTime < minDate) minDate = dTime;
-        if (!maxDate || dTime > maxDate) maxDate = dTime;
-      }
-    });
-
-    // Compute metrics
-    let incomeCount = 0;
-    let expenseCount = 0;
-    parsedTransactions.forEach(t => {
-      if (t.type === 'income') {
-        totalIncome += t.amount;
-        incomeCount++;
-      } else {
-        totalExpenses += t.amount;
-        expenseCount++;
-      }
-    });
-
-    setPreviewData(parsedTransactions);
-    setInvalidRows(badRows);
-    
-    setPreviewMetrics({
-      total: parsedTransactions.length,
-      total_income: totalIncome,
-      total_expenses: totalExpenses,
-      income_count: incomeCount,
-      expense_count: expenseCount,
-      date_range: minDate ? `${new Date(minDate).toLocaleDateString()} - ${new Date(maxDate).toLocaleDateString()}` : 'N/A'
-    });
-
-    if (parsedTransactions.length > 0) {
-      runBackendValidation(parsedTransactions);
-    }
-  };
-
-  const runBackendValidation = async (transactions) => {
     try {
-      const res = await axios.post(`${API_URL}/transactions/bulk-validate`, {
-        transactions: transactions
+      setProgress(40);
+      const res = await axios.post(`${API_URL}/transactions/upload-parse`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
-      const results = res.data.validation_results;
+      setProgress(80);
       
-      // Map validation back to previewData
-      const enriched = transactions.map((t, idx) => {
-        const valRes = results.find(r => r.index === idx);
-        return {
-          ...t,
-          is_duplicate: valRes ? valRes.is_duplicate : false
-        };
+      const parsedData = res.data.transactions;
+      const invalid = res.data.invalid_rows || [];
+      const summary = res.data.summary;
+      
+      setPreviewData(parsedData);
+      setInvalidRows(invalid);
+      setDuplicatesCount(summary.duplicate_count);
+      
+      setPreviewMetrics({
+        total: summary.total,
+        total_income: summary.income_total,
+        total_expenses: summary.expense_total,
+        detected_categories: summary.detected_categories || [],
+        detected_accounts: summary.detected_accounts || [],
+        bank: res.data.bank || 'Generic',
+        is_scanned: res.data.is_scanned || false
       });
       
-      setPreviewData(enriched);
-      setDuplicatesCount(res.data.summary.duplicates);
+      setProgress(100);
     } catch (err) {
-      console.error("Validation failed", err);
+      console.error(err);
+      setError(err.response?.data?.detail || "Failed to process and parse file. Please upload a valid CSV, Excel, or PDF bank statement.");
+      setFile(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -476,12 +217,12 @@ const ImportPage = () => {
             type="file" 
             ref={fileInputRef}
             onChange={handleFileChange}
-            accept=".xlsx,.xls,.csv" 
+            accept=".xlsx,.xls,.csv,.pdf" 
             className="hidden" 
           />
           <UploadCloud className={`w-14 h-14 ${dragActive ? 'text-primary' : 'text-textMuted'} mb-4`} />
           <h3 className="text-lg font-bold text-textPrimary">Drag and drop bank statement files</h3>
-          <p className="text-xs text-textSecondary mt-2">Supports XLS, XLSX, and CSV formats from standard Indian banks</p>
+          <p className="text-xs text-textSecondary mt-2">Supports XLS, XLSX, CSV, and PDF bank, UPI, and credit card statements</p>
           <button 
             type="button" 
             className="mt-6 px-5 py-2.5 bg-background border border-borderColor rounded-xl text-textSecondary text-sm font-bold shadow-sm hover:text-textPrimary hover:bg-hoverBg transition-colors"
@@ -560,7 +301,7 @@ const ImportPage = () => {
           <div className="flex justify-between items-center p-4 bg-cardBg border border-borderColor rounded-2xl flex-col sm:flex-row gap-4">
             <div className="flex items-center space-x-3">
               <div className="p-3 bg-primary/10 text-primary rounded-xl">
-                {file.name.endsWith('.csv') ? <FileText className="w-6 h-6" /> : <FileSpreadsheet className="w-6 h-6" />}
+                {file.name.endsWith('.pdf') ? <FileText className="w-6 h-6" /> : <FileSpreadsheet className="w-6 h-6" />}
               </div>
               <div>
                 <h4 className="text-sm font-bold text-textPrimary truncate max-w-xs">{file.name}</h4>
@@ -576,45 +317,67 @@ const ImportPage = () => {
             </button>
           </div>
 
-          {/* Detected Column Mapping Map */}
-          <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-textSecondary mb-2">Detected Column Headers Mapping</h4>
-            <div className="grid grid-cols-2 md:grid-cols-8 gap-3 text-xs font-semibold text-textSecondary">
-              <div className="p-2.5 bg-background border border-borderColor rounded-xl">📅 Date: <span className="text-primary font-bold block mt-0.5">{detectedColumns.date !== -1 ? rawRows[0][detectedColumns.date] : 'Not Detected'}</span></div>
-              <div className="p-2.5 bg-background border border-borderColor rounded-xl">🏢 Merchant: <span className="text-primary font-bold block mt-0.5">{detectedColumns.merchant !== -1 ? rawRows[0][detectedColumns.merchant] : 'Not Detected'}</span></div>
-              <div className="p-2.5 bg-background border border-borderColor rounded-xl">💸 Debit: <span className="text-primary font-bold block mt-0.5">{detectedColumns.debit !== -1 ? rawRows[0][detectedColumns.debit] : 'Not Detected'}</span></div>
-              <div className="p-2.5 bg-background border border-borderColor rounded-xl">💰 Credit: <span className="text-primary font-bold block mt-0.5">{detectedColumns.credit !== -1 ? rawRows[0][detectedColumns.credit] : 'Not Detected'}</span></div>
-              <div className="p-2.5 bg-background border border-borderColor rounded-xl">💵 Amount: <span className="text-primary font-bold block mt-0.5">{detectedColumns.amount !== -1 ? rawRows[0][detectedColumns.amount] : 'Not Detected'}</span></div>
-              <div className="p-2.5 bg-background border border-borderColor rounded-xl">🏷️ Category: <span className="text-primary font-bold block mt-0.5">{detectedColumns.category !== -1 ? rawRows[0][detectedColumns.category] : 'Not Detected'}</span></div>
-              <div className="p-2.5 bg-background border border-borderColor rounded-xl">🔌 Method: <span className="text-primary font-bold block mt-0.5">{detectedColumns.payment_method !== -1 ? rawRows[0][detectedColumns.payment_method] : 'Not Detected'}</span></div>
-              <div className="p-2.5 bg-background border border-borderColor rounded-xl">⚖️ Balance: <span className="text-primary font-bold block mt-0.5">{detectedColumns.balance !== -1 ? rawRows[0][detectedColumns.balance] : 'Not Detected'}</span></div>
+          {/* Import Meta & Detected Accounts/Categories */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
+              <h4 className="text-xs font-black uppercase tracking-wider text-textSecondary mb-3">Detected Accounts / Banks</h4>
+              <div className="flex flex-wrap gap-2">
+                {previewMetrics.detected_accounts?.length > 0 ? (
+                  previewMetrics.detected_accounts.map((acc, index) => (
+                    <span key={index} className="px-3.5 py-1.5 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-bold text-primary flex items-center space-x-1.5">
+                      <Layers className="w-3.5 h-3.5 animate-pulse" />
+                      <span>{acc}</span>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-textMuted font-semibold">No accounts detected</span>
+                )}
+              </div>
+            </div>
+            
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
+              <h4 className="text-xs font-black uppercase tracking-wider text-textSecondary mb-3">Detected Categories</h4>
+              <div className="flex flex-wrap gap-2">
+                {previewMetrics.detected_categories?.length > 0 ? (
+                  previewMetrics.detected_categories.map((cat, index) => (
+                    <span key={index} className="px-3.5 py-1.5 rounded-2xl bg-success/10 border border-success/20 text-xs font-bold text-success flex items-center space-x-1.5">
+                      <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                      <span>{cat}</span>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-textMuted font-semibold">No categories detected</span>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Aggregate Metrics panel */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Valid Rows</span>
+              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Total Transactions</span>
               <h3 className="text-xl font-black text-textPrimary mt-1">{previewMetrics.total}</h3>
               <p className="text-[10px] text-textSecondary mt-1">Total transactions logged</p>
             </div>
             <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
               <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Total Credit (Inflow)</span>
               <h3 className="text-xl font-black text-success mt-1">₹{(previewMetrics.total_income || 0).toLocaleString()}</h3>
-              <p className="text-[10px] text-success font-bold mt-1">▲ {previewMetrics.income_count || 0} income transactions</p>
+              <p className="text-[10px] text-success font-bold mt-1">Total income parsed</p>
             </div>
             <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
               <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Total Debit (Outflow)</span>
               <h3 className="text-xl font-black text-danger mt-1">₹{(previewMetrics.total_expenses || 0).toLocaleString()}</h3>
-              <p className="text-[10px] text-danger font-bold mt-1">▼ {previewMetrics.expense_count || 0} expense transactions</p>
+              <p className="text-[10px] text-danger font-bold mt-1">Total expenses parsed</p>
             </div>
             <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Statement Span</span>
-              <h3 className="text-xs font-black text-textPrimary mt-1 flex items-center space-x-1">
+              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Institution & Type</span>
+              <h3 className="text-sm font-black text-textPrimary mt-1 flex items-center space-x-1">
                 <Calendar className="w-3.5 h-3.5 text-textMuted" />
-                <span>{previewMetrics.date_range}</span>
+                <span>{previewMetrics.bank}</span>
               </h3>
-              <p className="text-[10px] text-textSecondary mt-1">Scanned statement dates span</p>
+              <p className="text-[10px] text-textSecondary mt-1">
+                {previewMetrics.is_scanned ? "AI OCR Scanned PDF" : "Digital Selectable PDF"}
+              </p>
             </div>
           </div>
 

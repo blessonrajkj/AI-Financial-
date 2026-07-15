@@ -29,6 +29,11 @@ class TransactionBase(BaseModel):
     receipt_id: int | None = None
     voice_log_id: int | None = None
     tags: str | None = None
+    transaction_id: str | None = None
+    reference_number: str | None = None
+    bank: str | None = None
+    balance: float | None = None
+    time: str | None = None
 
 class TransactionCreate(TransactionBase):
     pass
@@ -43,6 +48,11 @@ class TransactionUpdate(BaseModel):
     type: str | None = None
     is_recurring: bool | None = None
     tags: str | None = None
+    transaction_id: str | None = None
+    reference_number: str | None = None
+    bank: str | None = None
+    balance: float | None = None
+    time: str | None = None
 
 class TransactionOut(TransactionBase):
     id: int
@@ -64,6 +74,11 @@ class BulkTransactionItem(BaseModel):
     category: str | None = None
     description: str | None = None
     payment_method: str = "Cash"
+    transaction_id: str | None = None
+    reference_number: str | None = None
+    bank: str | None = None
+    balance: float | None = None
+    time: str | None = None
 
 class BulkValidateRequest(BaseModel):
     transactions: list[BulkTransactionItem]
