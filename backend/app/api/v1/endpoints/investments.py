@@ -31,16 +31,16 @@ def get_investments(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
+    from app.services.market_data import market_data_service
+    is_demo_mode, live_api_working, last_updated_time = market_data_service.update_prices_for_user(db, current_user.id)
+    
     investments = db.query(Investment).filter(Investment.user_id == current_user.id).all()
     
     total_purchase_val = 0.0
     total_current_val = 0.0
     total_dividends = 0.0
     weighted_risk_sum = 0.0
-    
-    # Simulated today's gain/loss factor per user session (using seed for daily stability)
-    random.seed(current_user.id + datetime.now().day)
-    today_factor = random.uniform(-0.02, 0.02) # between -2% and +2% daily change
+    portfolio_today_pl = 0.0
     
     items = []
     for inv in investments:
@@ -52,7 +52,6 @@ def get_investments(
         # Calculate CAGR
         years = 1.0
         if inv.purchase_date:
-            # handle both offset-naive and offset-aware datetimes cleanly
             p_date = inv.purchase_date
             if p_date.tzinfo is not None:
                 p_date = p_date.replace(tzinfo=None)
@@ -63,7 +62,7 @@ def get_investments(
         if p_val > 0 and c_val > 0:
             cagr = ((c_val / p_val) ** (1 / years) - 1.0) * 100.0
             
-        # Simplified XIRR (internal rate of return including dividends)
+        # Simplified XIRR
         xirr = 0.0
         total_return_with_divs = c_val + inv.dividends_received
         if p_val > 0 and total_return_with_divs > 0:
@@ -71,8 +70,9 @@ def get_investments(
             
         risk = RISK_SCORES.get(inv.asset_type, 4)
         
-        # simulated today gain/loss
-        today_pl = c_val * today_factor
+        # today's gain/loss
+        today_pl = inv.quantity * (inv.current_price - (inv.previous_close or inv.current_price))
+        portfolio_today_pl += today_pl
         
         total_purchase_val += p_val
         total_current_val += c_val
@@ -83,6 +83,8 @@ def get_investments(
             "id": inv.id,
             "asset_name": inv.asset_name,
             "asset_type": inv.asset_type,
+            "symbol": inv.symbol,
+            "exchange": inv.exchange,
             "quantity": inv.quantity,
             "purchase_price": inv.purchase_price,
             "current_price": inv.current_price,
@@ -95,7 +97,9 @@ def get_investments(
             "cagr": cagr,
             "xirr": xirr,
             "risk_score": risk,
-            "today_gain_loss": today_pl
+            "today_gain_loss": today_pl,
+            "previous_close": inv.previous_close or inv.current_price,
+            "price_last_updated": inv.price_last_updated.isoformat() if inv.price_last_updated else None
         })
         
     portfolio_pl = total_current_val - total_purchase_val
@@ -103,9 +107,6 @@ def get_investments(
     
     # Weighted average risk score
     portfolio_risk = (weighted_risk_sum / total_current_val) if total_current_val > 0 else 0.0
-    
-    # simulated today gain/loss aggregate
-    portfolio_today_pl = total_current_val * today_factor
     
     # Asset allocation percentage calculation
     allocation = {}
@@ -115,7 +116,7 @@ def get_investments(
         allocation[inv.asset_type] = allocation.get(inv.asset_type, 0.0) + pct
         
     allocation_list = [{"name": k, "value": round(v, 1)} for k, v in allocation.items()]
-
+ 
     return {
         "summary": {
             "total_investment": total_purchase_val,
@@ -127,7 +128,10 @@ def get_investments(
             "portfolio_risk_score": round(portfolio_risk, 1)
         },
         "allocation": allocation_list,
-        "items": items
+        "items": items,
+        "is_demo_mode": is_demo_mode,
+        "live_api_working": live_api_working,
+        "last_updated_time": last_updated_time
     }
 
 @router.post("", response_model=InvestmentOut, status_code=status.HTTP_201_CREATED)
@@ -140,15 +144,23 @@ def create_investment(
         user_id=current_user.id,
         asset_name=inv_in.asset_name,
         asset_type=inv_in.asset_type,
+        symbol=inv_in.symbol,
+        exchange=inv_in.exchange,
         quantity=inv_in.quantity,
         purchase_price=inv_in.purchase_price,
-        current_price=inv_in.current_price,
+        current_price=inv_in.current_price or inv_in.purchase_price,
         purchase_date=inv_in.purchase_date or datetime.utcnow(),
         dividends_received=inv_in.dividends_received
     )
     db.add(db_inv)
     db.commit()
-    db.refresh(db_inv)
+    
+    # Trigger immediate update of this new asset
+    if db_inv.symbol:
+        from app.services.market_data import market_data_service
+        market_data_service.update_prices_for_user(db, current_user.id, force=True)
+        db.refresh(db_inv)
+        
     return db_inv
 
 @router.put("/{inv_id}", response_model=InvestmentOut)
@@ -170,7 +182,13 @@ def update_investment(
         setattr(db_inv, field, val)
         
     db.commit()
-    db.refresh(db_inv)
+    
+    # Trigger immediate update if symbol updated
+    if "symbol" in update_data or "exchange" in update_data:
+        from app.services.market_data import market_data_service
+        market_data_service.update_prices_for_user(db, current_user.id, force=True)
+        db.refresh(db_inv)
+        
     return db_inv
 
 @router.delete("/{inv_id}")

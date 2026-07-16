@@ -77,6 +77,24 @@ def create_tables():
                 db.commit()
                 print(f"{col_name} column added successfully.")
         
+        # Check if investments table has columns
+        cursor_inv = db.execute(text("PRAGMA table_info(investments);"))
+        columns_inv = [row[1] for row in cursor_inv.fetchall()]
+        
+        inv_migrations = [
+            ("symbol", "ALTER TABLE investments ADD COLUMN symbol VARCHAR;"),
+            ("exchange", "ALTER TABLE investments ADD COLUMN exchange VARCHAR;"),
+            ("previous_close", "ALTER TABLE investments ADD COLUMN previous_close FLOAT;"),
+            ("price_last_updated", "ALTER TABLE investments ADD COLUMN price_last_updated TIMESTAMP;")
+        ]
+        
+        for col_name, sql in inv_migrations:
+            if col_name not in columns_inv:
+                print(f"Migrating: Adding {col_name} column to investments table...")
+                db.execute(text(sql))
+                db.commit()
+                print(f"{col_name} column added successfully.")
+        
         init_db(db)
     except Exception as e:
         print(f"Error during db table creation/migration: {e}")

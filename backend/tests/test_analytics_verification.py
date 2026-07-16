@@ -132,3 +132,40 @@ def test_pdf_parser_classification():
     assert t_credit["amount"] == 45000.00
     assert t_credit["description"] == "Salary Credit"
 
+
+def test_market_data_service(db):
+    from app.services.market_data import market_data_service
+    from app.models.investment import Investment
+    from datetime import datetime, timezone
+    import unittest.mock as mock
+    
+    # Test fetching a mock symbol
+    mock_response = mock.Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "chart": {
+            "result": [
+                {
+                    "meta": {
+                        "regularMarketPrice": 150.0,
+                        "previousClose": 148.0
+                    }
+                }
+            ]
+        }
+    }
+    
+    with mock.patch("requests.get", return_value=mock_response):
+        res = market_data_service.fetch_price_for_symbol("AAPL")
+        assert res["success"] is True
+        assert res["price"] == 150.0
+        assert res["previous_close"] == 148.0
+
+    # Test fetching error
+    mock_error = mock.Mock()
+    mock_error.status_code = 404
+    with mock.patch("requests.get", return_value=mock_error):
+        res = market_data_service.fetch_price_for_symbol("INVALID_SYM")
+        assert res["success"] is False
+
+

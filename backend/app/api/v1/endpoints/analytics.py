@@ -111,6 +111,9 @@ def get_dashboard_summary(
     ).scalar() or 0.0
 
     # Investment returns
+    from app.services.market_data import market_data_service
+    market_data_service.update_prices_for_user(db, current_user.id)
+    
     investments_db = db.query(Investment).filter(Investment.user_id == current_user.id).all()
     total_investments_current = sum(i.quantity * i.current_price for i in investments_db)
     total_investments_cost = sum(i.quantity * i.purchase_price for i in investments_db)

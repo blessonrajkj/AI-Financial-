@@ -50,11 +50,11 @@ const InvestmentsPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [assetName, setAssetName] = useState('');
   const [assetType, setAssetType] = useState('Stocks');
+  const [symbol, setSymbol] = useState('');
+  const [exchange, setExchange] = useState('NSE');
   const [quantity, setQuantity] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
-  const [currentPrice, setCurrentPrice] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dividendsReceived, setDividendsReceived] = useState('0');
 
   const fetchInvestments = async () => {
     try {
@@ -76,11 +76,11 @@ const InvestmentsPage = () => {
     setEditingId(null);
     setAssetName('');
     setAssetType('Stocks');
+    setSymbol('');
+    setExchange('NSE');
     setQuantity('');
     setPurchasePrice('');
-    setCurrentPrice('');
     setPurchaseDate(new Date().toISOString().split('T')[0]);
-    setDividendsReceived('0');
     setShowModal(true);
   };
 
@@ -88,11 +88,11 @@ const InvestmentsPage = () => {
     setEditingId(inv.id);
     setAssetName(inv.asset_name);
     setAssetType(inv.asset_type);
+    setSymbol(inv.symbol || '');
+    setExchange(inv.exchange || 'NSE');
     setQuantity(inv.quantity);
     setPurchasePrice(inv.purchase_price);
-    setCurrentPrice(inv.current_price);
     setPurchaseDate(inv.purchase_date ? inv.purchase_date.split('T')[0] : new Date().toISOString().split('T')[0]);
-    setDividendsReceived(inv.dividends_received || '0');
     setShowModal(true);
   };
 
@@ -105,11 +105,11 @@ const InvestmentsPage = () => {
     const payload = {
       asset_name: assetName,
       asset_type: assetType,
+      symbol: symbol,
+      exchange: exchange,
       quantity: parseFloat(quantity),
       purchase_price: parseFloat(purchasePrice),
-      current_price: parseFloat(currentPrice),
-      purchase_date: purchaseDate + 'T12:00:00',
-      dividends_received: parseFloat(dividendsReceived)
+      purchase_date: purchaseDate + 'T12:00:00'
     };
 
     try {
@@ -152,8 +152,23 @@ const InvestmentsPage = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Investment Tracker</h1>
-          <p className="text-textSecondary mt-1">Track stocks, crypto, mutual funds, gold, SIPs, and interest holdings</p>
+          <div className="flex items-center space-x-2">
+            <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Investment Tracker</h1>
+            {data.is_demo_mode && (
+              <span className="px-2 py-0.5 rounded bg-warning/15 text-warning text-[10px] font-black uppercase tracking-wider animate-pulse">
+                Demo Market Data
+              </span>
+            )}
+          </div>
+          <p className="text-textSecondary mt-1 flex items-center space-x-1.5">
+            <span>Track stocks, crypto, mutual funds, gold, SIPs, and interest holdings with live market tickers</span>
+            {data.last_updated_time && (
+              <>
+                <span className="text-textMuted">•</span>
+                <span className="text-[10px] text-textMuted font-medium">Last Updated: {data.last_updated_time}</span>
+              </>
+            )}
+          </p>
         </div>
         <div className="flex space-x-3">
           <button 
@@ -208,6 +223,13 @@ const InvestmentsPage = () => {
         <div className="p-4 rounded-xl bg-success/10 border border-success/20 text-success text-sm font-semibold flex items-center space-x-2">
           <Check className="w-5 h-5 flex-shrink-0" />
           <span>{success}</span>
+        </div>
+      )}
+
+      {data.live_api_working === false && (
+        <div className="p-4 rounded-xl bg-warning/10 border border-warning/20 text-warning text-sm font-semibold flex items-center space-x-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>Live market API is temporarily offline. Showing cached asset prices from {data.last_updated_time || 'previously recorded sync'}.</span>
         </div>
       )}
 
@@ -334,7 +356,20 @@ const InvestmentsPage = () => {
                     const isPositive = item.profit_loss >= 0;
                     return (
                       <tr key={item.id} className="border-b border-borderColor/60 hover:bg-hoverBg/40 transition-colors">
-                        <td className="py-3 px-3 font-semibold text-textPrimary">{item.asset_name}</td>
+                        <td className="py-3 px-3">
+                          <div className="font-semibold text-textPrimary">{item.asset_name}</div>
+                          {item.symbol && (
+                            <div className="text-[10px] text-textMuted uppercase flex items-center space-x-1 mt-0.5">
+                              <span className="font-bold text-textSecondary">{item.symbol}</span>
+                              {item.exchange && (
+                                <>
+                                  <span>•</span>
+                                  <span>{item.exchange}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-3 px-3">
                           <span className="px-2 py-0.5 rounded-full bg-background border border-borderColor text-[10px] text-textSecondary">
                             {item.asset_type}
@@ -420,7 +455,33 @@ const InvestmentsPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Symbol</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. AAPL, RELIANCE.NS"
+                    value={symbol}
+                    onChange={(e) => setSymbol(e.target.value)}
+                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Exchange</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. NASDAQ, NSE, BSE, Crypto"
+                    value={exchange}
+                    onChange={(e) => setExchange(e.target.value)}
+                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Quantity</label>
                   <input 
@@ -435,7 +496,7 @@ const InvestmentsPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Avg Buy (₹)</label>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Avg Buy Price (₹)</label>
                   <input 
                     type="number" 
                     step="any"
@@ -446,22 +507,9 @@ const InvestmentsPage = () => {
                     className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Current (₹)</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    required
-                    placeholder="1500"
-                    value={currentPrice}
-                    onChange={(e) => setCurrentPrice(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Purchase Date</label>
                   <input 
@@ -469,17 +517,6 @@ const InvestmentsPage = () => {
                     required
                     value={purchaseDate}
                     onChange={(e) => setPurchaseDate(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Dividends (₹)</label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={dividendsReceived}
-                    onChange={(e) => setDividendsReceived(e.target.value)}
                     className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
                   />
                 </div>
