@@ -119,3 +119,36 @@ class MarketDataService:
         return demo_mode, live_api_working, last_updated_str
 
 market_data_service = MarketDataService()
+
+
+async def start_daily_price_updater():
+    """
+    Background worker that runs in the event loop and updates all investment prices daily.
+    """
+    import asyncio
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("Starting background daily investment price updater...")
+    # Wait a few seconds for the app to fully boot up
+    await asyncio.sleep(5)
+    while True:
+        try:
+            logger.info("Executing daily background investment price update...")
+            from app.core.database import SessionLocal
+            from app.models.investment import Investment
+            
+            db = SessionLocal()
+            try:
+                # Find all unique user IDs who have investments with symbols
+                user_ids = [r[0] for r in db.query(Investment.user_id).filter(Investment.symbol != "").filter(Investment.symbol != None).distinct().all()]
+                logger.info(f"Background pricing: updating investments for users: {user_ids}")
+                for uid in user_ids:
+                    # Force update to make sure we query fresh prices from Yahoo Finance
+                    market_data_service.update_prices_for_user(db, uid, force=True)
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Error in background daily price updater: {e}")
+            
+        # Sleep for 24 hours (86400 seconds)
+        await asyncio.sleep(86400)

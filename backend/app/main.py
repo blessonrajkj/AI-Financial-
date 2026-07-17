@@ -35,6 +35,10 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 def on_startup():
     try:
         create_tables()
+        # Spawn background daily price updater
+        import asyncio
+        from app.services.market_data import start_daily_price_updater
+        asyncio.create_task(start_daily_price_updater())
     except Exception as e:
         print(f"Error during startup DB initialization: {e}")
 

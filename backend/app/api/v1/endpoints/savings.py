@@ -20,26 +20,50 @@ def get_savings_goals(
 ):
     goals = db.query(SavingsGoal).filter(SavingsGoal.user_id == current_user.id).all()
     
-    # 1. Calculate user's monthly savings rate based on transactions
-    first_tx = db.query(Transaction).filter(Transaction.user_id == current_user.id).order_by(Transaction.date.asc()).first()
-    if first_tx:
-        days_span = (datetime.utcnow() - first_tx.date).days
-        days_span = max(days_span, 15)  # min 15 days to prevent extreme skew
+    # 1. Calculate user's monthly savings rate based on recent transactions (last 30 days)
+    now = datetime.utcnow()
+    last_30_days = now - timedelta(days=30)
+    
+    income_30 = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.type == "income",
+        Transaction.date >= last_30_days
+    ).scalar() or 0.0
+    
+    expense_30 = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.type == "expense",
+        Transaction.date >= last_30_days
+    ).scalar() or 0.0
+    
+    net_savings_30 = income_30 - expense_30
+    
+    if net_savings_30 > 0:
+        monthly_savings_rate = net_savings_30
     else:
-        days_span = 30
+        # Fall back to all-time averages if recent is <= 0 or empty
+        first_tx = db.query(Transaction).filter(Transaction.user_id == current_user.id).order_by(Transaction.date.asc()).first()
+        if first_tx:
+            tx_date = first_tx.date
+            if tx_date.tzinfo is not None:
+                tx_date = tx_date.replace(tzinfo=None)
+            days_span = (now - tx_date).days
+            days_span = max(days_span, 15)  # min 15 days to prevent extreme skew
+        else:
+            days_span = 30
+            
+        total_income = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "income"
+        ).scalar() or 0.0
         
-    total_income = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "income"
-    ).scalar() or 0.0
-    
-    total_expense = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "expense"
-    ).scalar() or 0.0
-    
-    net_savings = total_income - total_expense
-    monthly_savings_rate = (net_savings / days_span) * 30.0
+        total_expense = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "expense"
+        ).scalar() or 0.0
+        
+        net_savings_all = total_income - total_expense
+        monthly_savings_rate = (net_savings_all / days_span) * 30.0
     
     response = []
     for g in goals:
@@ -51,21 +75,35 @@ def get_savings_goals(
         if remaining <= 0:
             ai_prediction = "Goal achieved! Congratulations!"
         else:
-            time_left_months = max(((g.target_date - datetime.utcnow()).days / 30.0), 0.1)
+            g_target = g.target_date
+            if g_target.tzinfo is not None:
+                g_target = g_target.replace(tzinfo=None)
+                
+            now_naive = datetime.utcnow()
+            days_left = (g_target - now_naive).days
+            time_left_months = max((days_left / 30.0), 0.1)
             required_rate = remaining / time_left_months
             
             if monthly_savings_rate <= 0:
                 ai_prediction = f"⚠️ Spending exceeds income. Save ₹{required_rate:,.2f}/mo to hit target."
             else:
                 months_needed = remaining / monthly_savings_rate
-                projected_date = datetime.utcnow() + timedelta(days=int(months_needed * 30.0))
                 
-                if projected_date <= g.target_date:
-                    ai_prediction = f"✅ On Track! Expected: {projected_date.strftime('%B %Y')} (Monthly savings: ₹{monthly_savings_rate:,.2f})"
+                # Check if target is out of range (more than 100 years / 1200 months)
+                if months_needed > 1200:
+                    ai_prediction = f"⚠️ Behind Target. Goal is out of reach at current rate (100+ years). Increase savings by ₹{required_rate - monthly_savings_rate:,.2f}/mo."
                 else:
-                    needed_extra = required_rate - monthly_savings_rate
-                    ai_prediction = f"⚠️ Behind Target. Expected: {projected_date.strftime('%B %Y')}. Increase savings by ₹{needed_extra:,.2f}/mo."
-                    
+                    try:
+                        projected_date = now_naive + timedelta(days=int(months_needed * 30.0))
+                        
+                        if projected_date <= g_target:
+                            ai_prediction = f"✅ On Track! Expected: {projected_date.strftime('%B %Y')} (Monthly savings: ₹{monthly_savings_rate:,.2f})"
+                        else:
+                            needed_extra = required_rate - monthly_savings_rate
+                            ai_prediction = f"⚠️ Behind Target. Expected: {projected_date.strftime('%B %Y')}. Increase savings by ₹{needed_extra:,.2f}/mo."
+                    except OverflowError:
+                        ai_prediction = f"⚠️ Behind Target. Goal is out of reach at current rate. Increase savings by ₹{required_rate - monthly_savings_rate:,.2f}/mo."
+                        
         response.append({
             "id": g.id,
             "name": g.name,
