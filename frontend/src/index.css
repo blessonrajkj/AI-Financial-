@@ -487,16 +487,90 @@ html.dark {
 
 /* ─────────────────────────────────────────
    SIDEBAR: Obsidian dark — always dark regardless of theme
-───────────────────────────────────────── */
+   ───────────────────────────────────────── */
 aside .sidebar-bg {
   background: #0D0D0D;
 }
 
 /* ─────────────────────────────────────────
    SELECTION & ACCESSIBILITY
-───────────────────────────────────────── */
+   ───────────────────────────────────────── */
 *:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────
+   ELITE UI/UX INTERACTION ENHANCEMENTS
+   ───────────────────────────────────────── */
+
+/* Slide-right micro-interaction for sidebar links */
+aside nav a {
+  transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+aside nav a:hover {
+  transform: translateX(4px);
+  color: var(--text-primary) !important;
+}
+
+/* Apply elite hover transforms to KPI and dashboard card stats */
+.bg-cardBg.border {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bg-cardBg.border:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02), 0 10px 24px rgba(0,0,0,0.04);
+}
+
+/* Exclude large charts, grid aggregates, and ledger wrappers from shifting to avoid layout jitter */
+.md\:col-span-2.bg-cardBg.border:hover,
+.md\:col-span-3.bg-cardBg.border:hover,
+.col-span-full.bg-cardBg.border:hover {
+  transform: none !important;
+  box-shadow: var(--shadow-card) !important;
+  border-color: var(--border) !important;
+}
+
+/* Global primary button action micro-interactions and depth shadows */
+button.bg-primary, a.bg-primary {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.12), 0 4px 12px rgba(79, 70, 229, 0.08) !important;
+}
+button.bg-primary:hover, a.bg-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.24), 0 8px 24px rgba(79, 70, 229, 0.12) !important;
+}
+button.bg-primary:active, a.bg-primary:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Global success button improvements (like deposit confirmations) */
+button.bg-success, a.bg-success {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.12) !important;
+}
+button.bg-success:hover, a.bg-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.24) !important;
+}
+
+/* Form fields focus glow effects */
+input, select, textarea {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease !important;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12) !important;
+}
+
+/* Row-level hover highlighting across all tables */
+tr {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+tr:hover {
+  background-color: var(--hover-bg) !important;
 }
