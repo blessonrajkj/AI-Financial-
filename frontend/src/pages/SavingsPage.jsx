@@ -152,18 +152,31 @@ const SavingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Savings Goals</h1>
-          <p className="text-textSecondary mt-1">Plan, visualize, and forecast milestones for your savings targets</p>
+      {/* Top Header Card */}
+      <div className="doppel-shell relative overflow-hidden">
+        <div className="glow-orb-primary -top-20 -left-20 w-80 h-80" />
+        <div className="doppel-core px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="eyebrow-badge">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                Wealth Vault
+              </span>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-textPrimary">Savings & Milestones</h1>
+            <p className="text-xs text-textMuted mt-1 font-medium">Plan, track, and run AI predictive simulations for long-term target milestones</p>
+          </div>
+
+          <button 
+            onClick={handleOpenAdd}
+            className="btn-island group self-start md:self-auto"
+          >
+            <span>New Goal</span>
+            <span className="btn-island-icon">
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            </span>
+          </button>
         </div>
-        <button 
-          onClick={handleOpenAdd}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-primary hover:bg-primaryHover text-white text-sm font-bold rounded-xl shadow-md transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Savings Goal</span>
-        </button>
       </div>
 
       {error && (

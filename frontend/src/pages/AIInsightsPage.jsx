@@ -138,30 +138,37 @@ const AIInsightsPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-6 h-6 text-primary animate-pulse" />
-            <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">AI Insights</h1>
+      {/* Top Header Card */}
+      <div className="doppel-shell relative overflow-hidden">
+        <div className="glow-orb-primary -top-20 -left-20 w-80 h-80" />
+        <div className="doppel-core px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="eyebrow-badge">
+                <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+                Autonomous Engine
+              </span>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-textPrimary">AI Financial Intelligence</h1>
+            <p className="text-xs text-textMuted mt-1 font-medium">Dynamically generated financial recommendations and algorithmic forecasts based on actual account transactions</p>
+            {lastUpdated && (
+              <p className="text-[10px] text-textMuted mt-0.5 font-numeric">
+                Last analyzed: {lastUpdated.toLocaleTimeString('en-IN')}
+              </p>
+            )}
           </div>
-          <p className="text-textSecondary mt-1">
-            Dynamically generated financial intelligence based on your actual ledger records
-          </p>
-          {lastUpdated && (
-            <p className="text-[10px] text-textMuted mt-0.5">
-              Last analyzed: {lastUpdated.toLocaleTimeString('en-IN')}
-            </p>
-          )}
+
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="btn-island group self-start md:self-auto disabled:opacity-50"
+          >
+            <span>Re-Analyze</span>
+            <span className="btn-island-icon">
+              <RefreshCw className={`w-3.5 h-3.5 stroke-[2.5] ${refreshing ? 'animate-spin' : ''}`} />
+            </span>
+          </button>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-primary/30 transition-all shadow-sm text-sm font-semibold disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>Re-Analyze</span>
-        </button>
       </div>
 
       {/* Priority Summary Cards */}
@@ -175,22 +182,26 @@ const AIInsightsPage = () => {
               <button
                 key={priority}
                 onClick={() => setFilterPriority(filterPriority === priority ? 'All' : priority)}
-                className={`p-4 rounded-2xl border text-left transition-all ${
-                  filterPriority === priority
-                    ? `${config.bgColor} ${config.borderColor} shadow-md`
-                    : 'bg-cardBg border-borderColor hover:border-borderColor/80'
+                className={`doppel-shell text-left transition-all ${
+                  filterPriority === priority ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <Icon className={`w-5 h-5 ${config.iconColor}`} />
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${config.badgeBg}`}>
-                    {count}
-                  </span>
+                <div className={`doppel-core p-5 flex flex-col justify-between ${
+                  filterPriority === priority ? `${config.bgColor}` : ''
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <Icon className={`w-5 h-5 ${config.iconColor}`} />
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider ${config.badgeBg}`}>
+                      {count}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-textPrimary tracking-tight">{priority}</p>
+                    <p className="text-[11px] text-textMuted font-medium mt-0.5">
+                      {count === 1 ? '1 active insight' : `${count} active insights`}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm font-black text-textPrimary">{priority}</p>
-                <p className="text-[10px] text-textMuted mt-0.5">
-                  {count === 1 ? '1 insight' : `${count} insights`}
-                </p>
               </button>
             );
           })}

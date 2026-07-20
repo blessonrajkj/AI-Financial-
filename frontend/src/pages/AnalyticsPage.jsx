@@ -94,33 +94,42 @@ const AnalyticsPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Analytics</h1>
-          <p className="text-textSecondary mt-1">Deep-dive financial reports, category analysis, and ML forecasts</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          {/* Days filter */}
-          <div className="flex items-center bg-cardBg border border-borderColor rounded-xl overflow-hidden shadow-sm">
-            {[7, 30, 90].map(d => (
-              <button
-                key={d}
-                onClick={() => setDays(d)}
-                className={`px-3.5 py-2 text-xs font-bold transition-colors ${days === d ? 'bg-primary text-white' : 'text-textSecondary hover:bg-hoverBg'}`}
-              >
-                {d}D
-              </button>
-            ))}
+      {/* Top Header Card */}
+      <div className="doppel-shell relative overflow-hidden">
+        <div className="glow-orb-primary -top-20 -left-20 w-80 h-80" />
+        <div className="doppel-core px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="eyebrow-badge">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                Intelligence Hub
+              </span>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-textPrimary">Financial Analytics</h1>
+            <p className="text-xs text-textMuted mt-1 font-medium">Deep-dive category allocation, spending velocity, merchant heatmaps, and ML forecasts</p>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="p-2.5 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-primary/30 transition-all shadow-sm flex items-center space-x-2 text-sm font-semibold disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
+
+          <div className="flex items-center space-x-3 self-start md:self-auto">
+            <div className="flex items-center bg-surface border border-borderColor rounded-full p-1 shadow-inner">
+              {[7, 30, 90].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDays(d)}
+                  className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${days === d ? 'bg-primary text-white shadow-sm' : 'text-textMuted hover:text-textPrimary'}`}
+                >
+                  {d}D
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="px-4 py-2 bg-surface hover:bg-hoverBg border border-borderColor text-textSecondary hover:text-textPrimary text-xs font-bold rounded-full transition-all flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 

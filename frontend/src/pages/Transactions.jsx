@@ -337,59 +337,72 @@ const Transactions = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Transactions</h1>
-          <p className="text-textSecondary mt-1">View, filter, log, and export your financial ledger entries</p>
-        </div>
-        <div className="flex space-x-3">
-          {selectedIds.size > 0 && (
+      {/* Top Header Card */}
+      <div className="doppel-shell relative overflow-hidden">
+        <div className="glow-orb-primary -top-20 -left-20 w-80 h-80" />
+        <div className="doppel-core px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="eyebrow-badge">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                Ledger Core
+              </span>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-textPrimary">Financial Transactions</h1>
+            <p className="text-xs text-textMuted mt-1 font-medium">Log, search, filter, and export cashflow statement records</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
+            {selectedIds.size > 0 && (
+              <button 
+                onClick={handleBulkDelete}
+                className="flex items-center space-x-2 px-4 py-2 bg-danger text-white text-xs font-bold rounded-full shadow-md transition-all animate-fade-in"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete ({selectedIds.size})</span>
+              </button>
+            )}
             <button 
-              onClick={handleBulkDelete}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white text-sm font-bold rounded-xl shadow-md transition-all animate-fade-in"
+              onClick={() => handleExport('csv')}
+              className="px-3.5 py-2 bg-surface hover:bg-hoverBg border border-borderColor text-textSecondary text-xs font-bold rounded-full transition-all flex items-center gap-1.5"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>Delete Selected ({selectedIds.size})</span>
+              <Download className="w-3.5 h-3.5" />
+              <span>CSV</span>
             </button>
-          )}
-          <button 
-            onClick={() => handleExport('csv')}
-            className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
-          </button>
-          <button 
-            onClick={() => handleExport('excel')}
-            className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Excel</span>
-          </button>
-          <button 
-            onClick={() => handleExport('pdf')}
-            className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export PDF</span>
-          </button>
-          <label className="flex items-center space-x-2 px-4 py-2.5 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-sm font-semibold transition-colors shadow-sm cursor-pointer">
-            <UploadCloud className="w-4 h-4 text-textMuted" />
-            <span>Import CSV/Excel</span>
-            <input 
-              type="file" 
-              accept=".csv,.xlsx,.xls" 
-              className="hidden" 
-              onChange={handleImportFile}
-            />
-          </label>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-primary hover:bg-primaryHover text-white text-sm font-bold rounded-xl shadow-md transition-all animate-fade-in"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Transaction</span>
-          </button>
+            <button 
+              onClick={() => handleExport('excel')}
+              className="px-3.5 py-2 bg-surface hover:bg-hoverBg border border-borderColor text-textSecondary text-xs font-bold rounded-full transition-all flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Excel</span>
+            </button>
+            <button 
+              onClick={() => handleExport('pdf')}
+              className="px-3.5 py-2 bg-surface hover:bg-hoverBg border border-borderColor text-textSecondary text-xs font-bold rounded-full transition-all flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>PDF</span>
+            </button>
+            <label className="px-3.5 py-2 bg-surface hover:bg-hoverBg border border-borderColor text-textSecondary hover:text-textPrimary text-xs font-bold rounded-full transition-all flex items-center gap-1.5 cursor-pointer">
+              <UploadCloud className="w-3.5 h-3.5 text-primary" />
+              <span>Import</span>
+              <input 
+                type="file" 
+                accept=".csv, .xlsx, .xls" 
+                onChange={handleImportFile} 
+                className="hidden" 
+              />
+            </label>
+            <button 
+              onClick={() => { resetForm(); setShowModal(true); }}
+              className="btn-island group"
+            >
+              <span>Add Record</span>
+              <span className="btn-island-icon">
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

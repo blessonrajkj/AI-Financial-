@@ -147,115 +147,140 @@ const Dashboard = () => {
     <div className="space-y-5">
 
       {/* ── Header card ── */}
-      <div className="bg-cardBg border border-borderColor rounded-2xl px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-medium text-textMuted tracking-wide">
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-          <h1 className="text-xl font-bold text-textPrimary mt-0.5 tracking-tight">
-            {getGreeting()}, {userName}
-          </h1>
-          {summary?.ai_insight && (
-            <p className="text-[11px] text-textMuted mt-1 max-w-lg leading-relaxed">
-              {summary.ai_insight.insight_text}
-              {' '}
-              <span className={`font-semibold ${summary.ai_insight.savings_rate_diff >= 0 ? 'text-success' : 'text-danger'}`}>
-                {summary.ai_insight.savings_rate_diff >= 0 ? '↑' : '↓'} {Math.abs(summary.ai_insight.savings_rate_diff || 0).toFixed(1)}% vs last month
+      <div className="doppel-shell relative overflow-hidden">
+        <div className="glow-orb-primary -top-20 -left-20 w-80 h-80" />
+        <div className="doppel-core px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="eyebrow-badge">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
-            </p>
-          )}
-        </div>
+            </div>
+            <h1 className="text-2xl font-extrabold text-textPrimary tracking-tight">
+              {getGreeting()}, {userName}
+            </h1>
+            {summary?.ai_insight && (
+              <p className="text-xs text-textMuted mt-1 max-w-xl leading-relaxed">
+                {summary.ai_insight.insight_text}
+                {' '}
+                <span className={`font-bold ${summary.ai_insight.savings_rate_diff >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {summary.ai_insight.savings_rate_diff >= 0 ? '↑' : '↓'} {Math.abs(summary.ai_insight.savings_rate_diff || 0).toFixed(1)}% vs last month
+                </span>
+              </p>
+            )}
+          </div>
 
-        <button
-          onClick={() => navigate('/transactions')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primaryHover text-white text-sm font-semibold rounded-xl transition-colors self-start sm:self-auto flex-shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Add Transaction
-        </button>
+          <button
+            onClick={() => navigate('/transactions')}
+            className="btn-island group self-start sm:self-auto flex-shrink-0"
+          >
+            <span>Add Transaction</span>
+            <span className="btn-island-icon">
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* ── KPI row ── */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1,2,3,4].map(i => (
-            <div key={i} className="h-32 rounded-2xl skeleton" />
+            <div key={i} className="h-36 rounded-[24px] skeleton" />
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
           {/* Balance */}
-          <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Balance</span>
-              <Wallet className="w-4 h-4 text-textMuted" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-textPrimary font-mono tracking-tight">
-                {fmt(summary?.current_balance)}
-              </p>
-              <p className="text-[11px] text-success font-medium mt-1">Live balance</p>
+          <div className="doppel-shell">
+            <div className="doppel-core p-5 flex flex-col justify-between gap-4">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow-badge !px-2 !py-0.5">Balance</span>
+                <div className="w-8 h-8 rounded-xl bg-hoverBg flex items-center justify-center text-textMuted">
+                  <Wallet className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                  {fmt(summary?.current_balance)}
+                </p>
+                <p className="text-[11px] text-success font-semibold mt-1 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-ping" />
+                  Live account balance
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Income */}
-          <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Income</span>
-              <TrendingUp className="w-4 h-4 text-textMuted" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-textPrimary font-mono tracking-tight">
-                {fmt(summary?.monthly_income)}
-              </p>
-              <div className={`flex items-center gap-1 text-[11px] font-semibold mt-1 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
-                {incomeDiff >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {fmtPct(incomeDiff)} vs last month
+          <div className="doppel-shell">
+            <div className="doppel-core p-5 flex flex-col justify-between gap-4">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow-badge !px-2 !py-0.5 !text-success !border-success/20 !bg-success/10">Income</span>
+                <div className="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center text-success">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                  {fmt(summary?.monthly_income)}
+                </p>
+                <div className={`flex items-center gap-1 text-[11px] font-bold mt-1 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {incomeDiff >= 0 ? <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" /> : <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />}
+                  {fmtPct(incomeDiff)} vs last month
+                </div>
               </div>
             </div>
           </div>
 
           {/* Spending */}
-          <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Spending</span>
-              <TrendingDown className="w-4 h-4 text-textMuted" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-textPrimary font-mono tracking-tight">
-                {fmt(summary?.monthly_spending)}
-              </p>
-              <div className={`flex items-center gap-1 text-[11px] font-semibold mt-1 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
-                {expenseDiff <= 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                {fmtPct(expenseDiff)} vs last month
+          <div className="doppel-shell">
+            <div className="doppel-core p-5 flex flex-col justify-between gap-4">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow-badge !px-2 !py-0.5 !text-danger !border-danger/20 !bg-danger/10">Spending</span>
+                <div className="w-8 h-8 rounded-xl bg-danger/10 flex items-center justify-center text-danger">
+                  <TrendingDown className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                  {fmt(summary?.monthly_spending)}
+                </p>
+                <div className={`flex items-center gap-1 text-[11px] font-bold mt-1 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
+                  {expenseDiff <= 0 ? <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" /> : <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />}
+                  {fmtPct(expenseDiff)} vs last month
+                </div>
               </div>
             </div>
           </div>
 
           {/* Budget */}
-          <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Budget</span>
-              <span className="text-[11px] font-mono font-bold text-textMuted">
-                {budgetUsedPct.toFixed(0)}%
-              </span>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-textPrimary font-mono tracking-tight">
-                {fmt(summary?.budget_remaining)}
-              </p>
-              <div className="mt-2 h-1.5 bg-borderColor rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    budgetUsedPct >= 90 ? 'bg-danger' : budgetUsedPct >= 70 ? 'bg-warning' : 'bg-success'
-                  }`}
-                  style={{ width: `${budgetUsedPct}%` }}
-                />
+          <div className="doppel-shell">
+            <div className="doppel-core p-5 flex flex-col justify-between gap-4">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow-badge !px-2 !py-0.5">Budget</span>
+                <span className="text-xs font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor">
+                  {budgetUsedPct.toFixed(0)}%
+                </span>
               </div>
-              <p className="text-[11px] text-textMuted mt-1">
-                of {fmt(summary?.total_budget_limit)} limit
-              </p>
+              <div>
+                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                  {fmt(summary?.budget_remaining)}
+                </p>
+                <div className="mt-2.5 h-2 bg-borderColor/60 rounded-full overflow-hidden p-0.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      budgetUsedPct >= 90 ? 'bg-danger shadow-danger-glow' : budgetUsedPct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
+                    }`}
+                    style={{ width: `${budgetUsedPct}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-textMuted font-medium mt-1.5">
+                  of {fmt(summary?.total_budget_limit)} limit remaining
+                </p>
+              </div>
             </div>
           </div>
 
@@ -266,188 +291,198 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
         {/* Cashflow chart — 2/3 width */}
-        <div className="lg:col-span-2 bg-cardBg border border-borderColor rounded-2xl p-5 h-[410px]">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-sm font-bold text-textPrimary">Cashflow</h2>
-              <p className="text-[11px] text-textMuted mt-0.5">Income, expense and net savings</p>
-            </div>
-            <div className="flex items-center gap-1 bg-background border border-borderColor rounded-lg p-0.5">
-              {[
-                { label: '7D', value: 7 },
-                { label: '30D', value: 30 },
-                { label: '90D', value: 90 },
-                { label: '1Y', value: 365 },
-              ].map(btn => (
-                <button
-                  key={btn.label}
-                  onClick={() => setChartDays(btn.value)}
-                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors ${
-                    chartDays === btn.value
-                      ? 'bg-textPrimary text-cardBg'
-                      : 'text-textMuted hover:text-textPrimary'
-                  }`}
-                >
-                  {btn.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="h-[320px] w-full">
-            {trends.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trends} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#059669" stopOpacity={0.15} />
-                      <stop offset="100%" stopColor="#059669" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#DC2626" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="#DC2626" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gSavings" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.1} />
-                      <stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    stroke="var(--text-muted)"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={v => v?.slice(5) || v}
-                  />
-                  <YAxis
-                    stroke="var(--text-muted)"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'var(--card-bg)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 10,
-                      fontSize: 12,
-                      boxShadow: 'var(--shadow-lg)',
-                    }}
-                    formatter={v => [`₹${(v||0).toLocaleString('en-IN')}`, undefined]}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    height={28}
-                    iconType="circle"
-                    iconSize={7}
-                    wrapperStyle={{ fontSize: 11, paddingBottom: 8 }}
-                  />
-                  <Area type="monotone" dataKey="income"  name="Income"  stroke="#059669" fill="url(#gIncome)"  strokeWidth={1.75} />
-                  <Area type="monotone" dataKey="expense" name="Expense" stroke="#DC2626" fill="url(#gExpense)" strokeWidth={1.75} />
-                  <Area type="monotone" dataKey="savings" name="Savings" stroke="#4F46E5" fill="url(#gSavings)" strokeWidth={1.75} dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-xs text-textMuted">No data for this period</p>
+        <div className="lg:col-span-2 doppel-shell h-[420px]">
+          <div className="doppel-core p-6 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <span className="eyebrow-badge mb-1">Analytics</span>
+                <h2 className="text-base font-extrabold text-textPrimary tracking-tight">Cashflow Dynamic</h2>
+                <p className="text-[11px] text-textMuted mt-0.5 font-medium">Real-time income, expense, and net savings trends</p>
               </div>
-            )}
+              <div className="flex items-center gap-1 bg-surface border border-borderColor rounded-xl p-1 shadow-inner">
+                {[
+                  { label: '7D', value: 7 },
+                  { label: '30D', value: 30 },
+                  { label: '90D', value: 90 },
+                  { label: '1Y', value: 365 },
+                ].map(btn => (
+                  <button
+                    key={btn.label}
+                    onClick={() => setChartDays(btn.value)}
+                    className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all duration-200 ${
+                      chartDays === btn.value
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-textMuted hover:text-textPrimary hover:bg-hoverBg'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="h-[310px] w-full">
+              {trends.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trends} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#059669" stopOpacity={0.2} />
+                        <stop offset="100%" stopColor="#059669" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#DC2626" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#DC2626" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gSavings" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      stroke="var(--text-muted)"
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={v => v?.slice(5) || v}
+                    />
+                    <YAxis
+                      stroke="var(--text-muted)"
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--card-bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 14,
+                        fontSize: 12,
+                        boxShadow: 'var(--shadow-lg)',
+                      }}
+                      formatter={v => [`₹${(v||0).toLocaleString('en-IN')}`, undefined]}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      height={32}
+                      iconType="circle"
+                      iconSize={7}
+                      wrapperStyle={{ fontSize: 11, paddingBottom: 10, fontWeight: 600 }}
+                    />
+                    <Area type="monotone" dataKey="income"  name="Income"  stroke="#059669" fill="url(#gIncome)"  strokeWidth={2} />
+                    <Area type="monotone" dataKey="expense" name="Expense" stroke="#DC2626" fill="url(#gExpense)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="savings" name="Savings" stroke="#4F46E5" fill="url(#gSavings)" strokeWidth={2} dot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-xs text-textMuted font-medium">No cashflow data recorded for this period</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Recent transactions — 1/3 width */}
-        <div className="bg-cardBg border border-borderColor rounded-2xl p-5 flex flex-col h-[410px] w-full">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-textPrimary">Recent</h2>
-            <Link
-              to="/transactions"
-              className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5"
-            >
-              View all <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
+        <div className="doppel-shell h-[420px] w-full">
+          <div className="doppel-core p-6 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <span className="eyebrow-badge mb-1">Ledger</span>
+                <h2 className="text-base font-extrabold text-textPrimary tracking-tight">Recent Activity</h2>
+              </div>
+              <Link
+                to="/transactions"
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 bg-hoverBg px-2.5 py-1 rounded-full border border-primary/20"
+              >
+                View all <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
 
-          {summary?.recent_transactions?.length > 0 ? (
-            <div className="space-y-1 flex-1 overflow-y-auto pr-1">
-              {summary.recent_transactions.map(t => {
-                const isIncome = t.type?.toLowerCase() === 'income';
-                return (
-                  <div
-                    key={t.id}
-                    onClick={() => navigate('/transactions')}
-                    className="flex items-center justify-between py-2.5 px-1 border-b border-borderColor/50 last:border-0 cursor-pointer hover:bg-hoverBg rounded-lg transition-colors group"
-                  >
-                    <div className="overflow-hidden flex-1 mr-3">
-                      <p className="text-xs font-semibold text-textPrimary truncate group-hover:text-primary transition-colors">
-                        {t.merchant || t.category || 'Transaction'}
-                      </p>
-                      <p className="text-[10px] text-textMuted mt-0.5">
-                        {t.date} · {t.category}
-                      </p>
+            {summary?.recent_transactions?.length > 0 ? (
+              <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
+                {summary.recent_transactions.map(t => {
+                  const isIncome = t.type?.toLowerCase() === 'income';
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => navigate('/transactions')}
+                      className="flex items-center justify-between py-2.5 px-3 border border-borderColor/40 bg-surface/50 cursor-pointer hover:bg-hoverBg hover:border-borderColor rounded-xl transition-all group"
+                    >
+                      <div className="overflow-hidden flex-1 mr-3">
+                        <p className="text-xs font-bold text-textPrimary truncate group-hover:text-primary transition-colors">
+                          {t.merchant || t.category || 'Transaction'}
+                        </p>
+                        <p className="text-[10px] text-textMuted font-medium mt-0.5">
+                          {t.date} · {t.category}
+                        </p>
+                      </div>
+                      <span className={`text-xs font-bold font-numeric flex-shrink-0 ${isIncome ? 'text-success' : 'text-danger'}`}>
+                        {isIncome ? '+' : '−'}{fmt(t.amount)}
+                      </span>
                     </div>
-                    <span className={`text-xs font-bold font-mono tabular-nums flex-shrink-0 ${isIncome ? 'text-success' : 'text-danger'}`}>
-                      {isIncome ? '+' : '−'}{fmt(t.amount)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-xs text-textMuted text-center">No recent transactions</p>
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-xs text-textMuted font-medium text-center">No recent activity logged</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── AI Advisor ── */}
-      <div className="bg-cardBg border border-borderColor rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-borderColor">
-          <div>
-            <h2 className="text-sm font-bold text-textPrimary">Financial Advisor</h2>
-            <p className="text-[11px] text-textMuted mt-0.5">Insights based on your actual account activity</p>
-          </div>
-          {!aiLoading && aiInsights.length > 0 && (
-            <Link
-              to="/ai-insights"
-              className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5"
-            >
-              View all <ChevronRight className="w-3 h-3" />
-            </Link>
-          )}
-        </div>
-
-        <div className="p-5">
-          {aiLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-14 rounded-xl skeleton" />
-              ))}
+      <div className="doppel-shell overflow-hidden">
+        <div className="doppel-core p-6">
+          <div className="flex items-center justify-between pb-4 border-b border-borderColor mb-5">
+            <div>
+              <span className="eyebrow-badge mb-1">AI Copilot</span>
+              <h2 className="text-base font-extrabold text-textPrimary tracking-tight">Autonomous Financial Insights</h2>
+              <p className="text-xs text-textMuted mt-0.5 font-medium">Real-time algorithmic analysis tailored to your cashflow pattern</p>
             </div>
-          ) : aiInsights.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {aiInsights.slice(0, 6).map((insight, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-3 p-3.5 bg-background border border-borderColor rounded-xl hover:border-borderColor/80 transition-colors"
-                >
-                  <div className="mt-0.5">
-                    <PriorityIcon priority={insight.priority} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-textPrimary truncate">
-                        {insight.title}
-                      </span>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide flex-shrink-0 ${priorityStyle(insight.priority)}`}>
-                        {insight.priority}
-                      </span>
+            {!aiLoading && aiInsights.length > 0 && (
+              <Link
+                to="/ai-insights"
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 bg-hoverBg px-3 py-1.5 rounded-full border border-primary/20"
+              >
+                Full Analysis <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
+          </div>
+
+          <div>
+            {aiLoading ? (
+              <div className="space-y-2.5">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-16 rounded-xl skeleton" />
+                ))}
+              </div>
+            ) : aiInsights.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {aiInsights.slice(0, 6).map((insight, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-3.5 p-4 bg-surface border border-borderColor rounded-2xl hover:border-borderStrong hover:shadow-sm transition-all"
+                  >
+                    <div className="mt-0.5 p-1.5 rounded-xl bg-hoverBg border border-borderColor">
+                      <PriorityIcon priority={insight.priority} />
                     </div>
-                    <p className="text-[11px] text-textSecondary leading-relaxed line-clamp-2">
-                      {insight.description}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-textPrimary truncate">
+                          {insight.title}
+                        </span>
+                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider flex-shrink-0 ${priorityStyle(insight.priority)}`}>
+                          {insight.priority}
+                        </span>
+                      </div>
+                      <p className="text-xs text-textSecondary leading-relaxed line-clamp-2">
+                        {insight.description}
                     </p>
                   </div>
                   <button
@@ -483,6 +518,7 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* ── Quick Actions strip ── */}

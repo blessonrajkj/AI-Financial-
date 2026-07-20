@@ -91,10 +91,19 @@ const ReportsPage = () => {
   return (
     <div className="space-y-6 print:space-y-4 print:p-0">
       {/* Header section (hidden on print) */}
-      <div className="flex justify-between items-center print:hidden">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Reports Generator</h1>
-          <p className="text-textSecondary mt-1">Generate comprehensive sheets, tax summaries, and budget variance audits</p>
+      <div className="doppel-shell relative overflow-hidden print:hidden">
+        <div className="glow-orb-primary -top-20 -left-20 w-80 h-80" />
+        <div className="doppel-core px-6 py-5 flex items-center justify-between relative z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="eyebrow-badge">
+                <FileText className="w-3 h-3 text-primary" />
+                Audit & Export
+              </span>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-textPrimary">Reports Generator</h1>
+            <p className="text-xs text-textMuted mt-1 font-medium">Generate comprehensive statements, tax projections, and category variance audits</p>
+          </div>
         </div>
       </div>
 

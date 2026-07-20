@@ -150,65 +150,78 @@ const InvestmentsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Investment Tracker</h1>
-            {data.is_demo_mode && (
-              <span className="px-2 py-0.5 rounded bg-warning/15 text-warning text-[10px] font-black uppercase tracking-wider animate-pulse">
-                Demo Market Data
+      {/* Top Header Card */}
+      <div className="doppel-shell relative overflow-hidden">
+        <div className="glow-orb-accent -top-20 -right-20 w-80 h-80" />
+        <div className="doppel-core px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="eyebrow-badge">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                Wealth Portfolio Engine
               </span>
-            )}
+              {data.is_demo_mode && (
+                <span className="px-2 py-0.5 rounded-full bg-warning/15 border border-warning/30 text-warning text-[10px] font-extrabold uppercase tracking-wider">
+                  Demo Market Tickers
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-textPrimary">Investment Portfolio</h1>
+            <p className="text-xs text-textMuted mt-1 flex items-center space-x-1.5 font-medium">
+              <span>Track equities, mutual funds, gold, SIPs, and sovereign holdings with real-time market sync</span>
+              {data.last_updated_time && (
+                <>
+                  <span>•</span>
+                  <span className="text-textMuted font-numeric">Synced: {data.last_updated_time}</span>
+                </>
+              )}
+            </p>
           </div>
-          <p className="text-textSecondary mt-1 flex items-center space-x-1.5">
-            <span>Track stocks, crypto, mutual funds, gold, SIPs, and interest holdings with live market tickers</span>
-            {data.last_updated_time && (
-              <>
-                <span className="text-textMuted">•</span>
-                <span className="text-[10px] text-textMuted font-medium">Last Updated: {data.last_updated_time}</span>
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex space-x-3">
-          <button 
-            onClick={() => setShowIndiaPostModal(true)}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-success hover:bg-successHover text-white text-sm font-bold rounded-xl shadow-md transition-all animate-fade-in"
-          >
-            <span>📮</span>
-            <span>India Post Investments</span>
-          </button>
-          <button 
-            onClick={handleOpenAdd}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-primary hover:bg-primaryHover text-white text-sm font-bold rounded-xl shadow-md transition-all animate-fade-in"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Asset Holding</span>
-          </button>
+
+          <div className="flex items-center space-x-3 self-start md:self-auto">
+            <button 
+              onClick={() => setShowIndiaPostModal(true)}
+              className="px-4 py-2.5 bg-success/15 hover:bg-success/25 border border-success/30 text-success text-xs font-bold rounded-full transition-all flex items-center gap-2"
+            >
+              <span>📮</span>
+              <span>India Post Center</span>
+            </button>
+            <button 
+              onClick={handleOpenAdd}
+              className="btn-island group"
+            >
+              <span>Add Holding</span>
+              <span className="btn-island-icon">
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Premium Category Banner for India Post Investments */}
       <div 
         onClick={() => setShowIndiaPostModal(true)}
-        className="cursor-pointer bg-gradient-to-r from-success/10 via-primary/5 to-transparent border border-borderColor rounded-3xl p-6 shadow-sm flex items-center justify-between hover:border-success/30 transition-all group"
+        className="doppel-shell cursor-pointer group"
       >
-        <div className="flex items-center space-x-4">
-          <div className="p-4 bg-success/15 text-success rounded-2xl group-hover:scale-105 transition-transform text-2xl">
-            📮
+        <div className="doppel-core p-5 flex items-center justify-between bg-gradient-to-r from-success/10 via-primary/5 to-transparent">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-success/15 border border-success/30 text-success rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform text-xl flex-shrink-0">
+              📮
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-extrabold text-textPrimary">India Post Investment Center</h3>
+                <span className="eyebrow-badge !text-success !bg-success/10 !border-success/20">Sovereign Safety</span>
+              </div>
+              <p className="text-xs text-textSecondary mt-1 leading-relaxed max-w-2xl font-medium">
+                Manage PPF, Sukanya Samriddhi Yojana (SSY), MIS monthly interest payout schedules, NSC, KVP, and Post Office RD / savings accounts with real-time projections.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-md font-black text-textPrimary flex items-center space-x-1.5">
-              <span>India Post Investment Center</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/10 text-success">Sovereign Safety</span>
-            </h3>
-            <p className="text-xs text-textSecondary mt-1 max-w-xl leading-relaxed">
-              Manage PPF, Sukanya Samriddhi Yojana (SSY), MIS monthly interest payout schedules, NSC, KVP, and Post Office RD / savings accounts with real-time projections.
-            </p>
+          <div className="text-xs font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center gap-1">
+            Launch Center →
           </div>
-        </div>
-        <div className="text-textSecondary group-hover:translate-x-1 transition-transform pr-2 font-bold text-sm">
-          Launch Center →
         </div>
       </div>
 
@@ -235,52 +248,68 @@ const InvestmentsPage = () => {
 
       {/* Summary dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Portfolio Current Value</span>
-          <h3 className="text-xl font-black text-textPrimary mt-1">₹{(summary.total_current_value || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h3>
-          <span className="text-[10px] text-textMuted mt-1 block">Cost Basis: ₹{(summary.total_investment || 0).toLocaleString()}</span>
+        <div className="doppel-shell">
+          <div className="doppel-core p-5 flex flex-col justify-between">
+            <span className="eyebrow-badge !px-2 !py-0.5">Portfolio Value</span>
+            <div className="mt-2">
+              <h3 className="text-xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{(summary.total_current_value || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h3>
+              <span className="text-[11px] text-textMuted font-medium mt-1 block">Cost Basis: ₹{(summary.total_investment || 0).toLocaleString()}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Cumulative Return (P/L)</span>
-          <div className="flex items-baseline space-x-1.5 mt-1">
-            <h3 className={`text-xl font-black ${(summary.total_profit_loss || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
-              ₹{(summary.total_profit_loss || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-            </h3>
-            <span className={`text-[10px] font-bold ${(summary.total_profit_loss || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
-              {(summary.total_profit_loss_percentage || 0).toFixed(2)}%
-            </span>
+        <div className="doppel-shell">
+          <div className="doppel-core p-5 flex flex-col justify-between">
+            <span className="eyebrow-badge !px-2 !py-0.5">Cumulative Return</span>
+            <div className="mt-2">
+              <div className="flex items-baseline space-x-1.5">
+                <h3 className={`text-xl font-extrabold font-numeric tracking-tight ${(summary.total_profit_loss || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                  ₹{(summary.total_profit_loss || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </h3>
+                <span className={`text-xs font-bold font-numeric ${(summary.total_profit_loss || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {(summary.total_profit_loss_percentage || 0).toFixed(2)}%
+                </span>
+              </div>
+              <span className="text-[11px] text-textMuted font-medium mt-1 block">All-time net returns</span>
+            </div>
           </div>
-          <span className="text-[10px] text-textMuted mt-1 block">All-time net returns</span>
         </div>
 
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Today's Movement</span>
-          <div className="flex items-baseline space-x-1.5 mt-1">
-            <h3 className={`text-xl font-black ${(summary.today_gain_loss || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
-              {(summary.today_gain_loss || 0) >= 0 ? '+' : ''}₹{(summary.today_gain_loss || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-            </h3>
-            <span className={`text-[10px] font-bold ${(summary.today_gain_loss || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
-              {(summary.total_current_value > 0 ? (summary.today_gain_loss / summary.total_current_value * 100.0) : 0).toFixed(2)}%
-            </span>
+        <div className="doppel-shell">
+          <div className="doppel-core p-5 flex flex-col justify-between">
+            <span className="eyebrow-badge !px-2 !py-0.5">Today's Movement</span>
+            <div className="mt-2">
+              <div className="flex items-baseline space-x-1.5">
+                <h3 className={`text-xl font-extrabold font-numeric tracking-tight ${(summary.today_gain_loss || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {(summary.today_gain_loss || 0) >= 0 ? '+' : ''}₹{(summary.today_gain_loss || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </h3>
+                <span className={`text-xs font-bold font-numeric ${(summary.today_gain_loss || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {(summary.total_current_value > 0 ? (summary.today_gain_loss / summary.total_current_value * 100.0) : 0).toFixed(2)}%
+                </span>
+              </div>
+              <span className="text-[11px] text-textMuted font-medium mt-1 block">Live day market change</span>
+            </div>
           </div>
-          <span className="text-[10px] text-textMuted mt-1 block">Live simulated day change</span>
         </div>
 
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Risk & Dividends</span>
-          <div className="flex items-baseline justify-between mt-1">
-            <h3 className="text-xl font-black text-textPrimary">
-              ₹{(summary.total_dividends || 0).toLocaleString()}
-            </h3>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              (summary.portfolio_risk_score || 0) > 6 ? 'bg-danger/10 text-danger' : 
-              (summary.portfolio_risk_score || 0) > 3 ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'
-            }`}>
-              Risk: {summary.portfolio_risk_score || 0}/10
-            </span>
+        <div className="doppel-shell">
+          <div className="doppel-core p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="eyebrow-badge !px-2 !py-0.5">Risk & Dividends</span>
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                (summary.portfolio_risk_score || 0) > 6 ? 'bg-danger/10 text-danger border-danger/20' : 
+                (summary.portfolio_risk_score || 0) > 3 ? 'bg-warning/10 text-warning border-warning/20' : 'bg-success/10 text-success border-success/20'
+              }`}>
+                Risk: {summary.portfolio_risk_score || 0}/10
+              </span>
+            </div>
+            <div className="mt-2">
+              <h3 className="text-xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                ₹{(summary.total_dividends || 0).toLocaleString()}
+              </h3>
+              <span className="text-[11px] text-textMuted font-medium mt-1 block">Total payouts received</span>
+            </div>
           </div>
-          <span className="text-[10px] text-textMuted mt-1 block">Total payouts received</span>
         </div>
       </div>
 
