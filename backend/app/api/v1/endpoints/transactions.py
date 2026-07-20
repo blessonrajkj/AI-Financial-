@@ -19,6 +19,7 @@ from app.models.category_merchant import Category, Merchant
 from app.schemas.transaction import TransactionCreate, TransactionUpdate, TransactionOut, CategoryOut, MerchantOut, BulkValidateRequest, BulkImportRequest
 from app.services.pdf_parser import pdf_parser
 from app.core.config import settings
+from app.services.market_data import check_and_update_investments_from_transaction
 
 router = APIRouter()
 
@@ -92,6 +93,8 @@ def create_transaction(
     )
     
     db.add(db_trans)
+    # Automatically update matching investment quantities if this is an investment purchase
+    check_and_update_investments_from_transaction(db, db_trans)
     db.commit()
     db.refresh(db_trans)
     return db_trans
@@ -727,10 +730,11 @@ def bulk_import_transactions(
             transaction_id=t.transaction_id,
             reference_number=t.reference_number,
             bank=t.bank,
-            balance=t.balance,
             time=t.time
         )
         db.add(db_trans)
+        # Automatically update matching investment quantities if this is an investment purchase
+        check_and_update_investments_from_transaction(db, db_trans)
         imported += 1
         
     db.commit()

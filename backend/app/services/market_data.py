@@ -152,3 +152,78 @@ async def start_daily_price_updater():
             
         # Sleep for 24 hours (86400 seconds)
         await asyncio.sleep(86400)
+
+
+def check_and_update_investments_from_transaction(db: Session, tx):
+    """
+    Checks if a transaction is an investment purchase and updates the investment holdings accordingly.
+    """
+    import re
+    from app.models.transaction import Transaction
+    from app.models.investment import Investment
+    
+    # We only look at expense/debit transactions (buying assets is a debit/expense outflow)
+    if tx.type != "expense":
+        return
+        
+    desc = (tx.description or "").lower()
+    
+    # 2. Check if category is "Investments" or description implies investment
+    is_investment = False
+    if tx.category_id:
+        from app.models.category_merchant import Category as DBCategory
+        category = db.query(DBCategory).filter(DBCategory.id == tx.category_id).first()
+        if category and category.name.lower() in ["investment", "investments", "portfolio", "mutual fund", "stock"]:
+            is_investment = True
+            
+    # Also check description keywords
+    if not is_investment:
+        keywords = ["buy", "bought", "purchase", "invest", "mutual fund", "sip", "shares", "units"]
+        if any(kw in desc for kw in keywords):
+            is_investment = True
+            
+    if not is_investment:
+        return
+        
+    # 3. Find if any of the user's investments are mentioned in the description
+    user_investments = db.query(Investment).filter(Investment.user_id == tx.user_id).all()
+    
+    matched_inv = None
+    for inv in user_investments:
+        symbol_match = inv.symbol and inv.symbol.lower() in desc
+        name_match = inv.asset_name and inv.asset_name.lower() in desc
+        if symbol_match or name_match:
+            matched_inv = inv
+            break
+            
+    if not matched_inv:
+        return
+        
+    # 4. Extract quantity from description or estimate from price
+    qty = 0.0
+    qty_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:shares|units|qty|quantity|nos|co)', desc)
+    if qty_match:
+        qty = float(qty_match.group(1))
+    else:
+        numbers = [float(n) for n in re.findall(r'\b\d+(?:\.\d+)?\b', desc)]
+        valid_qtys = [n for n in numbers if n != tx.amount and n < 100000]
+        if valid_qtys:
+            qty = valid_qtys[0]
+            
+    # If we couldn't find a quantity, estimate it using current price of the asset
+    if qty <= 0:
+        price = matched_inv.current_price or matched_inv.purchase_price
+        if price > 0:
+            qty = tx.amount / price
+            
+    if qty <= 0:
+        qty = 1.0 # fallback
+        
+    # 5. Update investment holding quantity and recalculate weighted average purchase price
+    old_qty = matched_inv.quantity
+    old_price = matched_inv.purchase_price
+    
+    new_qty = old_qty + qty
+    if new_qty > 0:
+        matched_inv.purchase_price = round(((old_qty * old_price) + tx.amount) / new_qty, 2)
+        matched_inv.quantity = new_qty

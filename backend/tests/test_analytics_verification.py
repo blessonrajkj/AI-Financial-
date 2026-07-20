@@ -169,3 +169,63 @@ def test_market_data_service(db):
         assert res["success"] is False
 
 
+def test_transaction_updates_investment(client):
+    # Register & Login
+    client.post(
+        "/api/v1/auth/register",
+        json={"email": "hook@example.com", "password": "testpassword", "full_name": "Hook User"}
+    )
+    login_res = client.post(
+        "/api/v1/auth/login",
+        data={"username": "hook@example.com", "password": "testpassword"}
+    )
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Create an investment holding first
+    inv_res = client.post(
+        "/api/v1/investments",
+        headers=headers,
+        json={
+            "asset_name": "Apple Stock",
+            "symbol": "AAPL",
+            "quantity": 10.0,
+            "purchase_price": 150.0,
+            "purchase_date": "2026-07-01T00:00:00",
+            "asset_type": "Stock",
+            "exchange": "NASDAQ"
+        }
+    )
+    assert inv_res.status_code in [200, 201]
+
+    # 2. Add an expense transaction mentioning the symbol/name
+    tx_res = client.post(
+        "/api/v1/transactions",
+        headers=headers,
+        json={
+            "amount": 850.0,
+            "date": "2026-07-15T10:00:00",
+            "description": "Bought 5 units of AAPL stock",
+            "payment_method": "Brokerage",
+            "type": "expense",
+            "is_recurring": False
+        }
+    )
+    assert tx_res.status_code in [200, 201]
+
+    # 3. Retrieve the investment and check that the quantity and average price have updated
+    get_res = client.get("/api/v1/investments", headers=headers)
+    assert get_res.status_code == 200
+    investments = get_res.json().get("items", [])
+    assert len(investments) == 1
+    
+    apple_inv = investments[0]
+    # Old total cost = 10 * 150 = 1500
+    # New transaction cost = 850
+    # New quantity = 10 + 5 = 15
+    # New average purchase price = (1500 + 850) / 15 = 2350 / 15 = 156.67
+    assert apple_inv["quantity"] == 15.0
+    assert apple_inv["purchase_price"] == 156.67
+
+
+
