@@ -48,6 +48,27 @@ def init_db(db: Session):
         db.commit()
         print("Default categories inserted successfully.")
 
+    # Check and seed default demo accounts
+    from app.core.security import get_password_hash
+    default_users = [
+        {"email": "demo@wealthpilot.ai", "full_name": "Demo User", "password": "password123"},
+        {"email": "test@example.com", "full_name": "Test User", "password": "password123"}
+    ]
+    for u in default_users:
+        existing = db.query(User).filter(User.email == u["email"]).first()
+        if not existing:
+            print(f"Creating default demo user: {u['email']}")
+            db_user = User(
+                email=u["email"],
+                full_name=u["full_name"],
+                hashed_password=get_password_hash(u["password"]),
+                is_active=True,
+                role="admin"
+            )
+            db.add(db_user)
+            db.commit()
+            print(f"User {u['email']} created successfully.")
+
 def create_tables():
     print("Creating database tables...")
     Base.metadata.create_all(bind=engine)
