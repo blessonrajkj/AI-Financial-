@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Info,
   CheckCircle,
+  Calendar,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -29,6 +30,66 @@ const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const fmt = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const fmtPct = (n) => `${Math.abs(n || 0).toFixed(1)}%`;
+
+// Custom Glassmorphic Cashflow Tooltip
+const CustomCashflowTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const incomeItem  = payload.find(p => p.dataKey === 'income');
+  const expenseItem = payload.find(p => p.dataKey === 'expense');
+  const savingsItem = payload.find(p => p.dataKey === 'savings');
+
+  const income  = incomeItem  ? incomeItem.value  : 0;
+  const expense = expenseItem ? expenseItem.value : 0;
+  const savings = savingsItem ? savingsItem.value : (income - expense);
+
+  const formattedDate = label ? new Date(label).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : label;
+
+  return (
+    <div className="bg-cardBg/95 backdrop-blur-md border border-borderColor p-3.5 rounded-2xl shadow-2xl space-y-2 min-w-[210px] pointer-events-none">
+      <div className="flex items-center justify-between pb-2 border-b border-borderColor/60">
+        <span className="text-[11px] font-bold text-textPrimary tracking-tight flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 text-primary" />
+          {formattedDate}
+        </span>
+        <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
+          Daily Ledger
+        </span>
+      </div>
+      <div className="space-y-1.5 pt-0.5">
+        {incomeItem && (
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+              <span className="font-semibold text-textSecondary">Income</span>
+            </div>
+            <span className="font-numeric font-bold text-emerald-600 dark:text-emerald-400">+₹{income.toLocaleString('en-IN')}</span>
+          </div>
+        )}
+        {expenseItem && (
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F43F5E] shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+              <span className="font-semibold text-textSecondary">Expense</span>
+            </div>
+            <span className="font-numeric font-bold text-rose-600 dark:text-rose-400">−₹{expense.toLocaleString('en-IN')}</span>
+          </div>
+        )}
+        {savingsItem && (
+          <div className="flex items-center justify-between text-xs pt-1.5 border-t border-borderColor/40">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#6366F1] shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+              <span className="font-semibold text-textPrimary">Net Savings</span>
+            </div>
+            <span className={`font-numeric font-bold ${savings >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-danger'}`}>
+              {savings >= 0 ? '+' : ''}₹{savings.toLocaleString('en-IN')}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // Priority icon — functional, not decorative
 const PriorityIcon = ({ priority }) => {
@@ -70,6 +131,9 @@ const Dashboard = () => {
   }, [trends]);
 
   const [chartDays, setChartDays] = useState(30);
+  const [showIncome, setShowIncome]   = useState(true);
+  const [showExpense, setShowExpense] = useState(true);
+  const [showSavings, setShowSavings] = useState(true);
   const [loading, setLoading]     = useState(true);
   const [aiInsights, setAiInsights]   = useState([]);
   const [aiLoading, setAiLoading]     = useState(true);
@@ -291,15 +355,20 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
         {/* Cashflow chart — 2/3 width */}
-        <div className="lg:col-span-2 doppel-shell h-[420px]">
-          <div className="doppel-core p-6 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-2 doppel-shell min-h-[460px]">
+          <div className="doppel-core p-6 flex flex-col justify-between h-full">
+            {/* Header + Time range filters */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
-                <span className="eyebrow-badge mb-1">Analytics</span>
-                <h2 className="text-base font-extrabold text-textPrimary tracking-tight">Cashflow Dynamic</h2>
-                <p className="text-[11px] text-textMuted mt-0.5 font-medium">Real-time income, expense, and net savings trends</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="eyebrow-badge">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    Cashflow Dynamic
+                  </span>
+                </div>
+                <h2 className="text-base font-extrabold text-textPrimary tracking-tight">Financial Velocity & Savings Rate</h2>
               </div>
-              <div className="flex items-center gap-1 bg-surface border border-borderColor rounded-xl p-1 shadow-inner">
+              <div className="flex items-center gap-1 bg-surface border border-borderColor rounded-full p-1 shadow-inner self-start sm:self-auto">
                 {[
                   { label: '7D', value: 7 },
                   { label: '30D', value: 30 },
@@ -309,7 +378,7 @@ const Dashboard = () => {
                   <button
                     key={btn.label}
                     onClick={() => setChartDays(btn.value)}
-                    className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all duration-200 ${
+                    className={`px-3 py-1 text-[11px] font-bold rounded-full transition-all duration-200 ${
                       chartDays === btn.value
                         ? 'bg-primary text-white shadow-sm'
                         : 'text-textMuted hover:text-textPrimary hover:bg-hoverBg'
@@ -321,60 +390,152 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="h-[310px] w-full">
+            {/* Interactive series toggle badges */}
+            <div className="flex items-center gap-2 mb-4 flex-wrap text-xs font-semibold">
+              <button
+                onClick={() => setShowIncome(!showIncome)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                  showIncome
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'bg-hoverBg/50 border-borderColor text-textMuted line-through opacity-60'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
+                <span>Income</span>
+                <span className="font-numeric font-bold text-[11px]">({fmt(cashflowStats.totalIncome)})</span>
+              </button>
+
+              <button
+                onClick={() => setShowExpense(!showExpense)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                  showExpense
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 shadow-sm'
+                    : 'bg-hoverBg/50 border-borderColor text-textMuted line-through opacity-60'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F43F5E] shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
+                <span>Expense</span>
+                <span className="font-numeric font-bold text-[11px]">({fmt(cashflowStats.totalExpense)})</span>
+              </button>
+
+              <button
+                onClick={() => setShowSavings(!showSavings)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                  showSavings
+                    ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'bg-hoverBg/50 border-borderColor text-textMuted line-through opacity-60'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-[#6366F1] shadow-[0_0_8px_rgba(99,102,241,0.7)]" />
+                <span>Net Savings</span>
+                <span className="font-numeric font-bold text-[11px]">({fmt(cashflowStats.netSavings)})</span>
+              </button>
+            </div>
+
+            {/* Area Chart canvas */}
+            <div className="h-[310px] w-full relative">
               {trends.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trends} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+                  <AreaChart data={trends} margin={{ top: 16, right: 16, left: 16, bottom: 4 }}>
                     <defs>
+                      {/* Gradient fills */}
                       <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#059669" stopOpacity={0.2} />
-                        <stop offset="100%" stopColor="#059669" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.25} />
+                        <stop offset="50%" stopColor="#10B981" stopOpacity={0.08} />
+                        <stop offset="100%" stopColor="#10B981" stopOpacity={0.0} />
                       </linearGradient>
                       <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#DC2626" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="#DC2626" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.25} />
+                        <stop offset="50%" stopColor="#F43F5E" stopOpacity={0.06} />
+                        <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.0} />
                       </linearGradient>
                       <linearGradient id="gSavings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#6366F1" stopOpacity={0.25} />
+                        <stop offset="50%" stopColor="#6366F1" stopOpacity={0.08} />
+                        <stop offset="100%" stopColor="#6366F1" stopOpacity={0.0} />
                       </linearGradient>
+
+                      {/* Line Glow drop-shadow filters */}
+                      <filter id="glowIncome" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#10B981" floodOpacity="0.4" />
+                      </filter>
+                      <filter id="glowExpense" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#F43F5E" floodOpacity="0.35" />
+                      </filter>
+                      <filter id="glowSavings" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#6366F1" floodOpacity="0.4" />
+                      </filter>
                     </defs>
-                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" vertical={false} />
+
+                    <CartesianGrid strokeDasharray="3 6" stroke="var(--border)" vertical={false} opacity={0.7} />
+
                     <XAxis
                       dataKey="date"
                       stroke="var(--text-muted)"
-                      fontSize={10}
+                      fontSize={11}
+                      fontWeight={600}
                       tickLine={false}
                       axisLine={false}
+                      dy={8}
                       tickFormatter={v => v?.slice(5) || v}
                     />
+
                     <YAxis
                       stroke="var(--text-muted)"
-                      fontSize={10}
+                      fontSize={11}
+                      fontWeight={600}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'var(--card-bg)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 14,
-                        fontSize: 12,
-                        boxShadow: 'var(--shadow-lg)',
+                      dx={-8}
+                      width={52}
+                      tickFormatter={v => {
+                        if (v === 0) return '0';
+                        const abs = Math.abs(v);
+                        const formatted = abs >= 1000 ? `${(abs / 1000).toFixed(0)}k` : `${abs}`;
+                        return v > 0 ? `+₹${formatted}` : `−₹${formatted}`;
                       }}
-                      formatter={v => [`₹${(v||0).toLocaleString('en-IN')}`, undefined]}
                     />
-                    <Legend
-                      verticalAlign="top"
-                      height={32}
-                      iconType="circle"
-                      iconSize={7}
-                      wrapperStyle={{ fontSize: 11, paddingBottom: 10, fontWeight: 600 }}
-                    />
-                    <Area type="monotone" dataKey="income"  name="Income"  stroke="#059669" fill="url(#gIncome)"  strokeWidth={2} />
-                    <Area type="monotone" dataKey="expense" name="Expense" stroke="#DC2626" fill="url(#gExpense)" strokeWidth={2} />
-                    <Area type="monotone" dataKey="savings" name="Savings" stroke="#4F46E5" fill="url(#gSavings)" strokeWidth={2} dot={false} />
+
+                    <Tooltip content={<CustomCashflowTooltip />} />
+
+                    {showIncome && (
+                      <Area
+                        type="monotone"
+                        dataKey="income"
+                        name="Income"
+                        stroke="#10B981"
+                        fill="url(#gIncome)"
+                        strokeWidth={2.5}
+                        filter="url(#glowIncome)"
+                        activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                      />
+                    )}
+
+                    {showExpense && (
+                      <Area
+                        type="monotone"
+                        dataKey="expense"
+                        name="Expense"
+                        stroke="#F43F5E"
+                        fill="url(#gExpense)"
+                        strokeWidth={2.5}
+                        filter="url(#glowExpense)"
+                        activeDot={{ r: 6, stroke: '#F43F5E', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                      />
+                    )}
+
+                    {showSavings && (
+                      <Area
+                        type="monotone"
+                        dataKey="savings"
+                        name="Savings"
+                        stroke="#6366F1"
+                        fill="url(#gSavings)"
+                        strokeWidth={2.5}
+                        filter="url(#glowSavings)"
+                        activeDot={{ r: 6, stroke: '#6366F1', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                      />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (

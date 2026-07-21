@@ -191,47 +191,87 @@ const AnalyticsPage = () => {
           )}
 
           {/* Cashflow Trends — 3-series Area Chart */}
-          <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-textPrimary mb-1">Cashflow Trends</h3>
-            <p className="text-xs text-textSecondary mb-4">Income, Expense, and Net Savings — last {days} days</p>
-            <div className="h-72 w-full">
-              {dailyData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#EF4444" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={10} tickLine={false}
-                      tickFormatter={(v) => v?.slice(5) || v} />
-                    <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false}
-                      tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border)', borderRadius: '12px', color: 'var(--text-primary)' }}
-                      formatter={(v) => [`₹${v?.toLocaleString() || 0}`, undefined]}
-                    />
-                    <Legend verticalAlign="top" height={36} iconType="circle" />
-                    <Area type="monotone" dataKey="income" name="Income" stroke="#10B981" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2.5} />
-                    <Area type="monotone" dataKey="expense" name="Expense" stroke="#EF4444" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2.5} />
-                    <Area type="monotone" dataKey="savings" name="Net Savings" stroke="#3B82F6" fillOpacity={1} fill="url(#colorSavings)" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-textSecondary text-xs">
-                  <span>No cashflow data for the selected period</span>
-                </div>
-              )}
+          <div className="doppel-shell">
+            <div className="doppel-core p-6">
+              <span className="eyebrow-badge mb-1">Trends</span>
+              <h3 className="text-lg font-bold text-textPrimary tracking-tight">Cashflow Trends</h3>
+              <p className="text-xs text-textMuted mb-4 font-medium">Income, Expense, and Net Savings — last {days} days</p>
+              <div className="h-72 w-full">
+                {dailyData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={dailyData} margin={{ top: 16, right: 16, left: 16, bottom: 4 }}>
+                      <defs>
+                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10B981" stopOpacity={0.25} />
+                          <stop offset="100%" stopColor="#10B981" stopOpacity={0.0} />
+                        </linearGradient>
+                        <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.25} />
+                          <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.0} />
+                        </linearGradient>
+                        <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366F1" stopOpacity={0.25} />
+                          <stop offset="100%" stopColor="#6366F1" stopOpacity={0.0} />
+                        </linearGradient>
+
+                        <filter id="glowInc" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#10B981" floodOpacity="0.4" />
+                        </filter>
+                        <filter id="glowExp" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#F43F5E" floodOpacity="0.35" />
+                        </filter>
+                        <filter id="glowSav" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#6366F1" floodOpacity="0.4" />
+                        </filter>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 6" stroke="var(--border)" vertical={false} opacity={0.7} />
+                      <XAxis
+                        dataKey="date"
+                        stroke="var(--text-muted)"
+                        fontSize={11}
+                        fontWeight={600}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={8}
+                        tickFormatter={(v) => v?.slice(5) || v}
+                      />
+                      <YAxis
+                        stroke="var(--text-muted)"
+                        fontSize={11}
+                        fontWeight={600}
+                        tickLine={false}
+                        axisLine={false}
+                        dx={-8}
+                        width={52}
+                        tickFormatter={(v) => {
+                          if (v === 0) return '0';
+                          const abs = Math.abs(v);
+                          const formatted = abs >= 1000 ? `${(abs / 1000).toFixed(0)}k` : `${abs}`;
+                          return v > 0 ? `+₹${formatted}` : `−₹${formatted}`;
+                        }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'var(--card-bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 14,
+                          fontSize: 12,
+                          boxShadow: 'var(--shadow-lg)',
+                        }}
+                        formatter={(v) => [`₹${(v || 0).toLocaleString('en-IN')}`, undefined]}
+                      />
+                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 8 }} />
+                      <Area type="monotone" dataKey="income" name="Income" stroke="#10B981" fill="url(#colorIncome)" strokeWidth={2.5} filter="url(#glowInc)" activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 3, fill: 'var(--card-bg)' }} />
+                      <Area type="monotone" dataKey="expense" name="Expense" stroke="#F43F5E" fill="url(#colorExpense)" strokeWidth={2.5} filter="url(#glowExp)" activeDot={{ r: 6, stroke: '#F43F5E', strokeWidth: 3, fill: 'var(--card-bg)' }} />
+                      <Area type="monotone" dataKey="savings" name="Net Savings" stroke="#6366F1" fill="url(#colorSavings)" strokeWidth={2.5} filter="url(#glowSav)" activeDot={{ r: 6, stroke: '#6366F1', strokeWidth: 3, fill: 'var(--card-bg)' }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-textSecondary text-xs">
+                    <span>No cashflow data for the selected period</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
