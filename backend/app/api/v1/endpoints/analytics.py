@@ -406,29 +406,55 @@ def get_spending_trends(
             Transaction.date >= start_date
         ).group_by('day', Transaction.type).order_by('day').all()
 
-    # Structure into a daily dictionary matching the Recharts format:
+    # Smart step-bucket aggregation based on requested timeframe
+    step = 1
+    if days > 180:
+        step = 14
+    elif days > 60:
+        step = 7
+    elif days > 30:
+        step = 3
+
     daily_dict = {}
-    for d in range(days):
-        day_str = (now - timedelta(days=d)).strftime("%Y-%m-%d")
+    curr = start_date
+    while curr <= now:
+        day_str = curr.strftime("%Y-%m-%d")
         daily_dict[day_str] = {"date": day_str, "income": 0.0, "expense": 0.0, "savings": 0.0}
+        curr += timedelta(days=step)
+
+    bucket_dates = sorted(daily_dict.keys())
 
     for row in daily_sums:
         day_val, t_type, total_val = row
         if isinstance(day_val, datetime):
-            day_str = day_val.strftime("%Y-%m-%d")
+            d_obj = day_val.date()
+        elif isinstance(day_val, str):
+            try:
+                d_obj = datetime.strptime(day_val[:10], "%Y-%m-%d").date()
+            except Exception:
+                d_obj = now.date()
         else:
-            day_str = str(day_val)
-        
-        if day_str not in daily_dict:
-            daily_dict[day_str] = {"date": day_str, "income": 0.0, "expense": 0.0, "savings": 0.0}
-            
-        t_type_clean = t_type.lower()
+            d_obj = now.date()
+
+        # Assign to nearest bucket
+        assigned_bucket = bucket_dates[-1]
+        for i in range(len(bucket_dates)):
+            b_date = datetime.strptime(bucket_dates[i], "%Y-%m-%d").date()
+            next_b_date = b_date + timedelta(days=step)
+            if b_date <= d_obj < next_b_date:
+                assigned_bucket = bucket_dates[i]
+                break
+
+        t_type_clean = str(t_type).lower()
         if t_type_clean == "income":
-            daily_dict[day_str]["income"] = round(total_val, 2)
+            daily_dict[assigned_bucket]["income"] += total_val
         elif t_type_clean == "expense":
-            daily_dict[day_str]["expense"] = round(total_val, 2)
-            
-        daily_dict[day_str]["savings"] = round(daily_dict[day_str]["income"] - daily_dict[day_str]["expense"], 2)
+            daily_dict[assigned_bucket]["expense"] += total_val
+
+    for b_str in daily_dict:
+        daily_dict[b_str]["income"] = round(daily_dict[b_str]["income"], 2)
+        daily_dict[b_str]["expense"] = round(daily_dict[b_str]["expense"], 2)
+        daily_dict[b_str]["savings"] = round(daily_dict[b_str]["income"] - daily_dict[b_str]["expense"], 2)
 
     sorted_daily = sorted(daily_dict.values(), key=lambda x: x["date"])
 

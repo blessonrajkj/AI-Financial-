@@ -433,41 +433,41 @@ const Dashboard = () => {
             </div>
 
             {/* Area Chart canvas */}
-            <div className="h-[310px] w-full relative">
+            <div className="h-[330px] w-full relative">
               {trends.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trends} margin={{ top: 16, right: 16, left: 16, bottom: 4 }}>
+                  <AreaChart data={trends} margin={{ top: 20, right: 24, left: 20, bottom: 8 }}>
                     <defs>
                       {/* Gradient fills */}
                       <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.25} />
-                        <stop offset="50%" stopColor="#10B981" stopOpacity={0.08} />
+                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.35} />
+                        <stop offset="60%" stopColor="#10B981" stopOpacity={0.08} />
                         <stop offset="100%" stopColor="#10B981" stopOpacity={0.0} />
                       </linearGradient>
                       <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.25} />
-                        <stop offset="50%" stopColor="#F43F5E" stopOpacity={0.06} />
+                        <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.35} />
+                        <stop offset="60%" stopColor="#F43F5E" stopOpacity={0.06} />
                         <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.0} />
                       </linearGradient>
                       <linearGradient id="gSavings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366F1" stopOpacity={0.25} />
-                        <stop offset="50%" stopColor="#6366F1" stopOpacity={0.08} />
+                        <stop offset="0%" stopColor="#6366F1" stopOpacity={0.35} />
+                        <stop offset="60%" stopColor="#6366F1" stopOpacity={0.08} />
                         <stop offset="100%" stopColor="#6366F1" stopOpacity={0.0} />
                       </linearGradient>
 
                       {/* Line Glow drop-shadow filters */}
                       <filter id="glowIncome" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#10B981" floodOpacity="0.4" />
+                        <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#10B981" floodOpacity="0.45" />
                       </filter>
                       <filter id="glowExpense" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#F43F5E" floodOpacity="0.35" />
+                        <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#F43F5E" floodOpacity="0.4" />
                       </filter>
                       <filter id="glowSavings" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#6366F1" floodOpacity="0.4" />
+                        <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#6366F1" floodOpacity="0.45" />
                       </filter>
                     </defs>
 
-                    <CartesianGrid strokeDasharray="3 6" stroke="var(--border)" vertical={false} opacity={0.7} />
+                    <CartesianGrid strokeDasharray="3 6" stroke="var(--border)" vertical={false} opacity={0.6} />
 
                     <XAxis
                       dataKey="date"
@@ -486,8 +486,9 @@ const Dashboard = () => {
                       fontWeight={600}
                       tickLine={false}
                       axisLine={false}
-                      dx={-8}
-                      width={52}
+                      dx={-12}
+                      width={68}
+                      domain={['dataMin - 1000', 'dataMax + 1000']}
                       tickFormatter={v => {
                         if (v === 0) return '0';
                         const abs = Math.abs(v);
@@ -505,9 +506,9 @@ const Dashboard = () => {
                         name="Income"
                         stroke="#10B981"
                         fill="url(#gIncome)"
-                        strokeWidth={2.5}
+                        strokeWidth={3}
                         filter="url(#glowIncome)"
-                        activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                        activeDot={{ r: 7, stroke: '#10B981', strokeWidth: 3, fill: 'var(--card-bg)' }}
                       />
                     )}
 
@@ -518,9 +519,9 @@ const Dashboard = () => {
                         name="Expense"
                         stroke="#F43F5E"
                         fill="url(#gExpense)"
-                        strokeWidth={2.5}
+                        strokeWidth={3}
                         filter="url(#glowExpense)"
-                        activeDot={{ r: 6, stroke: '#F43F5E', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                        activeDot={{ r: 7, stroke: '#F43F5E', strokeWidth: 3, fill: 'var(--card-bg)' }}
                       />
                     )}
 
@@ -531,9 +532,9 @@ const Dashboard = () => {
                         name="Savings"
                         stroke="#6366F1"
                         fill="url(#gSavings)"
-                        strokeWidth={2.5}
+                        strokeWidth={3}
                         filter="url(#glowSavings)"
-                        activeDot={{ r: 6, stroke: '#6366F1', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                        activeDot={{ r: 7, stroke: '#6366F1', strokeWidth: 3, fill: 'var(--card-bg)' }}
                       />
                     )}
                   </AreaChart>
