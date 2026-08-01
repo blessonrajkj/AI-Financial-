@@ -13,7 +13,8 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend
+  Legend,
+  ReferenceLine
 } from 'recharts';
 import {
   TrendingUp,
@@ -241,8 +242,9 @@ const AnalyticsPage = () => {
                         fontWeight={600}
                         tickLine={false}
                         axisLine={false}
-                        dx={-8}
-                        width={52}
+                        dx={-12}
+                        width={68}
+                        domain={['dataMin - 1000', 'dataMax + 1000']}
                         tickFormatter={(v) => {
                           if (v === 0) return '0';
                           const abs = Math.abs(v);
@@ -258,8 +260,10 @@ const AnalyticsPage = () => {
                           fontSize: 12,
                           boxShadow: 'var(--shadow-lg)',
                         }}
+                        cursor={{ stroke: 'rgba(99, 102, 241, 0.25)', strokeWidth: 1.5, strokeDasharray: '4 4' }}
                         formatter={(v) => [`₹${(v || 0).toLocaleString('en-IN')}`, undefined]}
                       />
+                      <ReferenceLine y={0} stroke="rgba(255, 255, 255, 0.12)" strokeWidth={1.5} strokeDasharray="3 3" />
                       <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 8 }} />
                       <Area type="monotone" dataKey="income" name="Income" stroke="#10B981" fill="url(#colorIncome)" strokeWidth={2.5} filter="url(#glowInc)" activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 3, fill: 'var(--card-bg)' }} />
                       <Area type="monotone" dataKey="expense" name="Expense" stroke="#F43F5E" fill="url(#colorExpense)" strokeWidth={2.5} filter="url(#glowExp)" activeDot={{ r: 6, stroke: '#F43F5E', strokeWidth: 3, fill: 'var(--card-bg)' }} />

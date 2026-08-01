@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend
+  Tooltip, ResponsiveContainer, Legend, ReferenceLine
 } from 'recharts';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -496,8 +496,9 @@ const Dashboard = () => {
                         return v > 0 ? `+₹${formatted}` : `−₹${formatted}`;
                       }}
                     />
+                    <Tooltip content={<CustomCashflowTooltip />} cursor={{ stroke: 'rgba(99, 102, 241, 0.25)', strokeWidth: 1.5, strokeDasharray: '4 4' }} />
 
-                    <Tooltip content={<CustomCashflowTooltip />} />
+                    <ReferenceLine y={0} stroke="rgba(255, 255, 255, 0.12)" strokeWidth={1.5} strokeDasharray="3 3" />
 
                     {showIncome && (
                       <Area
