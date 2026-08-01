@@ -87,7 +87,7 @@ html.dark {
   }
 
   html {
-    font-size: 17px !important;
+    font-size: 18.5px !important;
     font-feature-settings: "cv01", "cv02", "cv03", "cv04", "ss01";
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
