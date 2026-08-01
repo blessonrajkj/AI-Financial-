@@ -225,69 +225,73 @@ const BudgetsPage = () => {
             const displayPct = Math.min(pct, 100); // cap visual bar at 100%
 
             return (
-              <div key={b.id} className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm relative overflow-hidden group">
-                {/* Header row */}
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <Wallet className="w-5 h-5" />
+              <div key={b.id} className="doppel-shell relative overflow-hidden group">
+                <div className="doppel-core p-6 flex flex-col justify-between">
+                  {/* Header row */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-extrabold text-textPrimary tracking-tight">{catName}</h4>
+                        <p className="text-[10px] text-textMuted font-medium mt-0.5">{b.month_label || `${b.month}/${b.year}`}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-base font-bold text-textPrimary">{catName}</h4>
-                      <p className="text-[10px] text-textSecondary mt-0.5">{b.month_label || `${b.month}/${b.year}`}</p>
+
+                    <div className="flex flex-col items-end space-y-1.5">
+                      <span className={`flex items-center space-x-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${badge.cls}`}>
+                        {isExceeded && <AlertTriangle className="w-3 h-3" />}
+                        <span>{badge.label}</span>
+                      </span>
+
+                      {/* Edit / Delete action buttons */}
+                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => openEditModal(b)}
+                          title="Edit Budget"
+                          className="p-1.5 rounded-lg text-textSecondary hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(b)}
+                          title="Delete Budget"
+                          className="p-1.5 rounded-lg text-textSecondary hover:text-danger hover:bg-danger/10 transition-all border border-transparent hover:border-danger/20"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end space-y-1.5">
-                    <span className={`flex items-center space-x-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${badge.cls}`}>
-                      {isExceeded && <AlertTriangle className="w-3 h-3" />}
-                      <span>{badge.label}</span>
-                    </span>
-
-                    {/* Edit / Delete action buttons */}
-                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => openEditModal(b)}
-                        title="Edit Budget"
-                        className="p-1.5 rounded-lg text-textSecondary hover:text-primary hover:bg-primary/10 transition-all"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(b)}
-                        title="Delete Budget"
-                        className="p-1.5 rounded-lg text-textSecondary hover:text-danger hover:bg-danger/10 transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                  {/* Spent vs Limit */}
+                  <div className="space-y-3 pt-1">
+                    <div className="flex justify-between text-xs text-textSecondary font-semibold">
+                      <span>Spent: <span className="font-numeric font-bold text-textPrimary">₹{spent.toLocaleString()}</span></span>
+                      <span>Limit: <span className="font-numeric font-bold text-textPrimary">₹{limit.toLocaleString()}</span></span>
                     </div>
-                  </div>
-                </div>
 
-                {/* Spent vs Limit */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-textSecondary">
-                    <span>Spent: <span className="font-bold text-textPrimary">₹{spent.toLocaleString()}</span></span>
-                    <span>Limit: <span className="font-bold text-textPrimary">₹{limit.toLocaleString()}</span></span>
-                  </div>
+                    {/* Progress bar */}
+                    <div className="w-full h-2 bg-borderColor/60 rounded-full overflow-hidden p-0.5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          pct >= 90 ? 'bg-danger shadow-danger-glow' : pct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
+                        }`}
+                        style={{ width: `${displayPct}%` }}
+                      />
+                    </div>
 
-                  {/* Progress bar */}
-                  <div className="w-full h-2.5 bg-background rounded-full overflow-hidden border border-borderColor/40">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${barColor}`}
-                      style={{ width: `${displayPct}%` }}
-                    />
-                  </div>
-
-                  {/* Bottom info */}
-                  <div className="flex justify-between items-center text-[10px] pt-1">
-                    <span className="text-textSecondary font-semibold">{pct.toFixed(1)}% used</span>
-                    <span className={`font-bold ${isExceeded ? 'text-danger' : 'text-textSecondary'}`}>
-                      {isExceeded
-                        ? `⚠ Over by ₹${exceeded.toLocaleString()}`
-                        : `₹${remaining.toLocaleString()} remaining`
-                      }
-                    </span>
+                    {/* Bottom info */}
+                    <div className="flex justify-between items-center text-[10px] pt-0.5">
+                      <span className="text-textMuted font-bold font-numeric">{pct.toFixed(1)}% consumed</span>
+                      <span className={`font-bold font-numeric ${isExceeded ? 'text-danger' : 'text-textMuted'}`}>
+                        {isExceeded
+                          ? `⚠ Over by ₹${exceeded.toLocaleString()}`
+                          : `₹${remaining.toLocaleString()} remaining`
+                        }
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

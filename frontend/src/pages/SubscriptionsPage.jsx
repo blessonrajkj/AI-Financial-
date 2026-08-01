@@ -187,49 +187,57 @@ const SubscriptionsPage = () => {
 
       {/* Overview summaries */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between h-36">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-textSecondary uppercase tracking-wider">Active Subscriptions</span>
-            <span className="p-2 bg-primary/10 text-primary rounded-xl"><CreditCard className="w-4 h-4" /></span>
-          </div>
-          <div>
-            <h3 className="text-2xl font-black text-textPrimary">{summary.active_subscriptions_count || 0}</h3>
-            <p className="text-[10px] text-textSecondary mt-1">Tracked recurring payment lines</p>
-          </div>
-        </div>
-
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between h-36">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-textSecondary uppercase tracking-wider">Monthly Overhead</span>
-            <span className="p-2 bg-danger/10 text-danger rounded-xl"><TrendingUp className="w-4 h-4" /></span>
-          </div>
-          <div>
-            <h3 className="text-2xl font-black text-textPrimary">₹{(summary.monthly_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</h3>
-            <p className="text-[10px] text-textSecondary mt-1">Total recurring cost per month</p>
+        <div className="doppel-shell h-36">
+          <div className="doppel-core p-6 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="eyebrow-badge !px-2 !py-0.5">Active Contracts</span>
+              <span className="p-2 bg-primary/10 text-primary rounded-xl border border-primary/20"><CreditCard className="w-4 h-4" /></span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">{summary.active_subscriptions_count || 0}</h3>
+              <p className="text-[11px] text-textMuted font-medium mt-1">Tracked recurring payment lines</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between h-36">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-textSecondary uppercase tracking-wider">Annual Overhead</span>
-            <span className="p-2 bg-warning/10 text-warning rounded-xl"><Activity className="w-4 h-4" /></span>
-          </div>
-          <div>
-            <h3 className="text-2xl font-black text-textPrimary">₹{(summary.annual_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</h3>
-            <p className="text-[10px] text-textSecondary mt-1">Projected yearly subscription cost</p>
+        <div className="doppel-shell h-36">
+          <div className="doppel-core p-6 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="eyebrow-badge !px-2 !py-0.5">Monthly Overhead</span>
+              <span className="p-2 bg-danger/10 text-danger rounded-xl border border-danger/20"><TrendingUp className="w-4 h-4" /></span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{(summary.monthly_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</h3>
+              <p className="text-[11px] text-textMuted font-medium mt-1">Total recurring cost per month</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm flex flex-col justify-between h-36">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-textSecondary uppercase tracking-wider">Next AutoPay Date</span>
-            <span className="p-2 bg-success/10 text-success rounded-xl"><Calendar className="w-4 h-4" /></span>
+        <div className="doppel-shell h-36">
+          <div className="doppel-core p-6 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="eyebrow-badge !px-2 !py-0.5">Annual Overhead</span>
+              <span className="p-2 bg-warning/10 text-warning rounded-xl border border-warning/20"><Activity className="w-4 h-4" /></span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{(summary.annual_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</h3>
+              <p className="text-[11px] text-textMuted font-medium mt-1">Projected yearly subscription cost</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-black text-textPrimary">
-              {summary.next_autopay_date ? new Date(summary.next_autopay_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : 'No AutoPays Active'}
-            </h3>
-            <p className="text-[10px] text-textSecondary mt-1">Closest upcoming autopay cycle</p>
+        </div>
+
+        <div className="doppel-shell h-36">
+          <div className="doppel-core p-6 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="eyebrow-badge !px-2 !py-0.5">Next AutoPay Date</span>
+              <span className="p-2 bg-success/10 text-success rounded-xl border border-success/20"><Calendar className="w-4 h-4" /></span>
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-textPrimary tracking-tight">
+                {summary.next_autopay_date ? new Date(summary.next_autopay_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : 'No AutoPays Active'}
+              </h3>
+              <p className="text-[11px] text-textMuted font-medium mt-1">Closest upcoming autopay cycle</p>
+            </div>
           </div>
         </div>
       </div>
