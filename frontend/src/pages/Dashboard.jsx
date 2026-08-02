@@ -213,7 +213,11 @@ const Dashboard = () => {
       {/* ── Header card ── */}
       <div className="doppel-shell relative overflow-hidden">
         <div className="glow-orb-primary -top-20 -left-20 w-80 h-80" />
-        <div className="doppel-core px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06] pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(var(--text-muted) 1px, transparent 0)',
+          backgroundSize: '16px 16px'
+        }} />
+        <div className="doppel-core px-6 py-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="eyebrow-badge">
@@ -235,15 +239,39 @@ const Dashboard = () => {
             )}
           </div>
 
-          <button
-            onClick={() => navigate('/transactions')}
-            className="btn-island group self-start sm:self-auto flex-shrink-0"
-          >
-            <span>Add Transaction</span>
-            <span className="btn-island-icon">
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            </span>
-          </button>
+          {/* Quick Actions Navigation Bar */}
+          <div className="flex flex-wrap items-center gap-2 mt-2 xl:mt-0">
+            <button
+              onClick={() => navigate('/transactions')}
+              className="btn-island group flex-shrink-0"
+            >
+              <span>Add Tx</span>
+              <span className="btn-island-icon">
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              </span>
+            </button>
+            <button
+              onClick={() => navigate('/import')}
+              className="px-3.5 py-1.5 text-[11px] font-bold rounded-full bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg hover:border-primary/20 transition-all duration-200 shadow-sm flex items-center gap-1.5"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-textMuted" />
+              <span>Import</span>
+            </button>
+            <button
+              onClick={() => navigate('/scanner')}
+              className="px-3.5 py-1.5 text-[11px] font-bold rounded-full bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg hover:border-primary/20 transition-all duration-200 shadow-sm flex items-center gap-1.5"
+            >
+              <ScanLine className="w-3.5 h-3.5 text-textMuted" />
+              <span>Scan Receipt</span>
+            </button>
+            <button
+              onClick={() => navigate('/upi-scanner')}
+              className="px-3.5 py-1.5 text-[11px] font-bold rounded-full bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg hover:border-primary/20 transition-all duration-200 shadow-sm flex items-center gap-1.5"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-textMuted" />
+              <span>Scan UPI</span>
+            </button>
+          </div>
         </div>
       </div>
 
