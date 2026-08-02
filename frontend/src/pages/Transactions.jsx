@@ -419,47 +419,49 @@ const Transactions = () => {
       )}
 
       {/* Filters Toolbar */}
-      <div className="bg-cardBg border border-borderColor rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
-        <div className="relative w-full md:max-w-xs">
-          <Search className="w-4 h-4 text-textMuted absolute left-4 top-3.5" />
-          <input 
-            type="text" 
-            placeholder="Search transactions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-11 pl-11 pr-4 bg-background border border-borderColor rounded-xl text-sm text-textPrimary placeholder-textMuted focus:outline-none focus:border-primary transition-all"
-          />
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <span className="text-xs font-bold text-textSecondary uppercase tracking-wider hidden sm:inline">Type:</span>
-            <select 
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="h-11 px-3 bg-background border border-borderColor rounded-xl text-sm text-textPrimary focus:outline-none focus:border-primary w-full sm:w-auto"
-            >
-              <option value="All">All Types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
+      <div className="doppel-shell">
+        <div className="doppel-core p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="relative w-full md:max-w-xs">
+            <Search className="w-4 h-4 text-textMuted absolute left-4 top-3.5" />
+            <input 
+              type="text" 
+              placeholder="Search transactions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-11 pl-11 pr-4 bg-background border border-borderColor rounded-xl text-sm text-textPrimary placeholder-textMuted focus:outline-none focus:border-primary transition-all font-medium"
+            />
           </div>
 
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <span className="text-xs font-bold text-textSecondary uppercase tracking-wider hidden sm:inline">Category:</span>
-            <select 
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="h-11 px-3 bg-background border border-borderColor rounded-xl text-sm text-textPrimary focus:outline-none focus:border-primary w-full sm:w-auto"
-            >
-              <option value="All">All Categories</option>
-              {(categoriesList.length > 0 
-                ? Array.from(new Set(categoriesList.map(c => c.name)))
-                : ['Food', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Other', 'Salary']
-              ).map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
+              <span className="text-xs font-bold text-textMuted uppercase tracking-wider hidden sm:inline">Type:</span>
+              <select 
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="h-11 px-3 bg-background border border-borderColor rounded-xl text-sm text-textPrimary focus:outline-none focus:border-primary w-full sm:w-auto font-medium"
+              >
+                <option value="All">All Types</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
+              <span className="text-xs font-bold text-textMuted uppercase tracking-wider hidden sm:inline">Category:</span>
+              <select 
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="h-11 px-3 bg-background border border-borderColor rounded-xl text-sm text-textPrimary focus:outline-none focus:border-primary w-full sm:w-auto font-medium"
+              >
+                <option value="All">All Categories</option>
+                {(categoriesList.length > 0 
+                  ? Array.from(new Set(categoriesList.map(c => c.name)))
+                  : ['Food', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Other', 'Salary']
+                ).map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
