@@ -34,105 +34,114 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative bg-background">
+    <div className="min-h-screen flex items-center justify-center px-4 relative bg-background overflow-hidden">
       {/* Decorative Blur Backgrounds */}
-      <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-success/10 rounded-full blur-3xl"></div>
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-success/8 rounded-full blur-[100px] animate-pulse"></div>
+      <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.04] pointer-events-none" style={{
+        backgroundImage: 'radial-gradient(var(--text-muted) 1px, transparent 0)',
+        backgroundSize: '24px 24px'
+      }} />
 
-      <div className="w-full max-w-md bg-cardBg p-8 rounded-3xl border border-borderColor shadow-lg relative z-10">
-        {/* Header Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-extrabold text-xl shadow-md mb-3">
-            W
+      <div className="w-full max-w-md doppel-shell z-10">
+        <div className="doppel-core p-8 flex flex-col justify-between">
+          {/* Header Logo */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-black text-2xl shadow-lg mb-3 border border-white/10">
+              W
+            </div>
+            <span className="eyebrow-badge mb-1">Create Account</span>
+            <h2 className="text-xl font-extrabold text-textPrimary tracking-tight">Register Access</h2>
+            <p className="text-[11px] text-textMuted font-medium mt-0.5">Start tracking your wealth with WealthPilot AI</p>
           </div>
-          <h2 className="text-2xl font-extrabold text-textPrimary tracking-tight">Create Account</h2>
-          <p className="text-sm text-textSecondary mt-1">Start tracking your wealth with WealthPilot AI</p>
+
+          {error && (
+            <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-bold leading-relaxed">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 text-success text-xs font-bold leading-relaxed">
+              {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Full Name Input */}
+            <div>
+              <label className="block text-[10px] font-extrabold text-textMuted uppercase tracking-wider mb-2">Full Name</label>
+              <div className="relative">
+                <User className="w-4.5 h-4.5 text-textMuted absolute left-4 top-3.5" />
+                <input 
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="John Doe"
+                  className="w-full h-12 pl-11 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary focus:outline-none focus:border-primary transition-all text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Email Input */}
+            <div>
+              <label className="block text-[10px] font-extrabold text-textMuted uppercase tracking-wider mb-2">Email Address</label>
+              <div className="relative">
+                <Mail className="w-4.5 h-4.5 text-textMuted absolute left-4 top-3.5" />
+                <input 
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="john@example.com"
+                  className="w-full h-12 pl-11 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary focus:outline-none focus:border-primary transition-all text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label className="block text-[10px] font-extrabold text-textMuted uppercase tracking-wider mb-2">Password</label>
+              <div className="relative">
+                <Lock className="w-4.5 h-4.5 text-textMuted absolute left-4 top-3.5" />
+                <input 
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full h-12 pl-11 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary focus:outline-none focus:border-primary transition-all text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button 
+              type="submit"
+              disabled={loading}
+              className="btn-island group w-full justify-center py-3.5"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <span className="btn-island-icon">
+                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="mt-8 text-center text-xs font-bold text-textMuted">
+            Already have an account?{' '}
+            <Link to="/login" className="font-extrabold text-primary hover:underline">
+              Log In
+            </Link>
+          </p>
         </div>
-
-        {error && (
-          <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm font-semibold">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 text-success text-sm font-semibold">
-            {success}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Full Name Input */}
-          <div>
-            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Full Name</label>
-            <div className="relative">
-              <User className="w-5 h-5 text-textMuted absolute left-4 top-3.5" />
-              <input 
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="John Doe"
-                className="w-full h-12 pl-12 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary focus:outline-none focus:border-primary transition-all text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Email Input */}
-          <div>
-            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Email Address</label>
-            <div className="relative">
-              <Mail className="w-5 h-5 text-textMuted absolute left-4 top-3.5" />
-              <input 
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="john@example.com"
-                className="w-full h-12 pl-12 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary focus:outline-none focus:border-primary transition-all text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Password Input */}
-          <div>
-            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Password</label>
-            <div className="relative">
-              <Lock className="w-5 h-5 text-textMuted absolute left-4 top-3.5" />
-              <input 
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full h-12 pl-12 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary focus:outline-none focus:border-primary transition-all text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <button 
-            type="submit"
-            disabled={loading}
-            className="w-full h-12 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-primary/25 hover:shadow-lg transition-all disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <>
-                <span>Sign Up</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-sm text-textSecondary">
-          Already have an account?{' '}
-          <Link to="/login" className="font-bold text-primary hover:underline">
-            Log In
-          </Link>
-        </p>
       </div>
     </div>
   );
