@@ -15,7 +15,7 @@ import {
   Check,
   Award
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import IndiaPostModal from '../components/investments/IndiaPostModal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -67,6 +67,41 @@ const InvestmentsPage = () => {
       setLoading(false);
     }
   };
+
+  const [cagr, setCagr] = useState(12);
+  const [projectionYears, setProjectionYears] = useState(10);
+  const [monthlyContribution, setMonthlyContribution] = useState(10000);
+
+  const currentAssetValue = data.summary?.total_value || 0;
+
+  const projectionData = React.useMemo(() => {
+    const points = [];
+    const monthlyRate = (cagr / 100) / 12;
+    let balance = currentAssetValue;
+    let totalContributions = 0;
+
+    points.push({
+      year: 'Now',
+      balance: Math.round(balance),
+      contributions: 0,
+      growth: 0
+    });
+
+    for (let y = 1; y <= projectionYears; y++) {
+      for (let m = 1; m <= 12; m++) {
+        balance = balance * (1 + monthlyRate) + monthlyContribution;
+        totalContributions += monthlyContribution;
+      }
+      const totalGrowth = balance - currentAssetValue - totalContributions;
+      points.push({
+        year: `Yr ${y}`,
+        balance: Math.round(balance),
+        contributions: Math.round(totalContributions),
+        growth: Math.round(totalGrowth > 0 ? totalGrowth : 0)
+      });
+    }
+    return points;
+  }, [currentAssetValue, cagr, projectionYears, monthlyContribution]);
 
   useEffect(() => {
     fetchInvestments();
@@ -445,6 +480,155 @@ const InvestmentsPage = () => {
               <p className="text-[10px] text-textMuted mt-0.5">Click "Add Asset Holding" above to start logging</p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Wealth Forecaster & Net Worth Projector ── */}
+      <div className="doppel-shell">
+        <div className="doppel-core p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
+            <div>
+              <span className="eyebrow-badge mb-1">Simulate & Plan</span>
+              <h2 className="text-base font-extrabold text-textPrimary tracking-tight">Compound Interest Wealth Forecaster</h2>
+              <p className="text-[11px] text-textMuted font-medium mt-0.5">Project your net worth future growth curve by adjusting return expectations</p>
+            </div>
+            
+            <div className="bg-surface border border-borderColor rounded-2xl p-4 flex items-center justify-between gap-6 self-start lg:self-auto min-w-[240px]">
+              <div>
+                <span className="text-[10px] font-bold text-textMuted uppercase tracking-wider">Projected Portfolio</span>
+                <h4 className="text-xl font-extrabold text-primary font-numeric tracking-tight mt-0.5">
+                  ₹{(projectionData[projectionData.length - 1]?.balance || 0).toLocaleString()}
+                </h4>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-bold text-textMuted uppercase tracking-wider">Total Contributions</span>
+                <p className="text-xs font-bold text-textPrimary font-numeric mt-0.5">
+                  +₹{(projectionData[projectionData.length - 1]?.contributions || 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Control Sliders */}
+            <div className="lg:col-span-1 space-y-4 bg-background/50 border border-borderColor/60 rounded-2xl p-4">
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-2">
+                  <span className="text-textSecondary">Target CAGR</span>
+                  <span className="font-bold text-primary font-numeric">{cagr}%</span>
+                </div>
+                <input 
+                  type="range"
+                  min="2"
+                  max="30"
+                  step="0.5"
+                  value={cagr}
+                  onChange={(e) => setCagr(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-borderColor rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-2">
+                  <span className="text-textSecondary">Monthly Contribution</span>
+                  <span className="font-bold text-primary font-numeric">₹{monthlyContribution.toLocaleString()}</span>
+                </div>
+                <input 
+                  type="range"
+                  min="0"
+                  max="200000"
+                  step="5000"
+                  value={monthlyContribution}
+                  onChange={(e) => setMonthlyContribution(parseInt(e.target.value))}
+                  className="w-full h-1.5 bg-borderColor rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-2">
+                  <span className="text-textSecondary">Projection Period</span>
+                  <span className="font-bold text-primary font-numeric">{projectionYears} Years</span>
+                </div>
+                <input 
+                  type="range"
+                  min="1"
+                  max="35"
+                  step="1"
+                  value={projectionYears}
+                  onChange={(e) => setProjectionYears(parseInt(e.target.value))}
+                  className="w-full h-1.5 bg-borderColor rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-borderColor/40 text-[10px] text-textMuted font-medium leading-relaxed">
+                *Forecasts are based on monthly compounding interest calculations using your initial holdings balance of 
+                <span className="font-bold font-numeric text-textPrimary"> ₹{(currentAssetValue).toLocaleString()}</span> as principal.
+              </div>
+            </div>
+
+            {/* Projection Area Chart */}
+            <div className="lg:col-span-2 h-[260px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={projectionData} margin={{ top: 12, right: 16, left: 16, bottom: 4 }}>
+                  <defs>
+                    <linearGradient id="glowForecaster" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.0} />
+                    </linearGradient>
+                    <filter id="cagrGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="var(--primary)" floodOpacity="0.4" />
+                    </filter>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 6" stroke="var(--border)" vertical={false} opacity={0.6} />
+                  <XAxis 
+                    dataKey="year" 
+                    stroke="var(--text-muted)" 
+                    fontSize={11} 
+                    fontWeight={600}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={8}
+                  />
+                  <YAxis 
+                    stroke="var(--text-muted)" 
+                    fontSize={11} 
+                    fontWeight={600}
+                    tickLine={false}
+                    axisLine={false}
+                    width={64}
+                    dx={-12}
+                    tickFormatter={v => {
+                      if (v === 0) return '0';
+                      const abs = Math.abs(v);
+                      if (abs >= 10000000) return `₹${(abs / 10000000).toFixed(1)}Cr`;
+                      if (abs >= 100000) return `₹${(abs / 100000).toFixed(0)}L`;
+                      return `₹${(abs / 1000).toFixed(0)}k`;
+                    }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`₹${value.toLocaleString()}`, 'Portfolio Value']}
+                    contentStyle={{
+                      backgroundColor: 'var(--card-bg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 14,
+                      fontSize: 12,
+                      boxShadow: 'var(--shadow-lg)'
+                    }}
+                    cursor={{ stroke: 'rgba(99, 102, 241, 0.25)', strokeWidth: 1.5, strokeDasharray: '4 4' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="balance" 
+                    stroke="var(--primary)" 
+                    fill="url(#glowForecaster)" 
+                    strokeWidth={3} 
+                    filter="url(#cagrGlow)"
+                    activeDot={{ r: 7, stroke: 'var(--primary)', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
       </div>
 
