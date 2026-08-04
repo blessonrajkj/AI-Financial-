@@ -17,6 +17,8 @@ import {
   Info,
   CheckCircle,
   Calendar,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -146,7 +148,29 @@ const Dashboard = () => {
   const [loading, setLoading]     = useState(true);
   const [aiInsights, setAiInsights]   = useState([]);
   const [aiLoading, setAiLoading]     = useState(true);
+  const [isSpeaking, setIsSpeaking]   = useState(false);
   const navigate = useNavigate();
+
+  const toggleSpeak = () => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      const textToSpeak = `${summary?.ai_insight?.insight_text || ''}. Current month savings rate stands at ${summary?.savings_rate || 0}%.`;
+      if (!textToSpeak) return;
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -238,13 +262,43 @@ const Dashboard = () => {
               {getGreeting()}, {userName}
             </h1>
             {summary?.ai_insight && (
-              <p className="text-xs text-textMuted mt-1 max-w-xl leading-relaxed">
-                {summary.ai_insight.insight_text}
-                {' '}
-                <span className={`font-bold ${summary.ai_insight.savings_rate_diff >= 0 ? 'text-success' : 'text-danger'}`}>
-                  {summary.ai_insight.savings_rate_diff >= 0 ? '↑' : '↓'} {Math.abs(summary.ai_insight.savings_rate_diff || 0).toFixed(1)}% vs last month
-                </span>
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
+                <p className="text-xs text-textMuted max-w-xl leading-relaxed">
+                  {summary.ai_insight.insight_text}
+                  {' '}
+                  <span className={`font-bold ${summary.ai_insight.savings_rate_diff >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {summary.ai_insight.savings_rate_diff >= 0 ? '↑' : '↓'} {Math.abs(summary.ai_insight.savings_rate_diff || 0).toFixed(1)}% vs last month
+                  </span>
+                </p>
+
+                <button
+                  onClick={toggleSpeak}
+                  title={isSpeaking ? 'Stop Voice Briefing' : 'Listen to Voice Briefing'}
+                  className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-all text-[10px] font-bold ${
+                    isSpeaking 
+                      ? 'bg-primary/10 border-primary/30 text-primary shadow-sm'
+                      : 'bg-surface hover:bg-hoverBg border-borderColor text-textSecondary'
+                  }`}
+                >
+                  {isSpeaking ? (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5 animate-bounce" />
+                      <span>Stop Briefing</span>
+                      <div className="flex items-center gap-[2px] h-3.5 pl-1">
+                        <span className="w-[2px] bg-primary rounded-full h-2 animate-[pulse_0.6s_infinite_alternate]" />
+                        <span className="w-[2px] bg-primary rounded-full h-3.5 animate-[pulse_0.4s_infinite_alternate]" style={{ animationDelay: '0.15s' }} />
+                        <span className="w-[2px] bg-primary rounded-full h-1 animate-[pulse_0.5s_infinite_alternate]" style={{ animationDelay: '0.3s' }} />
+                        <span className="w-[2px] bg-primary rounded-full h-2.5 animate-[pulse_0.7s_infinite_alternate]" style={{ animationDelay: '0.1s' }} />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Listen to AI Summary</span>
+                    </>
+                  )}
+                </button>
+              </div>
             )}
           </div>
 
