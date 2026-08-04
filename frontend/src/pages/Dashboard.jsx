@@ -130,6 +130,15 @@ const Dashboard = () => {
     return { totalIncome, totalExpense, netSavings, savingsRate, avgDailySpending };
   }, [trends]);
 
+  const savingsOffset = useMemo(() => {
+    if (!trends || trends.length === 0) return 0.5;
+    const savingsValues = trends.map(day => day.savings ?? 0);
+    const max = Math.max(...savingsValues, 1);
+    const min = Math.min(...savingsValues, -1);
+    if (max === min) return 0.5;
+    return max / (max - min);
+  }, [trends]);
+
   const [chartDays, setChartDays] = useState(30);
   const [showIncome, setShowIncome]   = useState(true);
   const [showExpense, setShowExpense] = useState(true);
@@ -478,9 +487,10 @@ const Dashboard = () => {
                         <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.0} />
                       </linearGradient>
                       <linearGradient id="gSavings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366F1" stopOpacity={0.35} />
-                        <stop offset="60%" stopColor="#6366F1" stopOpacity={0.08} />
-                        <stop offset="100%" stopColor="#6366F1" stopOpacity={0.0} />
+                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
+                        <stop offset={`${savingsOffset * 100}%`} stopColor="#10B981" stopOpacity={0.05} />
+                        <stop offset={`${savingsOffset * 100}%`} stopColor="#F43F5E" stopOpacity={0.05} />
+                        <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.3} />
                       </linearGradient>
 
                       {/* Line Glow drop-shadow filters */}
@@ -559,7 +569,7 @@ const Dashboard = () => {
                         type="monotone"
                         dataKey="savings"
                         name="Savings"
-                        stroke="#6366F1"
+                        stroke="url(#gSavings)"
                         fill="url(#gSavings)"
                         strokeWidth={3}
                         filter="url(#glowSavings)"

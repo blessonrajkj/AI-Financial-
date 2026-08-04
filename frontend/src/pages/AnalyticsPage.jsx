@@ -78,6 +78,15 @@ const AnalyticsPage = () => {
 
   const categoryData = trends?.categories || [];
   const dailyData = trends?.daily_spending || [];
+
+  const savingsOffset = React.useMemo(() => {
+    if (!dailyData || dailyData.length === 0) return 0.5;
+    const savingsValues = dailyData.map(day => day.savings ?? 0);
+    const max = Math.max(...savingsValues, 1);
+    const min = Math.min(...savingsValues, -1);
+    if (max === min) return 0.5;
+    return max / (max - min);
+  }, [dailyData]);
   const forecastPoints = forecast?.forecast_points || [];
   const metrics = forecast?.metrics || {};
 
@@ -211,8 +220,10 @@ const AnalyticsPage = () => {
                           <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.0} />
                         </linearGradient>
                         <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#6366F1" stopOpacity={0.25} />
-                          <stop offset="100%" stopColor="#6366F1" stopOpacity={0.0} />
+                          <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
+                          <stop offset={`${savingsOffset * 100}%`} stopColor="#10B981" stopOpacity={0.05} />
+                          <stop offset={`${savingsOffset * 100}%`} stopColor="#F43F5E" stopOpacity={0.05} />
+                          <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.3} />
                         </linearGradient>
 
                         <filter id="glowInc" x="-20%" y="-20%" width="140%" height="140%">
@@ -222,7 +233,7 @@ const AnalyticsPage = () => {
                           <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#F43F5E" floodOpacity="0.35" />
                         </filter>
                         <filter id="glowSav" x="-20%" y="-20%" width="140%" height="140%">
-                          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#6366F1" floodOpacity="0.4" />
+                          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#10B981" floodOpacity="0.3" />
                         </filter>
                       </defs>
                       <CartesianGrid strokeDasharray="3 6" stroke="var(--border)" vertical={false} opacity={0.7} />
@@ -267,7 +278,7 @@ const AnalyticsPage = () => {
                       <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 8 }} />
                       <Area type="monotone" dataKey="income" name="Income" stroke="#10B981" fill="url(#colorIncome)" strokeWidth={2.5} filter="url(#glowInc)" activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 3, fill: 'var(--card-bg)' }} />
                       <Area type="monotone" dataKey="expense" name="Expense" stroke="#F43F5E" fill="url(#colorExpense)" strokeWidth={2.5} filter="url(#glowExp)" activeDot={{ r: 6, stroke: '#F43F5E', strokeWidth: 3, fill: 'var(--card-bg)' }} />
-                      <Area type="monotone" dataKey="savings" name="Net Savings" stroke="#6366F1" fill="url(#colorSavings)" strokeWidth={2.5} filter="url(#glowSav)" activeDot={{ r: 6, stroke: '#6366F1', strokeWidth: 3, fill: 'var(--card-bg)' }} />
+                      <Area type="monotone" dataKey="savings" name="Net Savings" stroke="url(#colorSavings)" fill="url(#colorSavings)" strokeWidth={2.5} filter="url(#glowSav)" activeDot={{ r: 6, stroke: '#6366F1', strokeWidth: 3, fill: 'var(--card-bg)' }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
