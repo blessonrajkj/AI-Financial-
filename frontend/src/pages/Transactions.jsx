@@ -518,7 +518,7 @@ const Transactions = () => {
                         </span>
                       </td>
                       <td className="py-4 px-6 text-textSecondary">{t.date}</td>
-                      <td className={`py-4 px-6 text-right font-black ${isIncome ? 'text-success' : 'text-danger'}`}>
+                      <td className={`py-4 px-6 text-right font-black privacy-mask ${isIncome ? 'text-success' : 'text-danger'}`}>
                         {isIncome ? '+' : '-'} ₹{t.amount.toLocaleString()}
                       </td>
                       <td className="py-4 px-6 text-center">

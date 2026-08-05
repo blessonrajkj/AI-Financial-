@@ -19,6 +19,8 @@ import {
   Calendar,
   Volume2,
   VolumeX,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -114,7 +116,7 @@ const priorityStyle = (priority) => {
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { refreshTrigger } = useThemeAndRefresh();
+  const { refreshTrigger, privacyMode, togglePrivacyMode } = useThemeAndRefresh();
   const [summary, setSummary]     = useState(null);
   const [trends, setTrends]       = useState([]);
   
@@ -305,6 +307,19 @@ const Dashboard = () => {
           {/* Quick Actions Navigation Bar */}
           <div className="flex flex-wrap items-center gap-2 mt-2 xl:mt-0">
             <button
+              onClick={togglePrivacyMode}
+              title={privacyMode ? 'Disable Privacy Shield' : 'Enable Privacy Shield'}
+              className={`px-3.5 py-1.5 text-[11px] font-bold rounded-full border transition-all duration-200 shadow-sm flex items-center gap-1.5 ${
+                privacyMode
+                  ? 'bg-danger/10 border-danger/30 text-danger'
+                  : 'bg-surface hover:bg-hoverBg border-borderColor text-textPrimary'
+              }`}
+            >
+              {privacyMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-textMuted" />}
+              <span>{privacyMode ? 'Shield Active' : 'Privacy Shield'}</span>
+            </button>
+
+            <button
               onClick={() => navigate('/transactions')}
               className="btn-island group flex-shrink-0"
             >
@@ -358,7 +373,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div>
-                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
                   {fmt(summary?.current_balance)}
                 </p>
                 <p className="text-[11px] text-success font-semibold mt-1 flex items-center gap-1">
@@ -379,7 +394,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div>
-                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
                   {fmt(summary?.monthly_income)}
                 </p>
                 <div className={`flex items-center gap-1 text-[11px] font-bold mt-1 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
@@ -400,7 +415,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div>
-                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
                   {fmt(summary?.monthly_spending)}
                 </p>
                 <div className={`flex items-center gap-1 text-[11px] font-bold mt-1 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
@@ -416,12 +431,12 @@ const Dashboard = () => {
             <div className="doppel-core p-5 flex flex-col justify-between gap-4">
               <div className="flex items-center justify-between">
                 <span className="eyebrow-badge !px-2 !py-0.5">Budget</span>
-                <span className="text-xs font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor">
+                <span className="text-xs font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor privacy-mask">
                   {budgetUsedPct.toFixed(0)}%
                 </span>
               </div>
               <div>
-                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">
+                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
                   {fmt(summary?.budget_remaining)}
                 </p>
                 <div className="mt-2.5 h-2 bg-borderColor/60 rounded-full overflow-hidden p-0.5">
@@ -433,7 +448,7 @@ const Dashboard = () => {
                   />
                 </div>
                 <p className="text-[11px] text-textMuted font-medium mt-1.5">
-                  of {fmt(summary?.total_budget_limit)} limit remaining
+                  of <span className="privacy-mask">{fmt(summary?.total_budget_limit)}</span> limit remaining
                 </p>
               </div>
             </div>

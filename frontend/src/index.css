@@ -109,6 +109,14 @@ html.dark {
     font-feature-settings: "tnum";
   }
 
+  /* Privacy obscuring mask filter (Fintech-grade data security) */
+  html.privacy-active .privacy-mask {
+    filter: blur(8.5px) !important;
+    opacity: 0.8;
+    pointer-events: none !important;
+    user-select: none !important;
+  }
+
   ::selection {
     background-color: rgba(79, 70, 229, 0.15);
     color: var(--text-primary);
