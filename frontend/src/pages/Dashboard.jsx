@@ -362,8 +362,6 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-          {/* Balance */}
           <div className="doppel-shell">
             <div className="doppel-core p-5 flex flex-col justify-between gap-4">
               <div className="flex items-center justify-between">
@@ -372,14 +370,25 @@ const Dashboard = () => {
                   <Wallet className="w-4 h-4" />
                 </div>
               </div>
-              <div>
-                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
-                  {fmt(summary?.current_balance)}
-                </p>
-                <p className="text-[11px] text-success font-semibold mt-1 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-ping" />
-                  Live account balance
-                </p>
+              <div className="flex items-end justify-between gap-2 mt-1">
+                <div>
+                  <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                    {fmt(summary?.current_balance)}
+                  </p>
+                  <p className="text-[10px] text-success font-bold mt-1 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-ping" />
+                    Live accounts
+                  </p>
+                </div>
+                {trends.length > 0 && (
+                  <div className="h-10 w-24 flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                        <Area type="monotone" dataKey="savings" stroke="#6366F1" fill="#6366F1" fillOpacity={0.08} strokeWidth={1.5} dot={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -393,14 +402,25 @@ const Dashboard = () => {
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
-              <div>
-                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
-                  {fmt(summary?.monthly_income)}
-                </p>
-                <div className={`flex items-center gap-1 text-[11px] font-bold mt-1 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
-                  {incomeDiff >= 0 ? <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" /> : <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />}
-                  {fmtPct(incomeDiff)} vs last month
+              <div className="flex items-end justify-between gap-2 mt-1">
+                <div>
+                  <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                    {fmt(summary?.monthly_income)}
+                  </p>
+                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-1 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {incomeDiff >= 0 ? <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" /> : <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />}
+                    {fmtPct(incomeDiff)} vs last mo
+                  </div>
                 </div>
+                {trends.length > 0 && (
+                  <div className="h-10 w-24 flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                        <Area type="monotone" dataKey="income" stroke="#10B981" fill="#10B981" fillOpacity={0.08} strokeWidth={1.5} dot={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -414,14 +434,25 @@ const Dashboard = () => {
                   <TrendingDown className="w-4 h-4" />
                 </div>
               </div>
-              <div>
-                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
-                  {fmt(summary?.monthly_spending)}
-                </p>
-                <div className={`flex items-center gap-1 text-[11px] font-bold mt-1 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
-                  {expenseDiff <= 0 ? <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" /> : <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />}
-                  {fmtPct(expenseDiff)} vs last month
+              <div className="flex items-end justify-between gap-2 mt-1">
+                <div>
+                  <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                    {fmt(summary?.monthly_spending)}
+                  </p>
+                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-1 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
+                    {expenseDiff <= 0 ? <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" /> : <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />}
+                    {fmtPct(expenseDiff)} vs last mo
+                  </div>
                 </div>
+                {trends.length > 0 && (
+                  <div className="h-10 w-24 flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                        <Area type="monotone" dataKey="expense" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.08} strokeWidth={1.5} dot={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -431,7 +462,7 @@ const Dashboard = () => {
             <div className="doppel-core p-5 flex flex-col justify-between gap-4">
               <div className="flex items-center justify-between">
                 <span className="eyebrow-badge !px-2 !py-0.5">Budget</span>
-                <span className="text-xs font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor privacy-mask">
+                <span className="text-[10px] font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor privacy-mask">
                   {budgetUsedPct.toFixed(0)}%
                 </span>
               </div>
@@ -439,7 +470,7 @@ const Dashboard = () => {
                 <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
                   {fmt(summary?.budget_remaining)}
                 </p>
-                <div className="mt-2.5 h-2 bg-borderColor/60 rounded-full overflow-hidden p-0.5">
+                <div className="mt-2 h-1.5 bg-borderColor/60 rounded-full overflow-hidden p-[1px]">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${
                       budgetUsedPct >= 90 ? 'bg-danger shadow-danger-glow' : budgetUsedPct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
