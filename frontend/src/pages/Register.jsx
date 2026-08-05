@@ -14,6 +14,27 @@ const Register = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const getPasswordStrength = (pw) => {
+    if (!pw) return { score: 0, label: '', color: 'bg-borderColor' };
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    switch (score) {
+      case 0:
+      case 1:
+        return { score, label: 'Weak', color: 'bg-danger shadow-danger-glow', textClass: 'text-danger' };
+      case 2:
+      case 3:
+        return { score, label: 'Medium', color: 'bg-warning', textClass: 'text-warning' };
+      case 4:
+      default:
+        return { score, label: 'Strong & Secure', color: 'bg-success shadow-success-glow', textClass: 'text-success' };
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -103,7 +124,7 @@ const Register = () => {
             {/* Password Input */}
             <div>
               <label className="block text-[10px] font-extrabold text-textMuted uppercase tracking-wider mb-2">Password</label>
-              <div className="relative">
+              <div className="relative mb-2">
                 <Lock className="w-4.5 h-4.5 text-textMuted absolute left-4 top-3.5" />
                 <input 
                   type="password"
@@ -114,6 +135,22 @@ const Register = () => {
                   className="w-full h-12 pl-11 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary focus:outline-none focus:border-primary transition-all text-xs font-semibold"
                 />
               </div>
+
+              {/* Dynamic strength indicator */}
+              {password && (
+                <div className="space-y-1.5 animate-fade-in mb-3">
+                  <div className="flex justify-between items-center text-[10px] font-extrabold">
+                    <span className="text-textMuted uppercase tracking-wider">Password Strength</span>
+                    <span className={getPasswordStrength(password).textClass}>{getPasswordStrength(password).label}</span>
+                  </div>
+                  <div className="w-full h-1 bg-borderColor/60 rounded-full overflow-hidden p-[1px]">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${getPasswordStrength(password).color}`}
+                      style={{ width: `${(getPasswordStrength(password).score / 4) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}

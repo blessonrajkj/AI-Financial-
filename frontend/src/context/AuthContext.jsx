@@ -25,6 +25,32 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
+  // Auto-logout Session inactivity guard (Fintech compliance standard)
+  useEffect(() => {
+    if (!token) return;
+
+    let inactivityTimeout;
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimeout);
+      inactivityTimeout = setTimeout(() => {
+        console.warn("Session expired due to inactivity");
+        logout();
+        alert("Session expired due to inactivity. Please log in again to protect your account.");
+      }, 15 * 60 * 1000); // 15 minutes
+    };
+
+    const events = ['mousemove', 'keydown', 'mousedown', 'scroll', 'touchstart'];
+    events.forEach(e => window.addEventListener(e, resetTimer));
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimeout);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
+  }, [token]);
+
   const fetchUserProfile = async () => {
     try {
       const res = await axios.get(`${API_URL}/auth/me`);
