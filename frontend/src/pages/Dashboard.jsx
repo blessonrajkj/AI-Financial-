@@ -362,29 +362,32 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="doppel-shell">
-            <div className="doppel-core p-5 flex flex-col justify-between gap-4">
+          {/* Primary Hero Balance Card */}
+          <div className="doppel-shell sm:col-span-2 lg:col-span-1 border-primary/30 shadow-[0_4px_20px_rgba(99,102,241,0.08)]">
+            <div className="doppel-core p-5 flex flex-col justify-between gap-4 bg-gradient-to-br from-primary/10 via-cardBg to-cardBg h-full">
               <div className="flex items-center justify-between">
-                <span className="eyebrow-badge !px-2 !py-0.5">Balance</span>
-                <div className="w-8 h-8 rounded-xl bg-hoverBg flex items-center justify-center text-textMuted">
+                <span className="eyebrow-badge !px-2.5 !py-0.5 !bg-primary/15 !text-primary !border-primary/30 font-bold">
+                  Total Balance
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center text-primary shadow-sm">
                   <Wallet className="w-4 h-4" />
                 </div>
               </div>
               <div className="flex items-end justify-between gap-2 mt-1">
                 <div>
-                  <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                  <p className="text-3xl font-black text-textPrimary font-numeric tracking-tight privacy-mask">
                     {fmt(summary?.current_balance)}
                   </p>
-                  <p className="text-[10px] text-success font-bold mt-1 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-ping" />
-                    Live accounts
+                  <p className="text-[10px] text-success font-bold mt-1.5 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-success animate-ping" />
+                    <span>Linked accounts active</span>
                   </p>
                 </div>
                 {trends.length > 0 && (
-                  <div className="h-10 w-24 flex-shrink-0">
+                  <div className="h-11 w-24 flex-shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
-                        <Area type="monotone" dataKey="savings" stroke="#6366F1" fill="#6366F1" fillOpacity={0.08} strokeWidth={1.5} dot={false} />
+                        <Area type="monotone" dataKey="savings" stroke="#6366F1" fill="#6366F1" fillOpacity={0.12} strokeWidth={2} dot={false} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -393,11 +396,11 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Income */}
+          {/* Income (Secondary) */}
           <div className="doppel-shell">
-            <div className="doppel-core p-5 flex flex-col justify-between gap-4">
+            <div className="doppel-core p-5 flex flex-col justify-between gap-4 h-full">
               <div className="flex items-center justify-between">
-                <span className="eyebrow-badge !px-2 !py-0.5 !text-success !border-success/20 !bg-success/10">Income</span>
+                <span className="eyebrow-badge !px-2 !py-0.5 !text-success !border-success/20 !bg-success/10 font-bold">Income</span>
                 <div className="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center text-success">
                   <TrendingUp className="w-4 h-4" />
                 </div>
@@ -413,7 +416,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 {trends.length > 0 && (
-                  <div className="h-10 w-24 flex-shrink-0">
+                  <div className="h-10 w-20 flex-shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                         <Area type="monotone" dataKey="income" stroke="#10B981" fill="#10B981" fillOpacity={0.08} strokeWidth={1.5} dot={false} />
@@ -425,11 +428,11 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Spending */}
+          {/* Spending (Secondary) */}
           <div className="doppel-shell">
-            <div className="doppel-core p-5 flex flex-col justify-between gap-4">
+            <div className="doppel-core p-5 flex flex-col justify-between gap-4 h-full">
               <div className="flex items-center justify-between">
-                <span className="eyebrow-badge !px-2 !py-0.5 !text-danger !border-danger/20 !bg-danger/10">Spending</span>
+                <span className="eyebrow-badge !px-2 !py-0.5 !text-danger !border-danger/20 !bg-danger/10 font-bold">Spending</span>
                 <div className="w-8 h-8 rounded-xl bg-danger/10 flex items-center justify-center text-danger">
                   <TrendingDown className="w-4 h-4" />
                 </div>
@@ -445,7 +448,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 {trends.length > 0 && (
-                  <div className="h-10 w-24 flex-shrink-0">
+                  <div className="h-10 w-20 flex-shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                         <Area type="monotone" dataKey="expense" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.08} strokeWidth={1.5} dot={false} />
@@ -457,11 +460,11 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Budget */}
+          {/* Budget (Secondary) */}
           <div className="doppel-shell">
-            <div className="doppel-core p-5 flex flex-col justify-between gap-4">
+            <div className="doppel-core p-5 flex flex-col justify-between gap-4 h-full">
               <div className="flex items-center justify-between">
-                <span className="eyebrow-badge !px-2 !py-0.5">Budget</span>
+                <span className="eyebrow-badge !px-2 !py-0.5 font-bold">Budget</span>
                 <span className="text-[10px] font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor privacy-mask">
                   {budgetUsedPct.toFixed(0)}%
                 </span>
