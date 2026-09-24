@@ -10,6 +10,11 @@
       <stop offset="0%" stopColor="#38BDF8" />
       <stop offset="100%" stopColor="#0284C7" />
     </linearGradient>
+    <linearGradient id="pvLineGraphGrad" x1="15" y1="65" x2="75" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#00F0FF" />
+      <stop offset="50%" stopColor="#38BDF8" />
+      <stop offset="100%" stopColor="#34D399" />
+    </linearGradient>
     <linearGradient id="pvShadowGrad" x1="40" y1="20" x2="80" y2="50" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stopColor="#0B132B" stopOpacity="0.8" />
       <stop offset="100%" stopColor="#1E1B4B" stopOpacity="0.2" />
@@ -27,6 +32,17 @@
     <polygon points="10,64 24,53 32,53 18,64" fill="url(#pvBarsGrad)" opacity="0.95" />
     <polygon points="20,53 36,40 44,40 28,53" fill="url(#pvBarsGrad)" />
     <polygon points="30,42 48,27 56,27 38,42" fill="url(#pvBarsGrad)" />
+    <path
+      d="M 16 66 L 30 52 L 44 56 L 66 28"
+      stroke="url(#pvLineGraphGrad)"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="16" cy="66" r="3" fill="#FFFFFF" />
+    <circle cx="30" cy="52" r="3" fill="#FFFFFF" />
+    <circle cx="44" cy="56" r="3" fill="#FFFFFF" />
+    <circle cx="66" cy="28" r="4" fill="#34D399" />
     <path
       d="M 8 86 C 18 78 30 66 48 48 C 55 41 63 33 70 26 L 60 26 L 73 14 L 73 38 L 68 30 C 58 40 45 54 30 68 C 20 78 12 84 8 86 Z"
       fill="#FFFFFF"

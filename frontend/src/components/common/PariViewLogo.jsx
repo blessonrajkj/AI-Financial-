@@ -3,10 +3,11 @@ import React from 'react';
 /**
  * PariView Official Logo Component
  * 
- * Recreated 1:1 from brand design reference:
- * - Stylized 'P' silhouette in vibrant Electric Blue & Purple gradient.
- * - 3 ascending cyan bar chart pillars inside the lower body.
- * - Dynamic white ascending growth arrow curving up to the top-right.
+ * Includes:
+ * - 'P' silhouette in Electric Blue to Violet gradient.
+ * - 3 ascending cyan bar chart pillars inside the lower stem.
+ * - Glowing upward trend line graph with data nodes inside the 'P'.
+ * - Bold white ascending arrow launching to the top-right.
  */
 const PariViewLogo = ({
   variant = 'full', // 'full' | 'icon' | 'wordmark' | 'light' | 'dark' | 'monochrome-white' | 'monochrome-black'
@@ -35,7 +36,7 @@ const PariViewLogo = ({
 
   return (
     <div className={`inline-flex items-center ${currentSize.textGap} select-none ${className}`}>
-      {/* ─── PARIVIEW ICON SYMBOL (EXACT MATCH TO REFERENCE DESIGN) ─── */}
+      {/* ─── PARIVIEW ICON SYMBOL ─── */}
       {variant !== 'wordmark' && (
         <svg
           width={iconDim}
@@ -60,11 +61,22 @@ const PariViewLogo = ({
               <stop offset="100%" stopColor="#0284C7" />
             </linearGradient>
 
+            {/* Glowing Trend Line Gradient */}
+            <linearGradient id="pvLineGraphGrad" x1="15" y1="65" x2="75" y2="20" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#00F0FF" />
+              <stop offset="50%" stopColor="#38BDF8" />
+              <stop offset="100%" stopColor="#34D399" />
+            </linearGradient>
+
             {/* Dark Shadow Polygon inside upper 'P' loop */}
             <linearGradient id="pvShadowGrad" x1="40" y1="20" x2="80" y2="50" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#0B132B" stopOpacity="0.8" />
               <stop offset="100%" stopColor="#1E1B4B" stopOpacity="0.2" />
             </linearGradient>
+
+            <filter id="lineGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#00F0FF" floodOpacity="0.6" />
+            </filter>
           </defs>
 
           {isMonoWhite ? (
@@ -78,7 +90,7 @@ const PariViewLogo = ({
               <path d="M 8 28 C 8 16 18 6 30 6 H 64 C 79.46 6 92 18.54 92 34 C 92 49.46 79.46 62 64 62 H 36 V 82 C 36 88.63 30.63 94 24 94 H 20 C 13.37 94 8 88.63 8 82 V 28 Z" />
             </g>
           ) : (
-            /* Standard Full Color Design matching the reference image 1:1 */
+            /* Standard Full Color Design with Bar Chart + Ascending Line Graph inside P */
             <g>
               {/* Main Outer "P" Silhouette Body */}
               <path
@@ -93,15 +105,26 @@ const PariViewLogo = ({
               />
 
               {/* 3 Ascending Slanted Parallelogram Financial Chart Bars */}
-              {/* Bar 1 (Left) */}
               <polygon points="10,64 24,53 32,53 18,64" fill="url(#pvBarsGrad)" opacity="0.95" />
-              {/* Bar 2 (Middle) */}
               <polygon points="20,53 36,40 44,40 28,53" fill="url(#pvBarsGrad)" />
-              {/* Bar 3 (Right) */}
               <polygon points="30,42 48,27 56,27 38,42" fill="url(#pvBarsGrad)" />
 
+              {/* Explicit Upward Line Graph Curve inside the P */}
+              <path
+                d="M 16 66 L 30 52 L 44 56 L 66 28"
+                stroke="url(#pvLineGraphGrad)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter="url(#lineGlow)"
+              />
+              {/* Line Graph Data Points / Nodes */}
+              <circle cx="16" cy="66" r="3" fill="#FFFFFF" />
+              <circle cx="30" cy="52" r="3" fill="#FFFFFF" />
+              <circle cx="44" cy="56" r="3" fill="#FFFFFF" />
+              <circle cx="66" cy="28" r="4" fill="#34D399" />
+
               {/* White Sweeping Ascending Arrow Curve */}
-              {/* Arching stroke line + arrowhead pointing top-right */}
               <path
                 d="M 8 86 C 18 78 30 66 48 48 C 55 41 63 33 70 26 L 60 26 L 73 14 L 73 38 L 68 30 C 58 40 45 54 30 68 C 20 78 12 84 8 86 Z"
                 fill="#FFFFFF"
