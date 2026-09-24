@@ -3,9 +3,10 @@ import React from 'react';
 /**
  * PariView Official Logo Component
  * 
- * Concept: Precision Geometric Squi-shield featuring an ascending 'P' 
- * financial growth curve & clarity lens core.
- * Colors: Deep Navy, Indigo & Electric Blue with Emerald Growth Accent.
+ * Recreated 1:1 from brand design reference:
+ * - Stylized 'P' silhouette in vibrant Electric Blue & Purple gradient.
+ * - 3 ascending cyan bar chart pillars inside the lower body.
+ * - Dynamic white ascending growth arrow curving up to the top-right.
  */
 const PariViewLogo = ({
   variant = 'full', // 'full' | 'icon' | 'wordmark' | 'light' | 'dark' | 'monochrome-white' | 'monochrome-black'
@@ -34,7 +35,7 @@ const PariViewLogo = ({
 
   return (
     <div className={`inline-flex items-center ${currentSize.textGap} select-none ${className}`}>
-      {/* ─── PARIVIEW ICON SYMBOL ─── */}
+      {/* ─── PARIVIEW ICON SYMBOL (EXACT MATCH TO REFERENCE DESIGN) ─── */}
       {variant !== 'wordmark' && (
         <svg
           width={iconDim}
@@ -42,92 +43,69 @@ const PariViewLogo = ({
           viewBox="0 0 100 100"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="flex-shrink-0 transition-transform duration-200 hover:scale-105 drop-shadow-sm"
+          className="flex-shrink-0 transition-transform duration-200 hover:scale-105 filter drop-shadow-sm"
         >
           <defs>
-            {/* Base Squircle Container Gradient */}
-            <linearGradient id="pvSquircleGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#0F172A" />
-              <stop offset="60%" stopColor="#1E1B4B" />
-              <stop offset="100%" stopColor="#312E81" />
+            {/* 'P' Outer Body Blue to Purple Gradient */}
+            <linearGradient id="pvPBodyGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#00A3FF" />
+              <stop offset="35%" stopColor="#1D4ED8" />
+              <stop offset="75%" stopColor="#7C3AED" />
+              <stop offset="100%" stopColor="#9333EA" />
             </linearGradient>
 
-            {/* Ascending Chart Line & 'P' Loop Gradient */}
-            <linearGradient id="pvStrokeGrad" x1="15" y1="85" x2="85" y2="15" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#2563EB" />
-              <stop offset="40%" stopColor="#3B82F6" />
-              <stop offset="80%" stopColor="#60A5FA" />
-              <stop offset="100%" stopColor="#34D399" />
+            {/* Ascending Financial Bars Cyan Gradient */}
+            <linearGradient id="pvBarsGrad" x1="10" y1="80" x2="60" y2="20" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#38BDF8" />
+              <stop offset="100%" stopColor="#0284C7" />
             </linearGradient>
 
-            {/* Inner Core Glow */}
-            <linearGradient id="pvCoreGrad" x1="30" y1="30" x2="70" y2="70" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#60A5FA" />
-              <stop offset="100%" stopColor="#10B981" />
+            {/* Dark Shadow Polygon inside upper 'P' loop */}
+            <linearGradient id="pvShadowGrad" x1="40" y1="20" x2="80" y2="50" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#0B132B" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#1E1B4B" stopOpacity="0.2" />
             </linearGradient>
-
-            <filter id="pvGlow" x="-10%" y="-10%" width="120%" height="120%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#2563EB" floodOpacity="0.4" />
-            </filter>
           </defs>
 
           {isMonoWhite ? (
             /* Monochrome White Icon */
-            <g>
-              <rect x="6" y="6" width="88" height="88" rx="26" fill="#FFFFFF" />
-              {/* Vertical Pillar Stem of 'P' */}
-              <rect x="26" y="24" width="14" height="52" rx="7" fill="#0F172A" />
-              {/* Sweeping Loop of 'P' and Trend Arc */}
-              <path
-                d="M 40 24 H 60 C 72.15 24 82 33.85 82 46 C 82 58.15 72.15 68 60 68 H 40"
-                stroke="#0F172A"
-                strokeWidth="12"
-                strokeLinecap="round"
-                fill="none"
-              />
-              {/* Upward Growth Arrow Indicator */}
-              <polygon points="68,26 84,26 84,42" fill="#0F172A" />
+            <g fill="#FFFFFF">
+              <path d="M 8 28 C 8 16 18 6 30 6 H 64 C 79.46 6 92 18.54 92 34 C 92 49.46 79.46 62 64 62 H 36 V 82 C 36 88.63 30.63 94 24 94 H 20 C 13.37 94 8 88.63 8 82 V 28 Z" />
             </g>
           ) : isMonoBlack ? (
             /* Monochrome Black Icon */
-            <g>
-              <rect x="6" y="6" width="88" height="88" rx="26" fill="#0F172A" />
-              <rect x="26" y="24" width="14" height="52" rx="7" fill="#FFFFFF" />
-              <path
-                d="M 40 24 H 60 C 72.15 24 82 33.85 82 46 C 82 58.15 72.15 68 60 68 H 40"
-                stroke="#FFFFFF"
-                strokeWidth="12"
-                strokeLinecap="round"
-                fill="none"
-              />
-              <polygon points="68,26 84,26 84,42" fill="#FFFFFF" />
+            <g fill="#0F172A">
+              <path d="M 8 28 C 8 16 18 6 30 6 H 64 C 79.46 6 92 18.54 92 34 C 92 49.46 79.46 62 64 62 H 36 V 82 C 36 88.63 30.63 94 24 94 H 20 C 13.37 94 8 88.63 8 82 V 28 Z" />
             </g>
           ) : (
-            /* Premium Fintech Color Icon */
+            /* Standard Full Color Design matching the reference image 1:1 */
             <g>
-              {/* Base Rounded Squircle Container */}
-              <rect x="6" y="6" width="88" height="88" rx="26" fill="url(#pvSquircleGrad)" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
-              
-              {/* Subdued Grid Line for Financial Precision Feel */}
-              <line x1="20" y1="76" x2="80" y2="76" stroke="rgba(255,255,255,0.08)" strokeWidth="2" strokeDasharray="4 4" />
-              <line x1="20" y1="52" x2="80" y2="52" stroke="rgba(255,255,255,0.06)" strokeWidth="2" strokeDasharray="4 4" />
-
-              {/* Vertical Pillar Stem of 'P' */}
-              <rect x="26" y="24" width="13" height="52" rx="6.5" fill="url(#pvStrokeGrad)" />
-              
-              {/* Ascending Chart Sweep & 'P' Loop */}
+              {/* Main Outer "P" Silhouette Body */}
               <path
-                d="M 39 25.5 H 58 C 69.59 25.5 79 34.91 79 46.5 C 79 58.09 69.59 67.5 58 67.5 H 39"
-                stroke="url(#pvStrokeGrad)"
-                strokeWidth="13"
-                strokeLinecap="round"
-                fill="none"
-                filter="url(#pvGlow)"
+                d="M 8 26 C 8 15 17 6 28 6 H 62 C 78.57 6 92 19.43 92 36 C 92 52.57 78.57 66 62 66 H 36 V 80 C 36 87.73 29.73 94 22 94 H 20 C 13.37 94 8 88.63 8 82 V 26 Z"
+                fill="url(#pvPBodyGrad)"
               />
 
-              {/* Upward Ascending Peak Arrow / Clarity Dot */}
-              <circle cx="58" cy="46.5" r="6" fill="#FFFFFF" />
-              <polygon points="65,21 82,21 82,38" fill="#34D399" />
+              {/* Dark Triangle Shadow in Upper Loop */}
+              <path
+                d="M 36 24 L 72 38 L 48 58 Z"
+                fill="url(#pvShadowGrad)"
+              />
+
+              {/* 3 Ascending Slanted Parallelogram Financial Chart Bars */}
+              {/* Bar 1 (Left) */}
+              <polygon points="10,64 24,53 32,53 18,64" fill="url(#pvBarsGrad)" opacity="0.95" />
+              {/* Bar 2 (Middle) */}
+              <polygon points="20,53 36,40 44,40 28,53" fill="url(#pvBarsGrad)" />
+              {/* Bar 3 (Right) */}
+              <polygon points="30,42 48,27 56,27 38,42" fill="url(#pvBarsGrad)" />
+
+              {/* White Sweeping Ascending Arrow Curve */}
+              {/* Arching stroke line + arrowhead pointing top-right */}
+              <path
+                d="M 8 86 C 18 78 30 66 48 48 C 55 41 63 33 70 26 L 60 26 L 73 14 L 73 38 L 68 30 C 58 40 45 54 30 68 C 20 78 12 84 8 86 Z"
+                fill="#FFFFFF"
+              />
             </g>
           )}
         </svg>

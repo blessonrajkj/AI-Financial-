@@ -1,29 +1,35 @@
 <svg width="64" height="64" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="pvSquircleGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#0F172A" />
-      <stop offset="60%" stopColor="#1E1B4B" />
-      <stop offset="100%" stopColor="#312E81" />
+    <linearGradient id="pvPBodyGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#00A3FF" />
+      <stop offset="35%" stopColor="#1D4ED8" />
+      <stop offset="75%" stopColor="#7C3AED" />
+      <stop offset="100%" stopColor="#9333EA" />
     </linearGradient>
-    <linearGradient id="pvStrokeGrad" x1="15" y1="85" x2="85" y2="15" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#2563EB" />
-      <stop offset="40%" stopColor="#3B82F6" />
-      <stop offset="80%" stopColor="#60A5FA" />
-      <stop offset="100%" stopColor="#34D399" />
+    <linearGradient id="pvBarsGrad" x1="10" y1="80" x2="60" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#38BDF8" />
+      <stop offset="100%" stopColor="#0284C7" />
+    </linearGradient>
+    <linearGradient id="pvShadowGrad" x1="40" y1="20" x2="80" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#0B132B" stopOpacity="0.8" />
+      <stop offset="100%" stopColor="#1E1B4B" stopOpacity="0.2" />
     </linearGradient>
   </defs>
   <g>
-    <rect x="6" y="6" width="88" height="88" rx="26" fill="url(#pvSquircleGrad)" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-    <line x1="20" y1="76" x2="80" y2="76" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="4 4" />
-    <rect x="26" y="24" width="13" height="52" rx="6.5" fill="url(#pvStrokeGrad)" />
     <path
-      d="M 39 25.5 H 58 C 69.59 25.5 79 34.91 79 46.5 C 79 58.09 69.59 67.5 58 67.5 H 39"
-      stroke="url(#pvStrokeGrad)"
-      strokeWidth="13"
-      strokeLinecap="round"
-      fill="none"
+      d="M 8 26 C 8 15 17 6 28 6 H 62 C 78.57 6 92 19.43 92 36 C 92 52.57 78.57 66 62 66 H 36 V 80 C 36 87.73 29.73 94 22 94 H 20 C 13.37 94 8 88.63 8 82 V 26 Z"
+      fill="url(#pvPBodyGrad)"
     />
-    <circle cx="58" cy="46.5" r="6" fill="#FFFFFF" />
-    <polygon points="65,21 82,21 82,38" fill="#34D399" />
+    <path
+      d="M 36 24 L 72 38 L 48 58 Z"
+      fill="url(#pvShadowGrad)"
+    />
+    <polygon points="10,64 24,53 32,53 18,64" fill="url(#pvBarsGrad)" opacity="0.95" />
+    <polygon points="20,53 36,40 44,40 28,53" fill="url(#pvBarsGrad)" />
+    <polygon points="30,42 48,27 56,27 38,42" fill="url(#pvBarsGrad)" />
+    <path
+      d="M 8 86 C 18 78 30 66 48 48 C 55 41 63 33 70 26 L 60 26 L 73 14 L 73 38 L 68 30 C 58 40 45 54 30 68 C 20 78 12 84 8 86 Z"
+      fill="#FFFFFF"
+    />
   </g>
 </svg>
