@@ -51,7 +51,7 @@ def init_db(db: Session):
     # Check and seed default demo accounts
     from app.core.security import get_password_hash
     default_users = [
-        {"email": "demo@wealthpilot.ai", "full_name": "Demo User", "password": "password123"},
+        {"email": "demo@pariview.com", "full_name": "Demo User", "password": "password123"},
         {"email": "test@example.com", "full_name": "Test User", "password": "password123"}
     ]
     for u in default_users:

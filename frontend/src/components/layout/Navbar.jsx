@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useThemeAndRefresh } from '../../context/ThemeAndRefreshContext';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import PariViewLogo from '../common/PariViewLogo';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -173,46 +174,7 @@ const Navbar = ({ toggleSidebar }) => {
           </button>
 
           <Link to="/" className="flex items-center gap-2.5 group">
-            {/* Logo mark — double-bezel style */}
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(79,70,229,0.35)',
-                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              }}
-              className="group-hover:scale-105"
-            >
-              <span style={{ color: 'white', fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em' }}>W</span>
-            </div>
-            <div className="hidden sm:block">
-              <span style={{
-                fontSize: '0.9rem',
-                fontWeight: 800,
-                letterSpacing: '-0.03em',
-                color: 'var(--text-primary)',
-                lineHeight: 1,
-              }}>
-                WealthPilot
-              </span>
-              <span style={{
-                display: 'block',
-                fontSize: '0.6rem',
-                fontWeight: 600,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: 'var(--text-muted)',
-                lineHeight: 1,
-                marginTop: 2,
-              }}>
-                AI Finance
-              </span>
-            </div>
+            <PariViewLogo size="md" />
           </Link>
         </div>
 
@@ -471,7 +433,7 @@ const Navbar = ({ toggleSidebar }) => {
                   {/* User info header */}
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                     <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {user.full_name || 'WealthPilot User'}
+                      {user.full_name || 'PariView User'}
                     </p>
                     <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {user.email}

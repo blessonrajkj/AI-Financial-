@@ -222,7 +222,7 @@ const ReportsPage = () => {
             <div className="flex justify-between items-start border-b-2 border-primary/20 pb-4">
               <div>
                 <h2 className="text-2xl font-black text-textPrimary tracking-tight">{reportData.title}</h2>
-                <p className="text-xs text-textSecondary mt-0.5">WealthPilot AI Automated Intelligence Account Summary</p>
+                <p className="text-xs text-textSecondary mt-0.5">PariView AI Automated Intelligence Account Summary</p>
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-black uppercase text-primary tracking-wider">SYSTEM CERTIFIED</span>

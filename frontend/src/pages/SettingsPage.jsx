@@ -93,7 +93,7 @@ const SettingsPage = () => {
   // Sessions Mock state (which can be revoked interactively)
   const [sessions, setSessions] = useState([
     { id: '1', device: 'Chrome on Windows (Current)', ip: '192.168.1.1', location: 'Mumbai, India', date: 'Active now', current: true },
-    { id: '2', device: 'WealthPilot App on iPhone 15', ip: '103.45.67.89', location: 'Mumbai, India', date: 'Yesterday, 19:40' },
+    { id: '2', device: 'PariView App on iPhone 15', ip: '103.45.67.89', location: 'Mumbai, India', date: 'Yesterday, 19:40' },
     { id: '3', device: 'Safari on Macbook Pro', ip: '103.45.67.92', location: 'Pune, India', date: 'July 10, 11:22' }
   ]);
 
@@ -406,7 +406,7 @@ const SettingsPage = () => {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `wealthpilot_profile_export.json`);
+      downloadAnchor.setAttribute("download", `pariview_profile_export.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -513,7 +513,7 @@ const SettingsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-background/50 border border-borderColor rounded-2xl p-5">
                 <div>
                   <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">Full Name</span>
-                  <span className="text-sm font-semibold text-textPrimary">{user?.full_name || 'WealthPilot AI User'}</span>
+                  <span className="text-sm font-semibold text-textPrimary">{user?.full_name || 'PariView User'}</span>
                 </div>
                 <div>
                   <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">Email Address</span>

@@ -8,7 +8,7 @@ const ChatbotPage = () => {
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: "Hello! I am your WealthPilot AI AI Financial Assistant. Ask me anything about your transactions, budgets, or savings goals! Try checking 'What is my budget status?'"
+      text: "Hello! I am your PariView AI Financial Assistant. Ask me anything about your transactions, budgets, or savings goals! Try checking 'What is my budget status?'"
     }
   ]);
   const [input, setInput] = useState('');
@@ -103,7 +103,7 @@ const ChatbotPage = () => {
             <Bot className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-textPrimary">WealthPilot AI AI Assistant</h3>
+            <h3 className="text-base font-bold text-textPrimary">PariView AI Assistant</h3>
             <p className="text-[10px] text-success font-semibold flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-success mr-1.5 animate-pulse"></span>Active</p>
           </div>
         </div>

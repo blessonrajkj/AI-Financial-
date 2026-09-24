@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
+import PariViewLogo from '../components/common/PariViewLogo';
 
 const Login = () => {
   const { login } = useAuth();
@@ -41,12 +42,10 @@ const Login = () => {
         <div className="doppel-core p-8 flex flex-col justify-between">
           {/* Header Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-black text-2xl shadow-lg mb-3 border border-white/10">
-              W
-            </div>
-            <span className="eyebrow-badge mb-1">Access Portal</span>
+            <PariViewLogo size="lg" className="mb-3" />
+            <span className="eyebrow-badge mb-1">Smart Finance Platform</span>
             <h2 className="text-xl font-extrabold text-textPrimary tracking-tight">Welcome Back</h2>
-            <p className="text-[11px] text-textMuted font-medium mt-0.5">Secure authorization credentials required</p>
+            <p className="text-[11px] text-textMuted font-medium mt-0.5">Your money. Your view. Your future.</p>
           </div>
 
           {error && (

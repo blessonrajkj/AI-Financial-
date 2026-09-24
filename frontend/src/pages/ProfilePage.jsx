@@ -485,7 +485,7 @@ const ProfilePage = () => {
             {/* Photo Action buttons */}
             <div className="flex-1 text-center md:text-left space-y-3 relative z-10 self-center">
               <h3 className="text-xl font-bold text-textPrimary leading-tight">
-                {profile?.full_name || 'WealthPilot AI User'}
+                {profile?.full_name || 'PariView User'}
               </h3>
               <p className="text-xs text-textSecondary font-semibold">
                 @{profile?.username || 'user'} • {profile?.email}
