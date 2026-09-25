@@ -389,7 +389,7 @@ def upload_and_parse_statement(
         confidence_score = 90
         
         if ext == ".pdf":
-            parse_result = pdf_parser.parse_pdf(temp_filepath)
+            parse_result = pdf_parser.parse_pdf(temp_filepath, file.filename)
             transactions = parse_result["transactions"]
             invalid_rows = parse_result["invalid_rows"]
             bank_name = parse_result["bank"]
@@ -407,6 +407,7 @@ def upload_and_parse_statement(
             
         enriched_transactions = []
         duplicate_count = 0
+        needs_review_count = 0
         income_total = 0.0
         expense_total = 0.0
         income_count = 0
@@ -417,6 +418,9 @@ def upload_and_parse_statement(
         is_sqlite = db.bind.dialect.name == "sqlite"
         
         for t in transactions:
+            if t.get("needs_review"):
+                needs_review_count += 1
+
             is_duplicate = False
             
             # Duplicate check
@@ -488,6 +492,7 @@ def upload_and_parse_statement(
                 "income_count": income_count,
                 "expense_count": expense_count,
                 "duplicate_count": duplicate_count,
+                "needs_review_count": needs_review_count,
                 "invalid_rows_count": len(invalid_rows),
                 "detected_categories": list(detected_categories),
                 "detected_accounts": list(detected_accounts)

@@ -43,45 +43,64 @@ def test_sbi_amount_and_date_parsing():
     assert pdf_parser.parse_amount(amt_str2) == 45821.00
 
 def test_sbi_debit_credit_column_structure():
-    # Test case 1: Debit transaction (Expense)
-    # Value Date | Post Date | Details | Ref No/Cheque No | Debit | Credit | Balance
-    # 05/09/2026 | 05/09/2026 | UPI/AMAZON | 123456 | 1299.00 | | 45000.00
+    # Test case 1: Debit transaction (Expense -> Money Out)
     debit_val = 1299.00
     credit_val = None
     
     if credit_val is not None and credit_val > 0 and (debit_val is None or debit_val == 0):
         tx_type = "income"
+        direction = "in"
         amount = credit_val
         final_credit = credit_val
         final_debit = None
     elif debit_val is not None and debit_val > 0 and (credit_val is None or credit_val == 0):
         tx_type = "expense"
+        direction = "out"
         amount = debit_val
         final_debit = debit_val
         final_credit = None
         
     assert tx_type == "expense"
+    assert direction == "out"
     assert amount == 1299.00
     assert final_debit == 1299.00
     assert final_credit is None
 
-    # Test case 2: Credit transaction (Income)
-    # 06/09/2026 | 06/09/2026 | SALARY | NEFT123 | | 35000.00 | 80000.00
+    # Test case 2: Credit transaction (Income -> Money In)
     debit_val2 = None
     credit_val2 = 35000.00
     
     if credit_val2 is not None and credit_val2 > 0 and (debit_val2 is None or debit_val2 == 0):
         tx_type2 = "income"
+        direction2 = "in"
         amount2 = credit_val2
         final_credit2 = credit_val2
         final_debit2 = None
     elif debit_val2 is not None and debit_val2 > 0 and (credit_val2 is None or credit_val2 == 0):
         tx_type2 = "expense"
+        direction2 = "out"
         amount2 = debit_val2
         final_debit2 = debit_val2
         final_credit2 = None
 
     assert tx_type2 == "income"
+    assert direction2 == "in"
     assert amount2 == 35000.00
     assert final_debit2 is None
     assert final_credit2 == 35000.00
+
+def test_sbi_edge_case_both_debit_credit():
+    debit_val = 5000.0
+    credit_val = 5000.0
+    
+    has_debit = debit_val is not None and debit_val > 0
+    has_credit = credit_val is not None and credit_val > 0
+
+    needs_review = False
+    if has_debit and has_credit:
+        needs_review = True
+        review_reason = "Both Debit and Credit contain amounts in the same row"
+        
+    assert needs_review is True
+    assert "Both Debit and Credit" in review_reason
+

@@ -76,6 +76,7 @@ class BulkTransactionItem(BaseModel):
     date: str
     amount: float
     type: str
+    direction: str | None = None
     merchant: str | None = None
     category: str | None = None
     description: str | None = None
@@ -88,6 +89,10 @@ class BulkTransactionItem(BaseModel):
     credit_amount: float | None = None
     post_date: str | None = None
     time: str | None = None
+    source_type: str | None = None
+    source_file_name: str | None = None
+    needs_review: bool | None = False
+    review_reason: str | None = None
 
 class BulkValidateRequest(BaseModel):
     transactions: list[BulkTransactionItem]

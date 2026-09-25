@@ -798,26 +798,36 @@ class PDFStatementParser:
         if pos_match:
             return self.clean_merchant_name(pos_match.group(1)), self.extract_ref_number(desc_clean)
 
-        # 6. Salary / Interest / Charges
+        # 6. Salary / Interest / ATM / Amazon / Charges
         if any(k in desc_clean.lower() for k in ["salary", "payroll"]):
             return "Salary", self.extract_ref_number(desc_clean)
-        if any(k in desc_clean.lower() for k in ["interest credit", "int.paid"]):
-            return "SBI Interest", self.extract_ref_number(desc_clean)
+        if any(k in desc_clean.lower() for k in ["interest credit", "int.paid", "interest"]):
+            return "Interest", self.extract_ref_number(desc_clean)
+        if "amazon" in desc_clean.lower():
+            return "Amazon", self.extract_ref_number(desc_clean)
+        if any(k in desc_clean.lower() for k in ["atm wdl", "atm withdrawal", "atm"]):
+            return "ATM Withdrawal", self.extract_ref_number(desc_clean)
 
         ref_num = self.extract_ref_number(desc_clean)
         merchant = self.extract_merchant(desc_clean)
         return merchant, ref_num
 
-    def parse_sbi_pdf(self, pdf_path: str, is_scanned: bool = False) -> tuple:
+    def parse_sbi_pdf(self, pdf_path: str, is_scanned: bool = False, source_file_name: str = "SBI Statement PDF") -> tuple:
         if is_scanned:
             txs, invalid, bank = self.parse_scanned_pdf(pdf_path)
             for t in txs:
                 t["bank"] = "SBI"
                 t["post_date"] = t["date"]
+                t["source_type"] = "PDF"
+                t["source_file_name"] = source_file_name
+                t["needs_review"] = False
+                t["review_reason"] = None
                 if t["type"] == "expense":
+                    t["direction"] = "out"
                     t["debit_amount"] = t["amount"]
                     t["credit_amount"] = None
                 else:
+                    t["direction"] = "in"
                     t["credit_amount"] = t["amount"]
                     t["debit_amount"] = None
             return txs, invalid, 85
@@ -945,35 +955,41 @@ class PDFStatementParser:
                 merchant, extracted_ref = self.extract_sbi_merchant_and_ref(full_desc + " " + ref_text)
                 ref_number = extracted_ref or ref_text or None
 
-                # AUTHORITATIVE DEBIT vs CREDIT COLUMN ASSIGNMENT
+                # AUTHORITATIVE DEBIT vs CREDIT COLUMN ASSIGNMENT & DIRECTION MAPPING
                 amount = 0.0
                 tx_type = "expense"
+                direction = "out"
                 final_debit = None
                 final_credit = None
+                needs_review = False
+                review_reason = None
 
-                if credit_val is not None and credit_val > 0 and (debit_val is None or debit_val == 0):
+                has_debit = debit_val is not None and debit_val > 0
+                has_credit = credit_val is not None and credit_val > 0
+
+                # EDGE CASE: Both Debit and Credit contain amounts in the same row
+                if has_debit and has_credit:
+                    needs_review = True
+                    review_reason = "Both Debit and Credit contain amounts in the same row"
+                    amount = debit_val
+                    tx_type = "expense"
+                    direction = "out"
+                    final_debit = debit_val
+                    final_credit = credit_val
+                elif has_credit:
                     tx_type = "income"
+                    direction = "in"
                     amount = credit_val
                     final_credit = credit_val
                     final_debit = None
-                elif debit_val is not None and debit_val > 0 and (credit_val is None or credit_val == 0):
+                elif has_debit:
                     tx_type = "expense"
+                    direction = "out"
                     amount = debit_val
                     final_debit = debit_val
                     final_credit = None
-                elif credit_val is not None and debit_val is not None:
-                    if credit_val > 0:
-                        tx_type = "income"
-                        amount = credit_val
-                        final_credit = credit_val
-                        final_debit = None
-                    else:
-                        tx_type = "expense"
-                        amount = debit_val
-                        final_debit = debit_val
-                        final_credit = None
                 else:
-                    # Single amount fallback
+                    # Both columns are empty — fallback to single amount detection
                     all_nums = [self.parse_amount(s["text"]) for s in spans if self.parse_amount(s["text"]) > 0]
                     if len(all_nums) >= 2:
                         balance_val = all_nums[-1]
@@ -982,11 +998,15 @@ class PDFStatementParser:
                         amount = all_nums[0]
                     
                     if amount > 0:
+                        needs_review = True
+                        review_reason = "Amount position uncertain (neither Debit nor Credit column hit)"
                         if self.check_description_for_income(full_desc):
                             tx_type = "income"
+                            direction = "in"
                             final_credit = amount
                         else:
                             tx_type = "expense"
+                            direction = "out"
                             final_debit = amount
 
                 if amount <= 0:
@@ -1004,7 +1024,8 @@ class PDFStatementParser:
                     "amount": amount,
                     "debit_amount": final_debit,
                     "credit_amount": final_credit,
-                    "type": tx_type,
+                    "type": tx_type,  # "income" or "expense"
+                    "direction": direction,  # "in" or "out"
                     "merchant": merchant,
                     "description": full_desc,
                     "transaction_id": tx_id,
@@ -1013,14 +1034,17 @@ class PDFStatementParser:
                     "payment_method": payment_method,
                     "bank": "SBI",
                     "category": category,
-                    "source_type": "PDF"
+                    "source_type": "PDF",
+                    "source_file_name": source_file_name,
+                    "needs_review": needs_review,
+                    "review_reason": review_reason
                 })
 
         doc.close()
         confidence = 96 if all_transactions else 70
         return all_transactions, all_invalid, confidence
 
-    def parse_pdf(self, pdf_path: str) -> dict:
+    def parse_pdf(self, pdf_path: str, filename: str = "SBI Statement PDF") -> dict:
         is_scanned = self.is_scanned_pdf(pdf_path)
         
         parsed_transactions = []
@@ -1042,7 +1066,7 @@ class PDFStatementParser:
         
         if is_sbi:
             bank_name = "State Bank of India"
-            parsed_transactions, invalid_rows, confidence_score = self.parse_sbi_pdf(pdf_path, is_scanned)
+            parsed_transactions, invalid_rows, confidence_score = self.parse_sbi_pdf(pdf_path, is_scanned, filename)
         elif is_scanned:
             parsed_transactions, invalid_rows, bank_name = self.parse_scanned_pdf(pdf_path)
             confidence_score = 80

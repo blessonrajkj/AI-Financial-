@@ -139,6 +139,7 @@ const ImportPage = () => {
         total_expenses: summary.expense_total || 0,
         income_count: summary.income_count || 0,
         expense_count: summary.expense_count || 0,
+        needs_review_count: summary.needs_review_count || parsedData.filter(t => t.needs_review).length || 0,
         detected_categories: summary.detected_categories || [],
         detected_accounts: summary.detected_accounts || [],
         bank: res.data.bank || 'Generic Statement',
@@ -251,6 +252,7 @@ const ImportPage = () => {
     if (filterType === 'income' && t.type !== 'income') return false;
     if (filterType === 'expense' && t.type !== 'expense') return false;
     if (filterType === 'duplicate' && !t.is_duplicate) return false;
+    if (filterType === 'needs_review' && !t.needs_review) return false;
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -439,39 +441,47 @@ const ImportPage = () => {
           )}
 
           {/* AGGREGATE METRICS CARDS */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-4 shadow-sm flex flex-col justify-between">
               <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Transactions Found</span>
               <h3 className="text-2xl font-black text-textPrimary mt-1">{previewMetrics.total}</h3>
               <p className="text-[10px] text-textSecondary mt-1">
-                {selectedIndices.size} selected for import
+                {selectedIndices.size} selected
               </p>
             </div>
 
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Income (Credit)</span>
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-4 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Money In</span>
               <h3 className="text-2xl font-black text-success mt-1">₹{(previewMetrics.total_income || 0).toLocaleString('en-IN')}</h3>
               <p className="text-[10px] text-success font-bold mt-1">
-                {previewMetrics.income_count} credit transactions
+                {previewMetrics.income_count} income entries
               </p>
             </div>
 
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Expenses (Debit)</span>
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-4 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Money Out</span>
               <h3 className="text-2xl font-black text-danger mt-1">₹{(previewMetrics.total_expenses || 0).toLocaleString('en-IN')}</h3>
               <p className="text-[10px] text-danger font-bold mt-1">
-                {previewMetrics.expense_count} debit transactions
+                {previewMetrics.expense_count} expense entries
               </p>
             </div>
 
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Conflict & Status</span>
-              <div>
-                <h3 className="text-lg font-black text-warning mt-1">{duplicatesCount} Duplicates</h3>
-                <p className="text-[10px] text-textMuted font-medium mt-0.5">
-                  {invalidRows.length} parse errors
-                </p>
-              </div>
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-4 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Possible Duplicates</span>
+              <h3 className="text-2xl font-black text-warning mt-1">{duplicatesCount}</h3>
+              <p className="text-[10px] text-textMuted font-medium mt-1">
+                Strategy: {dupStrategy}
+              </p>
+            </div>
+
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-4 shadow-sm flex flex-col justify-between col-span-2 md:col-span-1">
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Needs Review</span>
+              <h3 className={`text-2xl font-black mt-1 ${previewMetrics.needs_review_count > 0 ? 'text-amber-500' : 'text-textPrimary'}`}>
+                {previewMetrics.needs_review_count || 0}
+              </h3>
+              <p className="text-[10px] text-textMuted font-medium mt-1">
+                {invalidRows.length} format errors
+              </p>
             </div>
           </div>
 
@@ -575,16 +585,22 @@ const ImportPage = () => {
                 </div>
 
                 <div className="flex items-center gap-1 bg-surface border border-borderColor rounded-xl p-0.5">
-                  {['all', 'income', 'expense', 'duplicate'].map((type) => (
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'income', label: 'Money In' },
+                    { id: 'expense', label: 'Money Out' },
+                    { id: 'duplicate', label: 'Duplicates' },
+                    { id: 'needs_review', label: 'Needs Review' }
+                  ].map((filterItem) => (
                     <button
-                      key={type}
+                      key={filterItem.id}
                       type="button"
-                      onClick={() => setFilterType(type)}
+                      onClick={() => setFilterType(filterItem.id)}
                       className={`px-2.5 py-1 text-[10px] font-bold rounded-lg uppercase tracking-wider transition-all ${
-                        filterType === type ? 'bg-primary text-white' : 'text-textMuted hover:text-textPrimary'
+                        filterType === filterItem.id ? 'bg-primary text-white' : 'text-textMuted hover:text-textPrimary'
                       }`}
                     >
-                      {type}
+                      {filterItem.label}
                     </button>
                   ))}
                 </div>
@@ -699,15 +715,20 @@ const ImportPage = () => {
                               onChange={(e) => handleCellEdit(idx, 'type', e.target.value)}
                               className="px-1.5 py-0.5 bg-background border rounded text-xs text-textPrimary"
                             >
-                              <option value="expense">Expense</option>
-                              <option value="income">Income</option>
+                              <option value="expense">Expense (Money Out)</option>
+                              <option value="income">Income (Money In)</option>
                             </select>
                           ) : (
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                              t.type === 'income' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'
-                            }`}>
-                              {t.type}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase w-fit ${
+                                t.type === 'income' ? 'bg-success/15 text-success' : 'bg-rose-500/15 text-rose-500 dark:text-rose-400'
+                              }`}>
+                                {t.type === 'income' ? 'Income' : 'Expense'}
+                              </span>
+                              <span className="text-[9px] text-textMuted font-bold mt-0.5 pl-1">
+                                {t.type === 'income' ? 'Money In' : 'Money Out'}
+                              </span>
+                            </div>
                           )}
                         </td>
 
@@ -721,7 +742,7 @@ const ImportPage = () => {
                               className="w-20 px-1.5 py-0.5 bg-background border rounded text-xs text-right text-textPrimary"
                             />
                           ) : (
-                            <span className={t.type === 'income' ? 'text-success' : 'text-textPrimary'}>
+                            <span className={t.type === 'income' ? 'text-success font-bold' : 'text-textPrimary font-bold'}>
                               {t.type === 'income' ? '+' : '−'}₹{t.amount?.toLocaleString('en-IN')}
                             </span>
                           )}
@@ -758,9 +779,13 @@ const ImportPage = () => {
 
                         {/* Conflict Status */}
                         <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                          {t.is_duplicate ? (
+                          {t.needs_review ? (
+                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold text-[9px] uppercase rounded-full" title={t.review_reason}>
+                              Needs Review
+                            </span>
+                          ) : t.is_duplicate ? (
                             <span className="px-2 py-0.5 bg-warning/15 text-warning font-extrabold text-[9px] uppercase rounded-full">
-                              Duplicate Detected
+                              Duplicate
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 bg-success/15 text-success font-extrabold text-[9px] uppercase rounded-full">
