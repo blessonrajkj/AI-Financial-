@@ -5,6 +5,7 @@ import os
 import shutil
 from datetime import timedelta
 
+from sqlalchemy import func
 from app.api import deps
 from app.core import security
 from app.core.config import settings
@@ -20,8 +21,9 @@ import traceback
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     try:
-        # Check if user exists
-        user = db.query(User).filter(User.email == user_in.email).first()
+        # Check if user exists (case-insensitive & trimmed)
+        clean_email = (user_in.email or "").strip().lower()
+        user = db.query(User).filter(func.lower(User.email) == clean_email).first()
         if user:
             raise HTTPException(
                 status_code=400,
@@ -30,7 +32,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         
         hashed_password = security.get_password_hash(user_in.password)
         db_user = User(
-            email=user_in.email,
+            email=clean_email,
             hashed_password=hashed_password,
             full_name=user_in.full_name,
             role=user_in.role,
@@ -51,7 +53,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 def login(
     db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
 ):
-    user = db.query(User).filter(User.email == form_data.username).first()
+    clean_email = (form_data.username or "").strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == clean_email).first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
