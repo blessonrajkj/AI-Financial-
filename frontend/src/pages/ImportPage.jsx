@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
-import * as XLSX from 'xlsx';
 import { 
   UploadCloud, 
   FileSpreadsheet, 
@@ -15,24 +14,24 @@ import {
   RefreshCw,
   Info,
   Calendar,
-  X
+  X,
+  ShieldCheck,
+  CheckSquare,
+  Square,
+  Trash2,
+  Edit2,
+  Search,
+  CheckCircle2,
+  Building2
 } from 'lucide-react';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
-const AUTO_CATEGORIES = [
-  { name: 'Food', keywords: ['swiggy', 'zomato', 'restaurant', 'burger', 'mcdonald', 'starbucks', 'cafe', 'pizza', 'eats', 'food'] },
-  { name: 'Groceries', keywords: ['supermarket', 'mart', 'grocer', 'blinkit', 'zepto', 'bigbasket', 'dmart', 'reliance retail'] },
-  { name: 'Transportation', keywords: ['uber', 'ola', 'metro', 'taxi', 'railway', 'irctc', 'cab', 'rapido'] },
-  { name: 'Healthcare', keywords: ['hospital', 'pharmacy', 'medical', 'doctor', 'apollo', 'lab', 'clinic', 'dentist'] },
-  { name: 'Entertainment', keywords: ['netflix', 'spotify', 'prime video', 'youtube premium', 'theatre', 'cinema', 'bookmyshow', 'disney'] },
-  { name: 'Education', keywords: ['udemy', 'coursera', 'college', 'school', 'tuition', 'books', 'stationery'] },
-  { name: 'Shopping', keywords: ['amazon', 'flipkart', 'myntra', 'zara', 'h&m', 'shopping', 'mall', 'clothing', 'apparel'] },
-  { name: 'Bills', keywords: ['electricity', 'water bill', 'gas bill', 'wifi', 'broadband', 'telecom', 'jio', 'airtel', 'bsnl'] },
-  { name: 'Recharge', keywords: ['recharge', 'prepaid', 'dth', 'vodafone', 'paytm recharge'] },
-  { name: 'Subscriptions', keywords: ['aws', 'github', 'zoom', 'openai', 'midjourney', 'google cloud', 'heroku'] },
-  { name: 'Investment', keywords: ['zerodha', 'groww', 'mutual fund', 'stock', 'invest', 'bonds', 'sip'] }
+const CATEGORY_OPTIONS = [
+  'Food', 'Groceries', 'Transportation', 'Healthcare', 'Entertainment', 
+  'Education', 'Shopping', 'Bills', 'Recharge', 'Subscriptions', 
+  'Investment', 'Salary', 'Other Income', 'Refunds', 'Cash Withdrawal', 'Utilities', 'Others'
 ];
 
 const ImportPage = () => {
@@ -47,12 +46,16 @@ const ImportPage = () => {
   const [successSummary, setSuccessSummary] = useState(null);
 
   // Parsed States
-  const [rawRows, setRawRows] = useState([]);
-  const [detectedColumns, setDetectedColumns] = useState({});
   const [previewData, setPreviewData] = useState([]);
   const [previewMetrics, setPreviewMetrics] = useState({});
   const [invalidRows, setInvalidRows] = useState([]);
   const [duplicatesCount, setDuplicatesCount] = useState(0);
+
+  // Interactive Table States
+  const [selectedIndices, setSelectedIndices] = useState(new Set());
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all'); // all, income, expense, duplicate
 
   // Strategy Configurations
   const [dupStrategy, setDupStrategy] = useState('skip'); // skip, replace, keep
@@ -84,12 +87,12 @@ const ImportPage = () => {
 
   const resetImporter = () => {
     setFile(null);
-    setRawRows([]);
-    setDetectedColumns({});
     setPreviewData([]);
     setPreviewMetrics({});
     setInvalidRows([]);
     setDuplicatesCount(0);
+    setSelectedIndices(new Set());
+    setEditingIndex(null);
     setSuccessSummary(null);
     setError('');
     setProgress(0);
@@ -113,43 +116,101 @@ const ImportPage = () => {
       });
       setProgress(80);
       
-      const parsedData = res.data.transactions;
+      const parsedData = res.data.transactions || [];
       const invalid = res.data.invalid_rows || [];
-      const summary = res.data.summary;
+      const summary = res.data.summary || {};
       
       setPreviewData(parsedData);
       setInvalidRows(invalid);
-      setDuplicatesCount(summary.duplicate_count);
+      setDuplicatesCount(summary.duplicate_count || 0);
       
+      // Select all non-duplicate transactions by default
+      const initialSelected = new Set();
+      parsedData.forEach((t, idx) => {
+        if (!t.is_duplicate) {
+          initialSelected.add(idx);
+        }
+      });
+      setSelectedIndices(initialSelected);
+
       setPreviewMetrics({
-        total: summary.total,
-        total_income: summary.income_total,
-        total_expenses: summary.expense_total,
+        total: summary.total || parsedData.length,
+        total_income: summary.income_total || 0,
+        total_expenses: summary.expense_total || 0,
+        income_count: summary.income_count || 0,
+        expense_count: summary.expense_count || 0,
         detected_categories: summary.detected_categories || [],
         detected_accounts: summary.detected_accounts || [],
-        bank: res.data.bank || 'Generic',
-        is_scanned: res.data.is_scanned || false
+        bank: res.data.bank || 'Generic Statement',
+        is_sbi: res.data.is_sbi || false,
+        is_scanned: res.data.is_scanned || false,
+        confidence_score: res.data.confidence_score || 92
       });
       
       setProgress(100);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || "Failed to process and parse file. Please upload a valid CSV, Excel, or PDF bank statement.");
+      setError(err.response?.data?.detail || "Failed to process and parse statement file. Please verify file integrity.");
       setFile(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // Row Selection Controls
+  const toggleSelectRow = (idx) => {
+    const next = new Set(selectedIndices);
+    if (next.has(idx)) {
+      next.delete(idx);
+    } else {
+      next.add(idx);
+    }
+    setSelectedIndices(next);
+  };
+
+  const selectAllRows = () => {
+    const all = new Set(previewData.map((_, i) => i));
+    setSelectedIndices(all);
+  };
+
+  const deselectAllRows = () => {
+    setSelectedIndices(new Set());
+  };
+
+  const deleteRow = (idx) => {
+    const updated = previewData.filter((_, i) => i !== idx);
+    setPreviewData(updated);
+    const nextSel = new Set();
+    selectedIndices.forEach(i => {
+      if (i < idx) nextSel.add(i);
+      else if (i > idx) nextSel.add(i - 1);
+    });
+    setSelectedIndices(nextSel);
+  };
+
+  const handleCellEdit = (idx, field, value) => {
+    const updated = [...previewData];
+    updated[idx] = { ...updated[idx], [field]: value };
+    setPreviewData(updated);
+  };
+
   const handleImport = async () => {
+    if (selectedIndices.size === 0) {
+      setError("Please select at least one transaction row to import.");
+      return;
+    }
+
     setLoading(true);
     setProgress(10);
     setError('');
 
+    // Filter only user-selected transactions
+    const payloadTransactions = previewData.filter((_, idx) => selectedIndices.has(idx));
+
     try {
       setProgress(40);
       const res = await axios.post(`${API_URL}/transactions/bulk-import`, {
-        transactions: previewData,
+        transactions: payloadTransactions,
         duplicate_strategy: dupStrategy
       });
       
@@ -157,7 +218,7 @@ const ImportPage = () => {
       setSuccessSummary(res.data);
       setProgress(100);
       
-      // Trigger App context refresh for dashboard update
+      // Trigger App context refresh for instant dashboard & reports sync
       invalidateCache();
     } catch (err) {
       console.error(err);
@@ -170,36 +231,54 @@ const ImportPage = () => {
   const handleDownloadErrorCsv = () => {
     if (invalidRows.length === 0) return;
 
-    let csvContent = "data:text/csv;charset=utf-8,Row Number,Errors,Raw Row Data\n";
+    let csvContent = "data:text/csv;charset=utf-8,Row Number,Errors,Raw Data\n";
     invalidRows.forEach(row => {
-      const dataStr = row.data.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(",");
-      csvContent += `${row.rowNum},"${row.reasons.join(" | ")}",${dataStr}\n`;
+      const dataStr = (row.data || []).map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(",");
+      csvContent += `${row.rowNum},"${(row.reasons || []).join(" | ")}",${dataStr}\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `import_errors_${file.name.replace(/\.[^/.]+$/, "")}.csv`);
+    link.setAttribute("download", `import_errors_${file ? file.name.replace(/\.[^/.]+$/, "") : "statement"}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
   };
 
+  // Filtered rows for preview rendering
+  const filteredPreviewData = previewData.map((t, origIdx) => ({ ...t, origIdx })).filter(t => {
+    if (filterType === 'income' && t.type !== 'income') return false;
+    if (filterType === 'expense' && t.type !== 'expense') return false;
+    if (filterType === 'duplicate' && !t.is_duplicate) return false;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchMerchant = (t.merchant || '').toLowerCase().includes(q);
+      const matchDesc = (t.description || '').toLowerCase().includes(q);
+      const matchRef = (t.reference_number || '').toLowerCase().includes(q);
+      const matchCategory = (t.category || '').toLowerCase().includes(q);
+      return matchMerchant || matchDesc || matchRef || matchCategory;
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6">
+      {/* Header Title */}
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Import Transactions</h1>
-        <p className="text-textSecondary mt-1">Upload account statements, bank exports, or user spreadsheets to instantly sync balances</p>
+        <p className="text-textSecondary mt-1">Upload account statements, bank PDFs, or spreadsheets to automatically extract and sync transactions</p>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm font-semibold flex items-center space-x-2">
+        <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm font-semibold flex items-center space-x-2 animate-in fade-in">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* 1. File Uploader Container */}
+      {/* ── 1. FILE UPLOADER CONTAINER ── */}
       {!file && (
         <div 
           onDragEnter={handleDrag}
@@ -210,7 +289,7 @@ const ImportPage = () => {
           className={`h-72 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
             dragActive 
               ? 'border-primary bg-primary/5 scale-[0.99]' 
-              : 'border-borderColor bg-cardBg hover:border-borderColor/80 hover:bg-hoverBg/10'
+              : 'border-borderColor bg-cardBg hover:border-primary/40 hover:bg-hoverBg/10'
           }`}
         >
           <input 
@@ -220,57 +299,65 @@ const ImportPage = () => {
             accept=".xlsx,.xls,.csv,.pdf" 
             className="hidden" 
           />
-          <UploadCloud className={`w-14 h-14 ${dragActive ? 'text-primary' : 'text-textMuted'} mb-4`} />
-          <h3 className="text-lg font-bold text-textPrimary">Drag and drop bank statement files</h3>
-          <p className="text-xs text-textSecondary mt-2">Supports XLS, XLSX, CSV, and PDF bank, UPI, and credit card statements</p>
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-4 shadow-sm">
+            <UploadCloud className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-extrabold text-textPrimary">Upload Bank Statement (SBI PDF, CSV, Excel)</h3>
+          <p className="text-xs text-textSecondary mt-1.5 max-w-md text-center">
+            Supports official SBI bank PDFs, credit card statements, and standard financial CSV exports
+          </p>
           <button 
             type="button" 
-            className="mt-6 px-5 py-2.5 bg-background border border-borderColor rounded-xl text-textSecondary text-sm font-bold shadow-sm hover:text-textPrimary hover:bg-hoverBg transition-colors"
+            className="mt-5 px-5 py-2.5 bg-primary hover:bg-primaryHover text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2"
           >
-            Select Statement File
+            <span>Select Statement File</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* 2. Upload Progress Bar */}
+      {/* ── 2. UPLOAD & PARSE PROGRESS BAR ── */}
       {loading && progress > 0 && (
         <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm space-y-4">
           <div className="flex justify-between items-center text-xs font-bold text-textSecondary">
-            <span>Executing Sync Operations...</span>
+            <span className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-primary animate-spin" />
+              <span>Parsing and Normalizing Statement Transactions...</span>
+            </span>
             <span>{progress}%</span>
           </div>
           <div className="w-full bg-background border border-borderColor rounded-full h-3 overflow-hidden">
-            <div className="bg-primary h-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+            <div className="bg-primary h-full transition-all duration-300 rounded-full" style={{ width: `${progress}%` }} />
           </div>
         </div>
       )}
 
-      {/* 3. Successful Import Summary */}
+      {/* ── 3. SUCCESSFUL IMPORT SUMMARY ── */}
       {successSummary && (
         <div className="bg-cardBg border border-borderColor rounded-3xl p-6 md:p-8 shadow-sm text-center space-y-6">
           <div className="w-16 h-16 bg-success/15 text-success rounded-full flex items-center justify-center mx-auto mb-2 animate-scale-up">
-            <Check className="w-8 h-8" />
+            <CheckCircle2 className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-textPrimary">Import Sync Completed!</h3>
-            <p className="text-xs text-textSecondary mt-1">Transaction entries have been successfully integrated into your ledger db</p>
+            <h3 className="text-2xl font-black text-textPrimary">Statement Import Complete!</h3>
+            <p className="text-xs text-textSecondary mt-1">Transaction entries have been integrated into your PariView financial database.</p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto pt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto pt-2">
             <div className="p-4 bg-background border border-borderColor rounded-2xl">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Imported</span>
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Successfully Imported</span>
               <p className="text-2xl font-black text-success mt-1">{successSummary.imported}</p>
             </div>
             <div className="p-4 bg-background border border-borderColor rounded-2xl">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Skipped</span>
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Skipped</span>
               <p className="text-2xl font-black text-textPrimary mt-1">{successSummary.skipped}</p>
             </div>
             <div className="p-4 bg-background border border-borderColor rounded-2xl">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Duplicates</span>
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Duplicates</span>
               <p className="text-2xl font-black text-warning mt-1">{successSummary.duplicates}</p>
             </div>
             <div className="p-4 bg-background border border-borderColor rounded-2xl">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Failed Rows</span>
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Errors</span>
               <p className="text-2xl font-black text-danger mt-1">{successSummary.errors}</p>
             </div>
           </div>
@@ -286,160 +373,172 @@ const ImportPage = () => {
             )}
             <button 
               onClick={resetImporter}
-              className="px-5 py-2.5 bg-primary hover:bg-primaryHover text-white text-xs font-bold rounded-xl shadow-md transition-colors"
+              className="px-5 py-2.5 bg-primary hover:bg-primaryHover text-white text-xs font-bold rounded-xl shadow-md transition-colors flex items-center gap-2"
             >
-              Upload New Statement
+              <span>Upload New Statement</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* 4. Sheet Preview, Column Validation, Strategy Configuration */}
+      {/* ── 4. STATEMENT PREVIEW & AUTOMATIC FORM FILL ── */}
       {file && !successSummary && !loading && (
         <div className="space-y-6">
-          {/* Top summary header */}
-          <div className="flex justify-between items-center p-4 bg-cardBg border border-borderColor rounded-2xl flex-col sm:flex-row gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-primary/10 text-primary rounded-xl">
-                {file.name.endsWith('.pdf') ? <FileText className="w-6 h-6" /> : <FileSpreadsheet className="w-6 h-6" />}
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-textPrimary truncate max-w-xs">{file.name}</h4>
-                <p className="text-[10px] text-textSecondary mt-0.5">{(file.size / 1024).toFixed(1)} KB statement loaded</p>
-              </div>
-            </div>
 
-            <button 
-              onClick={resetImporter}
-              className="p-1 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Import Meta & Detected Accounts/Categories */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
-              <h4 className="text-xs font-black uppercase tracking-wider text-textSecondary mb-3">Detected Accounts / Banks</h4>
-              <div className="flex flex-wrap gap-2">
-                {previewMetrics.detected_accounts?.length > 0 ? (
-                  previewMetrics.detected_accounts.map((acc, index) => (
-                    <span key={index} className="px-3.5 py-1.5 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-bold text-primary flex items-center space-x-1.5">
-                      <Layers className="w-3.5 h-3.5 animate-pulse" />
-                      <span>{acc}</span>
+          {/* SBI STATEMENT DETECTION BADGER BANNER */}
+          {previewMetrics.is_sbi ? (
+            <div className="p-5 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-primary/10 border border-blue-500/30 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-md flex-shrink-0">
+                  SBI
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black text-textPrimary">SBI Statement Detected</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-extrabold text-[10px] uppercase tracking-wider">
+                      Auto-Parsed
                     </span>
-                  ))
-                ) : (
-                  <span className="text-xs text-textMuted font-semibold">No accounts detected</span>
-                )}
+                  </div>
+                  <p className="text-xs text-textSecondary font-medium mt-0.5">
+                    Extracted {previewMetrics.total} transactions using PariView SBI Statement Engine.
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm">
-              <h4 className="text-xs font-black uppercase tracking-wider text-textSecondary mb-3">Detected Categories</h4>
-              <div className="flex flex-wrap gap-2">
-                {previewMetrics.detected_categories?.length > 0 ? (
-                  previewMetrics.detected_categories.map((cat, index) => (
-                    <span key={index} className="px-3.5 py-1.5 rounded-2xl bg-success/10 border border-success/20 text-xs font-bold text-success flex items-center space-x-1.5">
-                      <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                      <span>{cat}</span>
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-xs text-textMuted font-semibold">No categories detected</span>
-                )}
-              </div>
-            </div>
-          </div>
 
-          {/* Aggregate Metrics panel */}
+              <div className="flex items-center gap-3 text-xs font-bold text-textSecondary self-start md:self-auto flex-wrap">
+                <span className="px-3 py-1 rounded-xl bg-surface border border-borderColor flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-success" />
+                  <span>Parser Confidence: <strong className="text-textPrimary">{previewMetrics.confidence_score}%</strong></span>
+                </span>
+                <span className="px-3 py-1 rounded-xl bg-surface border border-borderColor">
+                  OCR Used: <strong className="text-textPrimary">{previewMetrics.is_scanned ? "Yes" : "No"}</strong>
+                </span>
+              </div>
+            </div>
+          ) : (
+            /* GENERIC STATEMENT TOP HEADER */
+            <div className="flex justify-between items-center p-4 bg-cardBg border border-borderColor rounded-2xl flex-col sm:flex-row gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-primary/10 text-primary rounded-xl">
+                  {file.name.endsWith('.pdf') ? <FileText className="w-6 h-6" /> : <FileSpreadsheet className="w-6 h-6" />}
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-textPrimary truncate max-w-xs">{file.name}</h4>
+                  <p className="text-[10px] text-textSecondary mt-0.5">{(file.size / 1024).toFixed(1)} KB · {previewMetrics.bank}</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={resetImporter}
+                className="p-1 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          {/* AGGREGATE METRICS CARDS */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Total Transactions</span>
-              <h3 className="text-xl font-black text-textPrimary mt-1">{previewMetrics.total}</h3>
-              <p className="text-[10px] text-textSecondary mt-1">Total transactions logged</p>
-            </div>
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Total Credit (Inflow)</span>
-              <h3 className="text-xl font-black text-success mt-1">₹{(previewMetrics.total_income || 0).toLocaleString()}</h3>
-              <p className="text-[10px] text-success font-bold mt-1">Total income parsed</p>
-            </div>
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Total Debit (Outflow)</span>
-              <h3 className="text-xl font-black text-danger mt-1">₹{(previewMetrics.total_expenses || 0).toLocaleString()}</h3>
-              <p className="text-[10px] text-danger font-bold mt-1">Total expenses parsed</p>
-            </div>
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Institution & Type</span>
-              <h3 className="text-sm font-black text-textPrimary mt-1 flex items-center space-x-1">
-                <Calendar className="w-3.5 h-3.5 text-textMuted" />
-                <span>{previewMetrics.bank}</span>
-              </h3>
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Transactions Found</span>
+              <h3 className="text-2xl font-black text-textPrimary mt-1">{previewMetrics.total}</h3>
               <p className="text-[10px] text-textSecondary mt-1">
-                {previewMetrics.is_scanned ? "AI OCR Scanned PDF" : "Digital Selectable PDF"}
+                {selectedIndices.size} selected for import
               </p>
+            </div>
+
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Income (Credit)</span>
+              <h3 className="text-2xl font-black text-success mt-1">₹{(previewMetrics.total_income || 0).toLocaleString('en-IN')}</h3>
+              <p className="text-[10px] text-success font-bold mt-1">
+                {previewMetrics.income_count} credit transactions
+              </p>
+            </div>
+
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Expenses (Debit)</span>
+              <h3 className="text-2xl font-black text-danger mt-1">₹{(previewMetrics.total_expenses || 0).toLocaleString('en-IN')}</h3>
+              <p className="text-[10px] text-danger font-bold mt-1">
+                {previewMetrics.expense_count} debit transactions
+              </p>
+            </div>
+
+            <div className="bg-cardBg border border-borderColor rounded-3xl p-5 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] font-extrabold text-textMuted uppercase tracking-wider block">Conflict & Status</span>
+              <div>
+                <h3 className="text-lg font-black text-warning mt-1">{duplicatesCount} Duplicates</h3>
+                <p className="text-[10px] text-textMuted font-medium mt-0.5">
+                  {invalidRows.length} parse errors
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Strategy selection panel */}
+          {/* STRATEGY SELECTION & ACTION BAR */}
           <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-4">
               <div>
-                <h4 className="text-sm font-bold text-textPrimary">Duplicate Checking Strategy</h4>
-                <p className="text-[10px] text-textSecondary mt-0.5">Found **{duplicatesCount}** potential duplicates. Select how to resolve them:</p>
+                <h4 className="text-sm font-bold text-textPrimary">Duplicate Strategy</h4>
+                <p className="text-[10px] text-textSecondary mt-0.5">Choose how PariView handles duplicate entries detected in your account:</p>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <button
+                  type="button"
                   onClick={() => setDupStrategy('skip')}
                   className={`p-3 rounded-2xl border text-center transition-all ${
                     dupStrategy === 'skip' 
-                      ? 'bg-primary/5 border-primary text-primary font-bold shadow-sm' 
+                      ? 'bg-primary/10 border-primary text-primary font-bold shadow-sm' 
                       : 'bg-background border-borderColor text-textSecondary hover:border-borderColor/80'
                   }`}
                 >
                   <span className="text-xs block">Skip Duplicates</span>
-                  <span className="text-[9px] text-textSecondary font-normal mt-1 block">Ignore duplicates</span>
+                  <span className="text-[9px] text-textMuted font-normal mt-1 block">Ignore duplicates</span>
                 </button>
                 
                 <button
+                  type="button"
                   onClick={() => setDupStrategy('replace')}
                   className={`p-3 rounded-2xl border text-center transition-all ${
                     dupStrategy === 'replace' 
-                      ? 'bg-primary/5 border-primary text-primary font-bold shadow-sm' 
+                      ? 'bg-primary/10 border-primary text-primary font-bold shadow-sm' 
                       : 'bg-background border-borderColor text-textSecondary hover:border-borderColor/80'
                   }`}
                 >
                   <span className="text-xs block">Overwrite Old</span>
-                  <span className="text-[9px] text-textSecondary font-normal mt-1 block">Delete & replace</span>
+                  <span className="text-[9px] text-textMuted font-normal mt-1 block">Delete & replace</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setDupStrategy('keep')}
                   className={`p-3 rounded-2xl border text-center transition-all ${
                     dupStrategy === 'keep' 
-                      ? 'bg-primary/5 border-primary text-primary font-bold shadow-sm' 
+                      ? 'bg-primary/10 border-primary text-primary font-bold shadow-sm' 
                       : 'bg-background border-borderColor text-textSecondary hover:border-borderColor/80'
                   }`}
                 >
                   <span className="text-xs block">Keep Both</span>
-                  <span className="text-[9px] text-textSecondary font-normal mt-1 block">Import duplicate</span>
+                  <span className="text-[9px] text-textMuted font-normal mt-1 block">Import anyway</span>
                 </button>
               </div>
             </div>
 
             <div className="flex flex-col justify-end">
               <button
+                type="button"
                 onClick={handleImport}
-                className="w-full h-12 bg-primary hover:bg-primaryHover text-white font-bold rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center space-x-2 transition-all"
+                className="w-full h-12 bg-primary hover:bg-primaryHover text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
-                <Sparkles className="w-5 h-5" />
-                <span>Confirm Bulk Import</span>
+                <Sparkles className="w-4.5 h-4.5" />
+                <span>Import Transactions ({selectedIndices.size})</span>
               </button>
               {invalidRows.length > 0 && (
                 <div className="mt-3 text-center">
-                  <span className="text-[10px] font-bold text-danger">⚠️ {invalidRows.length} rows have formatting errors. </span>
+                  <span className="text-[10px] font-bold text-danger">⚠️ {invalidRows.length} rows failed format check. </span>
                   <button 
+                    type="button"
                     onClick={handleDownloadErrorCsv}
                     className="text-[10px] font-black text-danger hover:underline"
                   >
@@ -450,56 +549,259 @@ const ImportPage = () => {
             </div>
           </div>
 
-          {/* Preview grid table */}
-          <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm overflow-hidden flex flex-col justify-between">
-            <h4 className="text-sm font-bold text-textPrimary mb-4">Statement Import Preview</h4>
-            <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
+          {/* PREVIEW TABLE WITH INLINE EDITS & SELECTION */}
+          <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm overflow-hidden space-y-4">
+            
+            {/* Table Header Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-borderColor">
+              <div className="flex items-center gap-3">
+                <h4 className="text-base font-extrabold text-textPrimary tracking-tight">Statement Preview Table</h4>
+                <span className="text-xs font-bold text-textMuted bg-hoverBg px-2.5 py-1 rounded-full border border-borderColor">
+                  {filteredPreviewData.length} rows shown
+                </span>
+              </div>
+
+              {/* Table Filters & Search */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-textMuted absolute left-3 top-2.5 pointer-events-none" />
+                  <input 
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search merchant, ref..."
+                    className="h-8 pl-8 pr-3 bg-surface border border-borderColor rounded-xl text-xs text-textPrimary placeholder:text-textMuted focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 bg-surface border border-borderColor rounded-xl p-0.5">
+                  {['all', 'income', 'expense', 'duplicate'].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setFilterType(type)}
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg uppercase tracking-wider transition-all ${
+                        filterType === type ? 'bg-primary text-white' : 'text-textMuted hover:text-textPrimary'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Selection Quick Buttons */}
+            <div className="flex items-center justify-between text-xs font-bold text-textSecondary pt-1">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={selectAllRows}
+                  className="hover:text-primary transition-colors flex items-center gap-1"
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  <span>Select All</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={deselectAllRows}
+                  className="hover:text-primary transition-colors flex items-center gap-1"
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span>Deselect All</span>
+                </button>
+              </div>
+
+              <span className="text-[11px] text-textMuted font-medium">
+                Tip: Click any field cell to edit values before importing
+              </span>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
               <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-borderColor text-textSecondary font-bold">
-                    <th className="py-2.5 px-3">Date</th>
-                    <th className="py-2.5 px-3">Merchant / Narration</th>
-                    <th className="py-2.5 px-3">Category</th>
-                    <th className="py-2.5 px-3">Method</th>
-                    <th className="py-2.5 px-3 text-right">Amount</th>
-                    <th className="py-2.5 px-3 text-center">Conflict Status</th>
+                <thead className="sticky top-0 bg-cardBg z-10">
+                  <tr className="border-b border-borderColor text-textMuted uppercase tracking-wider font-extrabold text-[10px]">
+                    <th className="py-3 px-3 w-10 text-center">Sel</th>
+                    <th className="py-3 px-3">Date</th>
+                    <th className="py-3 px-3">Merchant</th>
+                    <th className="py-3 px-3">Description</th>
+                    <th className="py-3 px-3">Type</th>
+                    <th className="py-3 px-3 text-right">Amount</th>
+                    <th className="py-3 px-3">Category</th>
+                    <th className="py-3 px-3">Reference</th>
+                    <th className="py-3 px-3 text-right">Balance</th>
+                    <th className="py-3 px-3 text-center">Status</th>
+                    <th className="py-3 px-3 w-10 text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {previewData.map((t, idx) => (
-                    <tr key={idx} className="border-b border-borderColor/60 hover:bg-hoverBg/40 transition-colors">
-                      <td className="py-3 px-3 text-textSecondary">
-                        {new Date(t.date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}
-                      </td>
-                      <td className="py-3 px-3 font-semibold text-textPrimary max-w-[200px] truncate">{t.merchant}</td>
-                      <td className="py-3 px-3 capitalize">
-                        <span className="px-2.5 py-0.5 rounded-full bg-background border border-borderColor text-[10px] text-textSecondary">
-                          {t.category}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-textSecondary">{t.payment_method}</td>
-                      <td className={`py-3 px-3 text-right font-bold ${t.type === 'income' ? 'text-success' : 'text-textPrimary'}`}>
-                        {t.type === 'income' ? '+' : '-'} ₹{t.amount.toLocaleString()}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        {t.is_duplicate ? (
-                          <span className="px-2 py-0.5 bg-warning/15 text-warning font-bold text-[10px] rounded-full inline-block">
-                            Duplicate Detected
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 bg-success/15 text-success font-bold text-[10px] rounded-full inline-block">
-                            Ready to Sync
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-borderColor/60">
+                  {filteredPreviewData.map((t) => {
+                    const idx = t.origIdx;
+                    const isSelected = selectedIndices.has(idx);
+                    const isEditing = editingIndex === idx;
+
+                    return (
+                      <tr 
+                        key={idx} 
+                        className={`transition-colors ${
+                          isSelected ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-hoverBg/40 opacity-75'
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <td className="py-2.5 px-3 text-center">
+                          <input 
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectRow(idx)}
+                            className="w-4 h-4 rounded border-borderColor text-primary focus:ring-primary/20 cursor-pointer"
+                          />
+                        </td>
+
+                        {/* Date */}
+                        <td className="py-2.5 px-3 font-semibold text-textSecondary whitespace-nowrap">
+                          {isEditing ? (
+                            <input 
+                              type="date"
+                              value={t.date}
+                              onChange={(e) => handleCellEdit(idx, 'date', e.target.value)}
+                              className="w-28 px-1.5 py-0.5 bg-background border rounded text-xs text-textPrimary"
+                            />
+                          ) : (
+                            t.date
+                          )}
+                        </td>
+
+                        {/* Merchant */}
+                        <td className="py-2.5 px-3 font-bold text-textPrimary max-w-[140px] truncate">
+                          {isEditing ? (
+                            <input 
+                              type="text"
+                              value={t.merchant || ''}
+                              onChange={(e) => handleCellEdit(idx, 'merchant', e.target.value)}
+                              className="w-full px-1.5 py-0.5 bg-background border rounded text-xs text-textPrimary"
+                            />
+                          ) : (
+                            t.merchant
+                          )}
+                        </td>
+
+                        {/* Description */}
+                        <td className="py-2.5 px-3 text-textMuted max-w-[200px] truncate" title={t.description}>
+                          {t.description}
+                        </td>
+
+                        {/* Type */}
+                        <td className="py-2.5 px-3">
+                          {isEditing ? (
+                            <select 
+                              value={t.type}
+                              onChange={(e) => handleCellEdit(idx, 'type', e.target.value)}
+                              className="px-1.5 py-0.5 bg-background border rounded text-xs text-textPrimary"
+                            >
+                              <option value="expense">Expense</option>
+                              <option value="income">Income</option>
+                            </select>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                              t.type === 'income' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'
+                            }`}>
+                              {t.type}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Amount */}
+                        <td className="py-2.5 px-3 text-right font-black font-numeric">
+                          {isEditing ? (
+                            <input 
+                              type="number"
+                              value={t.amount}
+                              onChange={(e) => handleCellEdit(idx, 'amount', parseFloat(e.target.value) || 0)}
+                              className="w-20 px-1.5 py-0.5 bg-background border rounded text-xs text-right text-textPrimary"
+                            />
+                          ) : (
+                            <span className={t.type === 'income' ? 'text-success' : 'text-textPrimary'}>
+                              {t.type === 'income' ? '+' : '−'}₹{t.amount?.toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Category */}
+                        <td className="py-2.5 px-3">
+                          {isEditing ? (
+                            <select 
+                              value={t.category || 'Others'}
+                              onChange={(e) => handleCellEdit(idx, 'category', e.target.value)}
+                              className="px-1.5 py-0.5 bg-background border rounded text-xs text-textPrimary"
+                            >
+                              {CATEGORY_OPTIONS.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-lg bg-background border border-borderColor text-[10px] font-semibold text-textSecondary">
+                              {t.category || 'Others'}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Reference Number */}
+                        <td className="py-2.5 px-3 text-textMuted font-numeric text-[11px]">
+                          {t.reference_number || t.transaction_id || '—'}
+                        </td>
+
+                        {/* Balance */}
+                        <td className="py-2.5 px-3 text-right font-numeric text-textMuted text-[11px]">
+                          {t.balance != null ? `₹${t.balance.toLocaleString('en-IN')}` : '—'}
+                        </td>
+
+                        {/* Conflict Status */}
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          {t.is_duplicate ? (
+                            <span className="px-2 py-0.5 bg-warning/15 text-warning font-extrabold text-[9px] uppercase rounded-full">
+                              Duplicate Detected
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-success/15 text-success font-extrabold text-[9px] uppercase rounded-full">
+                              Ready to Sync
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-2.5 px-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingIndex(isEditing ? null : idx)}
+                              className="p-1 text-textMuted hover:text-primary transition-colors"
+                              title={isEditing ? "Save row" : "Edit row"}
+                            >
+                              {isEditing ? <Check className="w-3.5 h-3.5 text-success" /> : <Edit2 className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteRow(idx)}
+                              className="p-1 text-textMuted hover:text-danger transition-colors"
+                              title="Delete row"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+
           </div>
+
         </div>
       )}
+
     </div>
   );
 };

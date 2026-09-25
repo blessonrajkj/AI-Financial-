@@ -385,7 +385,8 @@ def upload_and_parse_statement(
         transactions = []
         invalid_rows = []
         bank_name = "Generic"
-        is_scanned = False
+        is_sbi = False
+        confidence_score = 90
         
         if ext == ".pdf":
             parse_result = pdf_parser.parse_pdf(temp_filepath)
@@ -393,6 +394,8 @@ def upload_and_parse_statement(
             invalid_rows = parse_result["invalid_rows"]
             bank_name = parse_result["bank"]
             is_scanned = parse_result["is_scanned"]
+            is_sbi = parse_result.get("is_sbi", False)
+            confidence_score = parse_result.get("confidence_score", 90)
         elif ext in [".csv", ".xlsx", ".xls"]:
             transactions, invalid_rows = parse_excel_csv_backend(temp_filepath, filename)
             bank_name = "Generic CSV/Excel"
@@ -490,7 +493,9 @@ def upload_and_parse_statement(
                 "detected_accounts": list(detected_accounts)
             },
             "bank": bank_name,
-            "is_scanned": is_scanned
+            "is_sbi": is_sbi,
+            "is_scanned": is_scanned,
+            "confidence_score": confidence_score
         }
         
     except Exception as e:
