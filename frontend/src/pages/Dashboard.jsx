@@ -247,109 +247,110 @@ const Dashboard = () => {
 
       {/* ── Header card ── */}
       <div className="doppel-shell relative overflow-hidden">
-        <div className="glow-orb-primary -top-20 -left-20 w-80 h-80" />
+        <div className="glow-orb-primary -top-20 -left-20 w-80 h-80 pointer-events-none" />
         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06] pointer-events-none" style={{
           backgroundImage: 'radial-gradient(var(--text-muted) 1px, transparent 0)',
           backgroundSize: '16px 16px'
         }} />
-        <div className="doppel-core px-6 py-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="eyebrow-badge">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-              </span>
+        <div className="doppel-core p-6 space-y-4 relative z-10">
+
+          {/* Top Row: Greeting + Action Bar */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="eyebrow-badge">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-textPrimary tracking-tight">
+                {getGreeting()}, {userName}
+              </h1>
             </div>
-            <h1 className="text-2xl font-extrabold text-textPrimary tracking-tight">
-              {getGreeting()}, {userName}
-            </h1>
-            {summary?.ai_insight && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                <p className="text-xs text-textMuted max-w-xl leading-relaxed">
+
+            {/* Quick Actions Navigation Bar */}
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button
+                onClick={togglePrivacyMode}
+                title={privacyMode ? 'Disable Privacy Shield' : 'Enable Privacy Shield'}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all duration-200 shadow-sm flex items-center gap-1.5 ${
+                  privacyMode
+                    ? 'bg-danger/10 border-danger/30 text-danger'
+                    : 'bg-surface hover:bg-hoverBg border-borderColor text-textPrimary'
+                }`}
+              >
+                {privacyMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-textMuted" />}
+                <span>{privacyMode ? 'Shield' : 'Privacy'}</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/import')}
+                title="Import Financial Data"
+                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <UploadCloud className="w-3.5 h-3.5 text-textMuted" />
+                <span>Import</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/scanner')}
+                title="Scan Receipt / Invoice"
+                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <ScanLine className="w-3.5 h-3.5 text-textMuted" />
+                <span>Scan</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/transactions')}
+                className="px-4 py-2 text-xs font-extrabold rounded-xl bg-primary hover:bg-primaryHover text-white shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 flex-shrink-0"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Add Tx</span>
+              </button>
+            </div>
+          </div>
+
+          {/* AI Insight Banner (Full-Width Clean Row) */}
+          {summary?.ai_insight && (
+            <div className="pt-3.5 border-t border-borderColor/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-2">
+                <span className="p-1 rounded-lg bg-primary/10 text-primary mt-0.5 sm:mt-0 flex-shrink-0">
+                  <Info className="w-3.5 h-3.5" />
+                </span>
+                <p className="text-xs text-textSecondary font-medium leading-relaxed">
                   {summary.ai_insight.insight_text}
                   {' '}
-                  <span className={`font-bold ${summary.ai_insight.savings_rate_diff >= 0 ? 'text-success' : 'text-danger'}`}>
+                  <span className={`font-bold ml-1 ${summary.ai_insight.savings_rate_diff >= 0 ? 'text-success' : 'text-danger'}`}>
                     {summary.ai_insight.savings_rate_diff >= 0 ? '↑' : '↓'} {Math.abs(summary.ai_insight.savings_rate_diff || 0).toFixed(1)}% vs last month
                   </span>
                 </p>
-
-                <button
-                  onClick={toggleSpeak}
-                  title={isSpeaking ? 'Stop Voice Briefing' : 'Listen to Voice Briefing'}
-                  className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-all text-[10px] font-bold ${
-                    isSpeaking 
-                      ? 'bg-primary/10 border-primary/30 text-primary shadow-sm'
-                      : 'bg-surface hover:bg-hoverBg border-borderColor text-textSecondary'
-                  }`}
-                >
-                  {isSpeaking ? (
-                    <>
-                      <VolumeX className="w-3.5 h-3.5 animate-bounce" />
-                      <span>Stop Briefing</span>
-                      <div className="flex items-center gap-[2px] h-3.5 pl-1">
-                        <span className="w-[2px] bg-primary rounded-full h-2 animate-[pulse_0.6s_infinite_alternate]" />
-                        <span className="w-[2px] bg-primary rounded-full h-3.5 animate-[pulse_0.4s_infinite_alternate]" style={{ animationDelay: '0.15s' }} />
-                        <span className="w-[2px] bg-primary rounded-full h-1 animate-[pulse_0.5s_infinite_alternate]" style={{ animationDelay: '0.3s' }} />
-                        <span className="w-[2px] bg-primary rounded-full h-2.5 animate-[pulse_0.7s_infinite_alternate]" style={{ animationDelay: '0.1s' }} />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="w-3.5 h-3.5" />
-                      <span>Listen to AI Summary</span>
-                    </>
-                  )}
-                </button>
               </div>
-            )}
-          </div>
 
-          {/* Quick Actions Navigation Bar */}
-          <div className="flex flex-wrap items-center gap-2 mt-2 xl:mt-0">
-            <button
-              onClick={togglePrivacyMode}
-              title={privacyMode ? 'Disable Privacy Shield' : 'Enable Privacy Shield'}
-              className={`px-3.5 py-1.5 text-[11px] font-bold rounded-full border transition-all duration-200 shadow-sm flex items-center gap-1.5 ${
-                privacyMode
-                  ? 'bg-danger/10 border-danger/30 text-danger'
-                  : 'bg-surface hover:bg-hoverBg border-borderColor text-textPrimary'
-              }`}
-            >
-              {privacyMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-textMuted" />}
-              <span>{privacyMode ? 'Shield Active' : 'Privacy Shield'}</span>
-            </button>
+              <button
+                onClick={toggleSpeak}
+                title={isSpeaking ? 'Stop Voice Briefing' : 'Listen to Voice Briefing'}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-xs font-bold flex-shrink-0 self-start sm:self-auto ${
+                  isSpeaking 
+                    ? 'bg-primary/10 border-primary/30 text-primary shadow-sm'
+                    : 'bg-surface hover:bg-hoverBg border-borderColor text-textSecondary'
+                }`}
+              >
+                {isSpeaking ? (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 animate-bounce text-primary" />
+                    <span>Stop Briefing</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-textMuted" />
+                    <span>Voice Briefing</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
-            <button
-              onClick={() => navigate('/transactions')}
-              className="btn-island group flex-shrink-0"
-            >
-              <span>Add Tx</span>
-              <span className="btn-island-icon">
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              </span>
-            </button>
-            <button
-              onClick={() => navigate('/import')}
-              className="px-3.5 py-1.5 text-[11px] font-bold rounded-full bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg hover:border-primary/20 transition-all duration-200 shadow-sm flex items-center gap-1.5"
-            >
-              <UploadCloud className="w-3.5 h-3.5 text-textMuted" />
-              <span>Import</span>
-            </button>
-            <button
-              onClick={() => navigate('/scanner')}
-              className="px-3.5 py-1.5 text-[11px] font-bold rounded-full bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg hover:border-primary/20 transition-all duration-200 shadow-sm flex items-center gap-1.5"
-            >
-              <ScanLine className="w-3.5 h-3.5 text-textMuted" />
-              <span>Scan Receipt</span>
-            </button>
-            <button
-              onClick={() => navigate('/upi-scanner')}
-              className="px-3.5 py-1.5 text-[11px] font-bold rounded-full bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg hover:border-primary/20 transition-all duration-200 shadow-sm flex items-center gap-1.5"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-textMuted" />
-              <span>Scan UPI</span>
-            </button>
-          </div>
         </div>
       </div>
 
