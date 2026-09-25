@@ -88,7 +88,10 @@ def create_tables():
             ("reference_number", "ALTER TABLE transactions ADD COLUMN reference_number VARCHAR;"),
             ("bank", "ALTER TABLE transactions ADD COLUMN bank VARCHAR;"),
             ("balance", "ALTER TABLE transactions ADD COLUMN balance FLOAT;"),
-            ("time", "ALTER TABLE transactions ADD COLUMN time VARCHAR;")
+            ("time", "ALTER TABLE transactions ADD COLUMN time VARCHAR;"),
+            ("debit_amount", "ALTER TABLE transactions ADD COLUMN debit_amount FLOAT;"),
+            ("credit_amount", "ALTER TABLE transactions ADD COLUMN credit_amount FLOAT;"),
+            ("post_date", "ALTER TABLE transactions ADD COLUMN post_date VARCHAR;")
         ]
         
         for col_name, sql in migrations:
