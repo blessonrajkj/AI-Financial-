@@ -33,6 +33,9 @@ class TransactionBase(BaseModel):
     reference_number: str | None = None
     bank: str | None = None
     balance: float | None = None
+    debit_amount: float | None = None
+    credit_amount: float | None = None
+    post_date: str | None = None
     time: str | None = None
 
 class TransactionCreate(TransactionBase):
@@ -52,6 +55,9 @@ class TransactionUpdate(BaseModel):
     reference_number: str | None = None
     bank: str | None = None
     balance: float | None = None
+    debit_amount: float | None = None
+    credit_amount: float | None = None
+    post_date: str | None = None
     time: str | None = None
 
 class TransactionOut(TransactionBase):
@@ -78,6 +84,9 @@ class BulkTransactionItem(BaseModel):
     reference_number: str | None = None
     bank: str | None = None
     balance: float | None = None
+    debit_amount: float | None = None
+    credit_amount: float | None = None
+    post_date: str | None = None
     time: str | None = None
 
 class BulkValidateRequest(BaseModel):

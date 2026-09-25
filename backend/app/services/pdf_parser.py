@@ -813,127 +813,200 @@ class PDFStatementParser:
             txs, invalid, bank = self.parse_scanned_pdf(pdf_path)
             for t in txs:
                 t["bank"] = "SBI"
+                t["post_date"] = t["date"]
+                if t["type"] == "expense":
+                    t["debit_amount"] = t["amount"]
+                    t["credit_amount"] = None
+                else:
+                    t["credit_amount"] = t["amount"]
+                    t["debit_amount"] = None
             return txs, invalid, 85
 
         doc = fitz.open(pdf_path)
         all_transactions = []
         all_invalid = []
 
-        # Multi-page SBI PDF extraction
+        # Multi-page SBI PDF extraction with physical 7-column layout:
+        # | Value Date | Post Date | Details | Ref No/ Cheque No | ₹ Debit | ₹ Credit | Balance |
         for page_idx in range(len(doc)):
             page = doc[page_idx]
-            raw_rows = self.extract_rows_from_pymupdf(page)
+            raw_spans = []
+            try:
+                text_dict = page.get_text("dict")
+                for block in text_dict.get("blocks", []):
+                    if "lines" in block:
+                        for line in block["lines"]:
+                            for span in line["spans"]:
+                                raw_spans.append(span)
+            except Exception:
+                pass
+
+            if not raw_spans:
+                continue
+
+            # Group spans vertically by Y coordinate (tolerance 4.0 pt)
+            raw_spans.sort(key=lambda s: s["bbox"][1])
+            rows = []
+            curr_row = []
+            curr_y = None
+            for s in raw_spans:
+                y0 = s["bbox"][1]
+                if curr_y is None:
+                    curr_y = y0
+                    curr_row.append(s)
+                elif abs(y0 - curr_y) <= 4.0:
+                    curr_row.append(s)
+                else:
+                    curr_row.sort(key=lambda item: item["bbox"][0])
+                    rows.append(curr_row)
+                    curr_row = [s]
+                    curr_y = y0
+            if curr_row:
+                curr_row.sort(key=lambda item: item["bbox"][0])
+                rows.append(curr_row)
+
+            # Assemble multiline transactions
+            assembled_txs = []
             
-            # Assembly of wrapped multiline rows
-            assembled_tx_rows = []
-            
-            for r in raw_rows:
+            for r in rows:
+                r_text = " ".join(s["text"] for s in r).strip()
+                r_text_lower = r_text.lower()
+                
                 # Filter out disclaimers, repeated headers, page footers
-                row_text = " ".join(cell["text"] for cell in r).lower()
-                if any(hdr in row_text for hdr in [
+                if any(hdr in r_text_lower for hdr in [
                     "account number", "cif no", "statement period", "ifs code", 
                     "computer generated", "page no", "page 1 of", "page 2 of",
-                    "state bank of india", "statement of account"
+                    "state bank of india", "statement of account", "value date", "post date"
                 ]):
                     continue
-                
-                # Check for SBI header row: Date / Particulars / Ref No / Debit / Credit / Balance
-                temp_headers = self.find_headers(r)
-                if len(temp_headers) >= 3:
-                    continue
-                
-                # Check if row starts with valid SBI date (DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY or DD Mon YYYY)
-                first_cell_text = r[0]["text"].strip() if r else ""
-                parsed_date = self.parse_date(first_cell_text)
-                
-                if parsed_date:
-                    assembled_tx_rows.append({
-                        "date_cell": first_cell_text,
-                        "date_parsed": parsed_date,
-                        "text_spans": list(r)
+
+                # Check if row starts with valid Value Date (col 0)
+                first_span_text = r[0]["text"].strip() if r else ""
+                parsed_val_date = self.parse_date(first_span_text)
+
+                if parsed_val_date:
+                    assembled_txs.append({
+                        "val_date_parsed": parsed_val_date,
+                        "val_date_raw": first_span_text,
+                        "spans": list(r)
                     })
-                elif assembled_tx_rows:
-                    # Continuation line for wrapped SBI transaction description
-                    last_tx = assembled_tx_rows[-1]
-                    for cell in r:
-                        last_tx["text_spans"].append(cell)
-                        
-            # Parse assembled transaction rows
-            for tx_entry in assembled_tx_rows:
-                parsed_date = tx_entry["date_parsed"]
-                spans = tx_entry["text_spans"]
-                
-                desc_parts = []
-                numbers_found = []
-                
-                is_debit = False
-                is_credit = False
-                
-                for cell in spans:
-                    t_text = cell["text"].strip()
-                    if not t_text:
-                        continue
-                    
-                    if self.parse_date(t_text) and not desc_parts:
-                        continue
-                        
-                    t_lower = t_text.lower()
-                    if "dr" in t_lower or "debit" in t_lower:
-                        is_debit = True
-                    if "cr" in t_lower or "credit" in t_lower:
-                        is_credit = True
-                        
-                    num = self.parse_amount(t_text)
-                    if num > 0 and (re.search(r'\d', t_text)):
-                        numbers_found.append({"val": num, "raw": t_text, "color": cell.get("color")})
-                    else:
-                        desc_parts.append(t_text)
-                        
-                full_description = " ".join(desc_parts).strip()
-                if not full_description:
-                    full_description = "SBI Transaction"
-                    
-                merchant, ref_number = self.extract_sbi_merchant_and_ref(full_description)
-                
-                amount = 0.0
+                elif assembled_txs:
+                    # Continuation line for wrapped SBI transaction Details column
+                    assembled_txs[-1]["spans"].extend(r)
+
+            # Process assembled SBI transaction rows using 7-column spatial boundaries
+            for tx_entry in assembled_txs:
+                parsed_val_date = tx_entry["val_date_parsed"]
+                spans = tx_entry["spans"]
+
+                post_date_raw = None
+                desc_spans = []
+                ref_spans = []
+                debit_val = None
+                credit_val = None
                 balance_val = None
-                tx_type = "expense"
+
+                for s in spans:
+                    st = s["text"].strip()
+                    if not st:
+                        continue
+
+                    # Extract Post Date if second valid date appears in row
+                    s_date = self.parse_date(st)
+                    if s_date and st != tx_entry["val_date_raw"] and not post_date_raw:
+                        post_date_raw = st
+                        continue
+
+                    amt = self.parse_amount(st)
+                    is_digit = any(c.isdigit() for c in st)
+
+                    if is_digit and amt > 0 and ("." in st or "," in st or len(st) <= 12):
+                        x0 = s["bbox"][0]
+                        # Physical X column mapping in SBI 7-column layout (standard page width ~595pt)
+                        if x0 >= 505:
+                            balance_val = amt
+                        elif x0 >= 435:
+                            credit_val = amt
+                        elif x0 >= 355:
+                            debit_val = amt
+                        elif x0 >= 280 and len(st) >= 6:
+                            ref_spans.append(st)
+                        else:
+                            desc_spans.append(st)
+                    else:
+                        if len(st) >= 6 and (st.startswith("UPI") or st.startswith("NEFT") or st.startswith("IMPS") or st.isdigit()):
+                            ref_spans.append(st)
+                        else:
+                            desc_spans.append(st)
+
+                full_desc = " ".join(desc_spans).strip() or "SBI Transaction"
+                ref_text = " ".join(ref_spans).strip()
                 
-                if numbers_found:
-                    # In SBI tables, if >= 2 numbers exist: [..., Amount, Balance]
-                    if len(numbers_found) >= 2:
-                        balance_val = numbers_found[-1]["val"]
-                        amount = numbers_found[-2]["val"]
-                        raw_amt_str = numbers_found[-2]["raw"].lower()
-                    else:
-                        amount = numbers_found[0]["val"]
-                        raw_amt_str = numbers_found[0]["raw"].lower()
-                        
-                    # Transaction type detection rules (Debit vs Credit)
-                    if "cr" in raw_amt_str or "credit" in raw_amt_str or is_credit or self.check_description_for_income(full_description):
+                merchant, extracted_ref = self.extract_sbi_merchant_and_ref(full_desc + " " + ref_text)
+                ref_number = extracted_ref or ref_text or None
+
+                # AUTHORITATIVE DEBIT vs CREDIT COLUMN ASSIGNMENT
+                amount = 0.0
+                tx_type = "expense"
+                final_debit = None
+                final_credit = None
+
+                if credit_val is not None and credit_val > 0 and (debit_val is None or debit_val == 0):
+                    tx_type = "income"
+                    amount = credit_val
+                    final_credit = credit_val
+                    final_debit = None
+                elif debit_val is not None and debit_val > 0 and (credit_val is None or credit_val == 0):
+                    tx_type = "expense"
+                    amount = debit_val
+                    final_debit = debit_val
+                    final_credit = None
+                elif credit_val is not None and debit_val is not None:
+                    if credit_val > 0:
                         tx_type = "income"
-                    elif "dr" in raw_amt_str or "debit" in raw_amt_str or is_debit:
-                        tx_type = "expense"
+                        amount = credit_val
+                        final_credit = credit_val
+                        final_debit = None
                     else:
-                        amt_color = self.get_text_color_type(numbers_found[0].get("color"))
-                        tx_type = self.determine_type_from_text_and_color(raw_amt_str, full_description, amt_color)
-                        
+                        tx_type = "expense"
+                        amount = debit_val
+                        final_debit = debit_val
+                        final_credit = None
+                else:
+                    # Single amount fallback
+                    all_nums = [self.parse_amount(s["text"]) for s in spans if self.parse_amount(s["text"]) > 0]
+                    if len(all_nums) >= 2:
+                        balance_val = all_nums[-1]
+                        amount = all_nums[-2]
+                    elif len(all_nums) == 1:
+                        amount = all_nums[0]
+                    
+                    if amount > 0:
+                        if self.check_description_for_income(full_desc):
+                            tx_type = "income"
+                            final_credit = amount
+                        else:
+                            tx_type = "expense"
+                            final_debit = amount
+
                 if amount <= 0:
                     continue
-                    
-                specific_type = self.classify_specific_type(full_description, tx_type)
-                category = self.classify_category(full_description, specific_type)
-                payment_method = self.detect_payment_method(full_description)
-                
-                tx_id = ref_number or f"SBI-{parsed_date.strftime('%Y%m%d')}-{int(amount)}"
-                
+
+                specific_type = self.classify_specific_type(full_desc, tx_type)
+                category = self.classify_category(full_desc, specific_type)
+                payment_method = self.detect_payment_method(full_desc)
+
+                tx_id = ref_number or f"SBI-{parsed_val_date.strftime('%Y%m%d')}-{int(amount)}"
+
                 all_transactions.append({
-                    "date": parsed_date.strftime("%Y-%m-%d"),
-                    "time": None,
+                    "date": parsed_val_date.strftime("%Y-%m-%d"),
+                    "post_date": post_date_raw or parsed_val_date.strftime("%Y-%m-%d"),
                     "amount": amount,
+                    "debit_amount": final_debit,
+                    "credit_amount": final_credit,
                     "type": tx_type,
                     "merchant": merchant,
-                    "description": full_description,
+                    "description": full_desc,
                     "transaction_id": tx_id,
                     "reference_number": ref_number or tx_id,
                     "balance": balance_val,

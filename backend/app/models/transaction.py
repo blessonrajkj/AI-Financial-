@@ -24,6 +24,9 @@ class Transaction(Base):
     reference_number = Column(String, nullable=True, index=True)
     bank = Column(String, nullable=True)
     balance = Column(Float, nullable=True)
+    debit_amount = Column(Float, nullable=True)
+    credit_amount = Column(Float, nullable=True)
+    post_date = Column(String, nullable=True)
     time = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

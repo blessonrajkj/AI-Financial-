@@ -735,6 +735,10 @@ def bulk_import_transactions(
             transaction_id=t.transaction_id,
             reference_number=t.reference_number,
             bank=t.bank,
+            balance=t.balance,
+            debit_amount=t.debit_amount,
+            credit_amount=t.credit_amount,
+            post_date=t.post_date,
             time=t.time
         )
         db.add(db_trans)
