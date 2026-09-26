@@ -835,11 +835,16 @@ class PDFStatementParser:
         doc = fitz.open(pdf_path)
         all_transactions = []
         all_invalid = []
+        row_confidences = []
 
-        # Multi-page SBI PDF extraction with physical 7-column layout:
+        # Multi-page SBI PDF extraction with dynamic column boundary detection
+        # Official SBI 7-column layout:
         # | Value Date | Post Date | Details | Ref No/ Cheque No | ₹ Debit | ₹ Credit | Balance |
         for page_idx in range(len(doc)):
             page = doc[page_idx]
+            page_rect = page.rect
+            page_width = page_rect.width or 595.0
+
             raw_spans = []
             try:
                 text_dict = page.get_text("dict")
@@ -875,7 +880,28 @@ class PDFStatementParser:
                 curr_row.sort(key=lambda item: item["bbox"][0])
                 rows.append(curr_row)
 
-            # Assemble multiline transactions
+            # Adaptive Column Thresholds: Detect dynamic X boundaries from page headers if present
+            debit_threshold = page_width * 0.58
+            credit_threshold = page_width * 0.70
+            balance_threshold = page_width * 0.83
+            ref_threshold = page_width * 0.44
+
+            for r in rows:
+                r_text_lower = " ".join(s["text"].lower() for s in r)
+                if "debit" in r_text_lower and "credit" in r_text_lower:
+                    for s in r:
+                        st_lower = s["text"].lower()
+                        x0 = s["bbox"][0]
+                        if "debit" in st_lower:
+                            debit_threshold = x0 - 25
+                        elif "credit" in st_lower:
+                            credit_threshold = x0 - 25
+                        elif "balance" in st_lower:
+                            balance_threshold = x0 - 25
+                        elif "ref" in st_lower or "cheque" in st_lower:
+                            ref_threshold = x0 - 25
+
+            # Assemble multiline transactions (wrapped Details lines)
             assembled_txs = []
             
             for r in rows:
@@ -904,7 +930,7 @@ class PDFStatementParser:
                     # Continuation line for wrapped SBI transaction Details column
                     assembled_txs[-1]["spans"].extend(r)
 
-            # Process assembled SBI transaction rows using 7-column spatial boundaries
+            # Process assembled SBI transaction rows using dynamic column boundaries
             for tx_entry in assembled_txs:
                 parsed_val_date = tx_entry["val_date_parsed"]
                 spans = tx_entry["spans"]
@@ -932,14 +958,13 @@ class PDFStatementParser:
 
                     if is_digit and amt > 0 and ("." in st or "," in st or len(st) <= 12):
                         x0 = s["bbox"][0]
-                        # Physical X column mapping in SBI 7-column layout (standard page width ~595pt)
-                        if x0 >= 505:
+                        if x0 >= balance_threshold:
                             balance_val = amt
-                        elif x0 >= 435:
+                        elif x0 >= credit_threshold:
                             credit_val = amt
-                        elif x0 >= 355:
+                        elif x0 >= debit_threshold:
                             debit_val = amt
-                        elif x0 >= 280 and len(st) >= 6:
+                        elif x0 >= ref_threshold and len(st) >= 6:
                             ref_spans.append(st)
                         else:
                             desc_spans.append(st)
@@ -989,7 +1014,7 @@ class PDFStatementParser:
                     final_debit = debit_val
                     final_credit = None
                 else:
-                    # Both columns are empty — fallback to single amount detection
+                    # Both columns are empty / dash — fallback to single amount detection
                     all_nums = [self.parse_amount(s["text"]) for s in spans if self.parse_amount(s["text"]) > 0]
                     if len(all_nums) >= 2:
                         balance_val = all_nums[-1]
@@ -1010,7 +1035,22 @@ class PDFStatementParser:
                             final_debit = amount
 
                 if amount <= 0:
+                    all_invalid.append({
+                        "page": page_idx + 1,
+                        "rowNum": page_idx + 1,
+                        "reasons": [f"Unparseable row '{full_desc[:40]}': Missing numerical transaction amount"],
+                        "data": [s["text"] for s in spans]
+                    })
                     continue
+
+                # Per-row Confidence score calculation
+                row_conf = 20  # Date identified
+                if full_desc and full_desc != "SBI Transaction": row_conf += 20
+                if amount > 0: row_conf += 20
+                if (has_debit and not has_credit) or (has_credit and not has_debit): row_conf += 20
+                if ref_number or balance_val is not None: row_conf += 10
+                row_conf += 10  # Native PDF extraction
+                row_confidences.append(min(100, row_conf))
 
                 specific_type = self.classify_specific_type(full_desc, tx_type)
                 category = self.classify_category(full_desc, specific_type)
@@ -1041,8 +1081,8 @@ class PDFStatementParser:
                 })
 
         doc.close()
-        confidence = 96 if all_transactions else 70
-        return all_transactions, all_invalid, confidence
+        overall_confidence = round(sum(row_confidences) / len(row_confidences)) if row_confidences else 70
+        return all_transactions, all_invalid, overall_confidence
 
     def parse_pdf(self, pdf_path: str, filename: str = "SBI Statement PDF") -> dict:
         is_scanned = self.is_scanned_pdf(pdf_path)

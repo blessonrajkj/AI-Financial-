@@ -421,9 +421,7 @@ def upload_and_parse_statement(
             if t.get("needs_review"):
                 needs_review_count += 1
 
-            is_duplicate = False
-            
-            # Duplicate check
+            # Multi-tier Duplicate Detection (Priority: 1. transaction_id, 2. reference_number, 3. date+amount+merchant, 4. date+amount+description)
             if t.get("transaction_id"):
                 dup = db.query(Transaction).filter(
                     Transaction.user_id == current_user.id,
@@ -431,6 +429,7 @@ def upload_and_parse_statement(
                 ).first()
                 if dup:
                     is_duplicate = True
+            
             if not is_duplicate and t.get("reference_number"):
                 dup = db.query(Transaction).filter(
                     Transaction.user_id == current_user.id,
@@ -438,28 +437,44 @@ def upload_and_parse_statement(
                 ).first()
                 if dup:
                     is_duplicate = True
+            
             if not is_duplicate:
                 try:
                     date_parsed = datetime.fromisoformat(t["date"])
                 except Exception:
                     date_parsed = datetime.now()
                     
-                dup_query = db.query(Transaction).filter(
-                    Transaction.user_id == current_user.id,
-                    Transaction.amount == t["amount"],
-                    Transaction.type == t["type"]
-                )
-                if is_sqlite:
-                    dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
-                else:
-                    dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
-                    
+                # Priority 3: date + amount + merchant
                 if t.get("merchant"):
+                    dup_query = db.query(Transaction).filter(
+                        Transaction.user_id == current_user.id,
+                        Transaction.amount == t["amount"],
+                        Transaction.type == t["type"]
+                    )
+                    if is_sqlite:
+                        dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
+                    else:
+                        dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
                     dup_query = dup_query.join(Merchant, Transaction.merchant_id == Merchant.id).filter(
                         Merchant.name.ilike(t["merchant"].strip())
                     )
-                if dup_query.first():
-                    is_duplicate = True
+                    if dup_query.first():
+                        is_duplicate = True
+
+                # Priority 4: date + amount + description
+                if not is_duplicate and t.get("description"):
+                    dup_query = db.query(Transaction).filter(
+                        Transaction.user_id == current_user.id,
+                        Transaction.amount == t["amount"],
+                        Transaction.type == t["type"],
+                        Transaction.description.ilike(t["description"].strip())
+                    )
+                    if is_sqlite:
+                        dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
+                    else:
+                        dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
+                    if dup_query.first():
+                        is_duplicate = True
                     
             if is_duplicate:
                 duplicate_count += 1
