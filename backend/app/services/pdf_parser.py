@@ -837,6 +837,12 @@ class PDFStatementParser:
         all_invalid = []
         row_confidences = []
 
+        # Document-wide persistent column thresholds across multi-page statements
+        detected_debit_th = None
+        detected_credit_th = None
+        detected_balance_th = None
+        detected_ref_th = None
+
         # Multi-page SBI PDF extraction with dynamic column boundary detection
         # Official SBI 7-column layout:
         # | Value Date | Post Date | Details | Ref No/ Cheque No | ₹ Debit | ₹ Credit | Balance |
@@ -880,12 +886,7 @@ class PDFStatementParser:
                 curr_row.sort(key=lambda item: item["bbox"][0])
                 rows.append(curr_row)
 
-            # Adaptive Column Thresholds: Detect dynamic X boundaries from page headers if present
-            debit_threshold = page_width * 0.58
-            credit_threshold = page_width * 0.70
-            balance_threshold = page_width * 0.83
-            ref_threshold = page_width * 0.44
-
+            # Detect dynamic X boundaries from page headers if present
             for r in rows:
                 r_text_lower = " ".join(s["text"].lower() for s in r)
                 if "debit" in r_text_lower and "credit" in r_text_lower:
@@ -893,13 +894,19 @@ class PDFStatementParser:
                         st_lower = s["text"].lower()
                         x0 = s["bbox"][0]
                         if "debit" in st_lower:
-                            debit_threshold = x0 - 25
+                            detected_debit_th = x0 - 20
                         elif "credit" in st_lower:
-                            credit_threshold = x0 - 25
+                            detected_credit_th = x0 - 20
                         elif "balance" in st_lower:
-                            balance_threshold = x0 - 25
+                            detected_balance_th = x0 - 20
                         elif "ref" in st_lower or "cheque" in st_lower:
-                            ref_threshold = x0 - 25
+                            detected_ref_th = x0 - 20
+
+            # Fallbacks or persistent thresholds
+            debit_threshold = detected_debit_th if detected_debit_th is not None else (page_width * 0.52)
+            credit_threshold = detected_credit_th if detected_credit_th is not None else (page_width * 0.67)
+            balance_threshold = detected_balance_th if detected_balance_th is not None else (page_width * 0.82)
+            ref_threshold = detected_ref_th if detected_ref_th is not None else (page_width * 0.38)
 
             # Assemble multiline transactions (wrapped Details lines)
             assembled_txs = []
@@ -956,7 +963,17 @@ class PDFStatementParser:
                     amt = self.parse_amount(st)
                     is_digit = any(c.isdigit() for c in st)
 
-                    if is_digit and amt > 0 and ("." in st or "," in st or len(st) <= 12):
+                    # Pure reference/account/cheque/UTR integer check (e.g. 10-12 digit integer without commas or decimals)
+                    is_pure_ref_int = (
+                        is_digit and 
+                        not ("." in st or "," in st) and 
+                        len(st.strip()) >= 7 and 
+                        amt >= 1000000
+                    )
+
+                    if is_pure_ref_int:
+                        ref_spans.append(st)
+                    elif is_digit and amt > 0 and ("." in st or "," in st or len(st) <= 6 or amt < 10000000):
                         x0 = s["bbox"][0]
                         if x0 >= balance_threshold:
                             balance_val = amt
@@ -1014,13 +1031,20 @@ class PDFStatementParser:
                     final_debit = debit_val
                     final_credit = None
                 else:
-                    # Both columns are empty / dash — fallback to single amount detection
-                    all_nums = [self.parse_amount(s["text"]) for s in spans if self.parse_amount(s["text"]) > 0]
-                    if len(all_nums) >= 2:
-                        balance_val = all_nums[-1]
-                        amount = all_nums[-2]
-                    elif len(all_nums) == 1:
-                        amount = all_nums[0]
+                    # Both columns are empty / dash — fallback to single amount detection (rejecting pure ref numbers)
+                    valid_amounts = []
+                    for s in spans:
+                        st_item = s["text"].strip()
+                        val_item = self.parse_amount(st_item)
+                        is_ref_item = not ("." in st_item or "," in st_item) and len(st_item) >= 7 and val_item >= 1000000
+                        if val_item > 0 and not is_ref_item:
+                            valid_amounts.append(val_item)
+
+                    if len(valid_amounts) >= 2:
+                        balance_val = valid_amounts[-1]
+                        amount = valid_amounts[-2]
+                    elif len(valid_amounts) == 1:
+                        amount = valid_amounts[0]
                     
                     if amount > 0:
                         needs_review = True

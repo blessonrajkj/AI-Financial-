@@ -223,7 +223,17 @@ const ImportPage = () => {
       invalidateCache();
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || "Import failed. Please try again.");
+      let detailMsg = "Import failed. Please try again.";
+      if (err.response?.data?.detail) {
+        if (typeof err.response.data.detail === 'string') {
+          detailMsg = err.response.data.detail;
+        } else if (Array.isArray(err.response.data.detail)) {
+          detailMsg = err.response.data.detail.map(d => typeof d === 'string' ? d : (d.msg || JSON.stringify(d))).join(' | ');
+        } else if (typeof err.response.data.detail === 'object') {
+          detailMsg = JSON.stringify(err.response.data.detail);
+        }
+      }
+      setError(detailMsg);
     } finally {
       setLoading(false);
     }

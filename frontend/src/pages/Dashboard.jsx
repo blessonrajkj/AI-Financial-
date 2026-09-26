@@ -35,7 +35,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 const fmt = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const fmtPct = (n) => `${Math.abs(n || 0).toFixed(1)}%`;
 
-// Custom Glassmorphic Cashflow Tooltip
+// Custom Fintech Cashflow Tooltip
 const CustomCashflowTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
 
@@ -47,46 +47,49 @@ const CustomCashflowTooltip = ({ active, payload, label }) => {
   const expense = expenseItem ? expenseItem.value : 0;
   const savings = savingsItem ? savingsItem.value : (income - expense);
 
-  const formattedDate = label ? new Date(label).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : label;
+  const formattedDate = label
+    ? new Date(label).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : label;
 
   return (
-    <div className="bg-cardBg/95 backdrop-blur-md border border-borderColor p-3.5 rounded-2xl shadow-2xl space-y-2 min-w-[210px] pointer-events-none">
-      <div className="flex items-center justify-between pb-2 border-b border-borderColor/60">
-        <span className="text-[11px] font-bold text-textPrimary tracking-tight flex items-center gap-1.5">
+    <div className="bg-cardBg border border-borderColor p-3.5 rounded-xl shadow-lg space-y-2.5 min-w-[200px] pointer-events-none">
+      <div className="flex items-center justify-between pb-1.5 border-b border-borderColor/60">
+        <span className="text-xs font-bold text-textPrimary flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 text-primary" />
           {formattedDate}
         </span>
-        <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
-          Daily Ledger
-        </span>
       </div>
-      <div className="space-y-1.5 pt-0.5">
+      <div className="space-y-1.5">
         {incomeItem && (
           <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-              <span className="font-semibold text-textSecondary">Income</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
+              <span className="text-textSecondary font-medium">Income</span>
             </div>
-            <span className="font-numeric font-bold text-emerald-600 dark:text-emerald-400">+₹{income.toLocaleString('en-IN')}</span>
+            <span className="font-numeric font-bold text-emerald-600 dark:text-emerald-400">
+              ₹{income.toLocaleString('en-IN')}
+            </span>
           </div>
         )}
         {expenseItem && (
           <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#F43F5E] shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-              <span className="font-semibold text-textSecondary">Expense</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e]" />
+              <span className="text-textSecondary font-medium">Expense</span>
             </div>
-            <span className="font-numeric font-bold text-rose-600 dark:text-rose-400">−₹{expense.toLocaleString('en-IN')}</span>
+            <span className="font-numeric font-bold text-rose-600 dark:text-rose-400">
+              ₹{expense.toLocaleString('en-IN')}
+            </span>
           </div>
         )}
         {savingsItem && (
-          <div className="flex items-center justify-between text-xs pt-1.5 border-t border-borderColor/40">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#6366F1] shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-              <span className="font-semibold text-textPrimary">Net Savings</span>
+          <div className="flex items-center justify-between text-xs pt-1.5 border-t border-borderColor/50">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]" />
+              <span className="text-textPrimary font-semibold">Net Savings</span>
             </div>
             <span className={`font-numeric font-bold ${savings >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-danger'}`}>
-              {savings >= 0 ? '+' : ''}₹{savings.toLocaleString('en-IN')}
+              {savings < 0 ? '−' : ''}₹{Math.abs(savings).toLocaleString('en-IN')}
             </span>
           </div>
         )}
@@ -134,16 +137,43 @@ const Dashboard = () => {
     return { totalIncome, totalExpense, netSavings, savingsRate, avgDailySpending };
   }, [trends]);
 
-  const savingsOffset = useMemo(() => {
-    if (!trends || trends.length === 0) return 0.5;
-    const savingsValues = trends.map(day => day.savings ?? 0);
-    const max = Math.max(...savingsValues, 1);
-    const min = Math.min(...savingsValues, -1);
-    if (max === min) return 0.5;
-    return max / (max - min);
+  const trendsWithSavings = useMemo(() => {
+    if (!trends || trends.length === 0) return [];
+    return trends.map(day => ({
+      ...day,
+      savings: (day.income || 0) - (day.expense || 0)
+    }));
   }, [trends]);
 
   const [chartDays, setChartDays] = useState(30);
+
+  const formatYAxis = (v) => {
+    if (v === 0) return '₹0';
+    const abs = Math.abs(v);
+    let formatted = '';
+    if (abs >= 100000) {
+      formatted = `${(abs / 100000).toFixed(abs % 100000 === 0 ? 0 : 1)}L`;
+    } else if (abs >= 1000) {
+      formatted = `${(abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1)}K`;
+    } else {
+      formatted = `${abs}`;
+    }
+    return v < 0 ? `-₹${formatted}` : `₹${formatted}`;
+  };
+
+  const formatXAxis = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+
+    if (chartDays === 7) {
+      return d.toLocaleDateString('en-IN', { weekday: 'short' });
+    } else if (chartDays === 30) {
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    } else {
+      return d.toLocaleDateString('en-IN', { month: 'short' });
+    }
+  };
   const [showIncome, setShowIncome]   = useState(true);
   const [showExpense, setShowExpense] = useState(true);
   const [showSavings, setShowSavings] = useState(true);
@@ -499,17 +529,17 @@ const Dashboard = () => {
         <div className="lg:col-span-2 doppel-shell min-h-[460px]">
           <div className="doppel-core p-6 flex flex-col justify-between h-full">
             {/* Header + Time range filters */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="eyebrow-badge">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    Cashflow Dynamic
-                  </span>
-                </div>
-                <h2 className="text-base font-extrabold text-textPrimary tracking-tight">Financial Velocity & Savings Rate</h2>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-textMuted block mb-0.5">
+                  CASHFLOW DYNAMIC
+                </span>
+                <h2 className="text-lg font-extrabold text-textPrimary tracking-tight">Cash Flow Overview</h2>
+                <p className="text-xs text-textSecondary font-medium mt-0.5">Income, expenses and net savings over time</p>
               </div>
-              <div className="flex items-center gap-1 bg-surface border border-borderColor rounded-full p-1 shadow-inner self-start sm:self-auto">
+
+              {/* Time Range Selector */}
+              <div className="flex items-center gap-1 bg-surface border border-borderColor rounded-xl p-1 shadow-sm self-start sm:self-auto">
                 {[
                   { label: '7D', value: 7 },
                   { label: '30D', value: 30 },
@@ -519,7 +549,7 @@ const Dashboard = () => {
                   <button
                     key={btn.label}
                     onClick={() => setChartDays(btn.value)}
-                    className={`px-3 py-1 text-[11px] font-bold rounded-full transition-all duration-200 ${
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all duration-200 ${
                       chartDays === btn.value
                         ? 'bg-primary text-white shadow-sm'
                         : 'text-textMuted hover:text-textPrimary hover:bg-hoverBg'
@@ -531,127 +561,102 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Interactive series toggle badges */}
-            <div className="flex items-center gap-2 mb-4 flex-wrap text-xs font-semibold">
+            {/* Metric Summary Row */}
+            <div className="flex items-center gap-4 sm:gap-6 py-2 px-3.5 bg-surface/60 border border-borderColor/60 rounded-xl mb-4 flex-wrap">
               <button
+                type="button"
                 onClick={() => setShowIncome(!showIncome)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
-                  showIncome
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                    : 'bg-hoverBg/50 border-borderColor text-textMuted line-through opacity-60'
-                }`}
+                className={`flex items-center gap-2 text-xs font-medium transition-opacity ${showIncome ? 'opacity-100' : 'opacity-40 line-through'}`}
               >
-                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
-                <span>Income</span>
-                <span className="font-numeric font-bold text-[11px]">({fmt(cashflowStats.totalIncome)})</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
+                <span className="text-textSecondary">Income</span>
+                <span className="font-numeric font-extrabold text-textPrimary">
+                  ₹{(cashflowStats.totalIncome || 0).toLocaleString('en-IN')}
+                </span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setShowExpense(!showExpense)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
-                  showExpense
-                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 shadow-sm'
-                    : 'bg-hoverBg/50 border-borderColor text-textMuted line-through opacity-60'
-                }`}
+                className={`flex items-center gap-2 text-xs font-medium transition-opacity ${showExpense ? 'opacity-100' : 'opacity-40 line-through'}`}
               >
-                <span className="w-2.5 h-2.5 rounded-full bg-[#F43F5E] shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
-                <span>Expense</span>
-                <span className="font-numeric font-bold text-[11px]">({fmt(cashflowStats.totalExpense)})</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e]" />
+                <span className="text-textSecondary">Expense</span>
+                <span className="font-numeric font-extrabold text-textPrimary">
+                  ₹{(cashflowStats.totalExpense || 0).toLocaleString('en-IN')}
+                </span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setShowSavings(!showSavings)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
-                  showSavings
-                    ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                    : 'bg-hoverBg/50 border-borderColor text-textMuted line-through opacity-60'
-                }`}
+                className={`flex items-center gap-2 text-xs font-medium transition-opacity ${showSavings ? 'opacity-100' : 'opacity-40 line-through'}`}
               >
-                <span className="w-2.5 h-2.5 rounded-full bg-[#6366F1] shadow-[0_0_8px_rgba(99,102,241,0.7)]" />
-                <span>Net Savings</span>
-                <span className="font-numeric font-bold text-[11px]">({fmt(cashflowStats.netSavings)})</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]" />
+                <span className="text-textSecondary">Net Savings</span>
+                <span className={`font-numeric font-extrabold ${cashflowStats.netSavings >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-danger'}`}>
+                  {cashflowStats.netSavings < 0 ? '−' : ''}₹{Math.abs(cashflowStats.netSavings || 0).toLocaleString('en-IN')}
+                </span>
               </button>
             </div>
 
-            {/* Area Chart canvas */}
+            {/* Area Chart Canvas */}
             <div className="h-[330px] w-full relative">
-              {trends.length > 0 ? (
+              {trendsWithSavings.length > 0 && trendsWithSavings.some(t => (t.income || 0) > 0 || (t.expense || 0) > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trends} margin={{ top: 20, right: 24, left: 20, bottom: 8 }}>
+                  <AreaChart data={trendsWithSavings} margin={{ top: 16, right: 16, left: -10, bottom: 4 }}>
                     <defs>
-                      {/* Gradient fills */}
-                      <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.35} />
-                        <stop offset="60%" stopColor="#10B981" stopOpacity={0.08} />
-                        <stop offset="100%" stopColor="#10B981" stopOpacity={0.0} />
+                      <linearGradient id="cfIncomeGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.12} />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0.0} />
                       </linearGradient>
-                      <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.35} />
-                        <stop offset="60%" stopColor="#F43F5E" stopOpacity={0.06} />
-                        <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.0} />
+                      <linearGradient id="cfExpenseGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.12} />
+                        <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.0} />
                       </linearGradient>
-                      <linearGradient id="gSavings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
-                        <stop offset={`${savingsOffset * 100}%`} stopColor="#10B981" stopOpacity={0.05} />
-                        <stop offset={`${savingsOffset * 100}%`} stopColor="#F43F5E" stopOpacity={0.05} />
-                        <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.3} />
+                      <linearGradient id="cfSavingsGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.12} />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.0} />
                       </linearGradient>
-
-                      {/* Line Glow drop-shadow filters */}
-                      <filter id="glowIncome" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#10B981" floodOpacity="0.45" />
-                      </filter>
-                      <filter id="glowExpense" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#F43F5E" floodOpacity="0.4" />
-                      </filter>
-                      <filter id="glowSavings" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#6366F1" floodOpacity="0.45" />
-                      </filter>
                     </defs>
 
-                    <CartesianGrid strokeDasharray="3 6" stroke="var(--border)" vertical={false} opacity={0.6} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} opacity={0.35} />
 
                     <XAxis
                       dataKey="date"
                       stroke="var(--text-muted)"
                       fontSize={11}
-                      fontWeight={600}
+                      fontWeight={500}
                       tickLine={false}
                       axisLine={false}
                       dy={8}
-                      tickFormatter={v => v?.slice(5) || v}
+                      tickFormatter={formatXAxis}
                     />
 
                     <YAxis
                       stroke="var(--text-muted)"
                       fontSize={11}
-                      fontWeight={600}
+                      fontWeight={500}
                       tickLine={false}
                       axisLine={false}
-                      dx={-12}
-                      width={68}
-                      domain={['dataMin - 1000', 'dataMax + 1000']}
-                      tickFormatter={v => {
-                        if (v === 0) return '0';
-                        const abs = Math.abs(v);
-                        const formatted = abs >= 1000 ? `${(abs / 1000).toFixed(0)}k` : `${abs}`;
-                        return v > 0 ? `+₹${formatted}` : `−₹${formatted}`;
-                      }}
+                      width={58}
+                      tickFormatter={formatYAxis}
                     />
-                    <Tooltip content={<CustomCashflowTooltip />} cursor={{ stroke: 'rgba(99, 102, 241, 0.25)', strokeWidth: 1.5, strokeDasharray: '4 4' }} />
 
-                    <ReferenceLine y={0} stroke="rgba(255, 255, 255, 0.12)" strokeWidth={1.5} strokeDasharray="3 3" />
+                    <ReferenceLine y={0} stroke="var(--border-color)" strokeWidth={1} strokeDasharray="3 3" opacity={0.6} />
+
+                    <Tooltip content={<CustomCashflowTooltip />} cursor={{ stroke: 'var(--border-color)', strokeWidth: 1, strokeDasharray: '4 4' }} />
 
                     {showIncome && (
                       <Area
                         type="monotone"
                         dataKey="income"
                         name="Income"
-                        stroke="#10B981"
-                        fill="url(#gIncome)"
-                        strokeWidth={3}
-                        filter="url(#glowIncome)"
-                        activeDot={{ r: 7, stroke: '#10B981', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                        stroke="#10b981"
+                        fill="url(#cfIncomeGrad)"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 5, stroke: '#10b981', strokeWidth: 2, fill: 'var(--card-bg)' }}
                       />
                     )}
 
@@ -660,11 +665,11 @@ const Dashboard = () => {
                         type="monotone"
                         dataKey="expense"
                         name="Expense"
-                        stroke="#F43F5E"
-                        fill="url(#gExpense)"
-                        strokeWidth={3}
-                        filter="url(#glowExpense)"
-                        activeDot={{ r: 7, stroke: '#F43F5E', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                        stroke="#f43f5e"
+                        fill="url(#cfExpenseGrad)"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 5, stroke: '#f43f5e', strokeWidth: 2, fill: 'var(--card-bg)' }}
                       />
                     )}
 
@@ -672,19 +677,39 @@ const Dashboard = () => {
                       <Area
                         type="monotone"
                         dataKey="savings"
-                        name="Savings"
-                        stroke="url(#gSavings)"
-                        fill="url(#gSavings)"
-                        strokeWidth={3}
-                        filter="url(#glowSavings)"
-                        activeDot={{ r: 7, stroke: '#6366F1', strokeWidth: 3, fill: 'var(--card-bg)' }}
+                        name="Net Savings"
+                        stroke="#6366f1"
+                        fill="url(#cfSavingsGrad)"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 5, stroke: '#6366f1', strokeWidth: 2, fill: 'var(--card-bg)' }}
                       />
                     )}
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-xs text-textMuted font-medium">No cashflow data recorded for this period</p>
+                <div className="h-full flex flex-col items-center justify-center space-y-3 py-10 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-sm">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-textPrimary">No cash flow data for this period</h4>
+                    <p className="text-xs text-textSecondary mt-0.5">Add a transaction or import a statement to view cashflow analytics</p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => navigate('/transactions')}
+                      className="px-3.5 py-1.5 bg-primary hover:bg-primaryHover text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+                    >
+                      Add Transaction
+                    </button>
+                    <button
+                      onClick={() => navigate('/import')}
+                      className="px-3.5 py-1.5 bg-surface hover:bg-hoverBg border border-borderColor text-textPrimary text-xs font-bold rounded-xl transition-all"
+                    >
+                      Import Statement
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

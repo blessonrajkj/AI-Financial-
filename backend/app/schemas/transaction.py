@@ -75,12 +75,12 @@ class TransactionOut(TransactionBase):
 class BulkTransactionItem(BaseModel):
     date: str
     amount: float
-    type: str
+    type: str = "expense"
     direction: str | None = None
     merchant: str | None = None
     category: str | None = None
     description: str | None = None
-    payment_method: str = "Cash"
+    payment_method: str | None = "Cash"
     transaction_id: str | None = None
     reference_number: str | None = None
     bank: str | None = None
@@ -93,6 +93,12 @@ class BulkTransactionItem(BaseModel):
     source_file_name: str | None = None
     needs_review: bool | None = False
     review_reason: str | None = None
+    is_duplicate: bool | None = False
+    upi_id: str | None = None
+    origIdx: int | None = None
+
+    class Config:
+        extra = "ignore"
 
 class BulkValidateRequest(BaseModel):
     transactions: list[BulkTransactionItem]

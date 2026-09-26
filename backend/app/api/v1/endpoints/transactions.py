@@ -645,129 +645,181 @@ def bulk_import_transactions(
     all_categories = db.query(Category).filter(
         or_(Category.user_id == None, Category.user_id == current_user.id)
     ).all()
-    category_cache = {c.name.lower().strip(): c.id for c in all_categories}
+    category_cache = {c.name.lower().strip(): c.id for c in all_categories if c.name}
     
-    all_merchants = db.query(Merchant).filter(
-        or_(Merchant.user_id == None, Merchant.user_id == current_user.id)
-    ).all()
-    merchant_cache = {m.name.lower().strip(): m.id for m in all_merchants}
+    all_merchants = db.query(Merchant).all()
+    merchant_cache = {m.name.lower().strip(): m.id for m in all_merchants if m.name}
     
+    def parse_item_date(date_str: str) -> datetime | None:
+        if not date_str:
+            return None
+        d_clean = date_str.strip()
+        try:
+            return datetime.fromisoformat(d_clean.replace("Z", "+00:00"))
+        except Exception:
+            pass
+        for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d-%b-%Y", "%d %b %Y", "%Y/%m/%d", "%d/%m/%y", "%d-%m-%y"]:
+            try:
+                part = d_clean.split("T")[0].split()[0]
+                return datetime.strptime(part, fmt)
+            except Exception:
+                pass
+        return None
+
     for t in req.transactions:
         try:
-            date_parsed = datetime.fromisoformat(t.date.replace("Z", "+00:00"))
-        except Exception:
-            try:
-                date_parsed = datetime.strptime(t.date.split("T")[0], "%Y-%m-%d")
-            except Exception:
+            date_parsed = parse_item_date(t.date)
+            if not date_parsed:
                 errors += 1
                 continue
                 
-        if t.amount <= 0:
-            errors += 1
-            continue
-            
-        is_duplicate = False
-        existing_dup = None
-        
-        if t.transaction_id and t.transaction_id.strip():
-            existing_dup = db.query(Transaction).filter(
-                Transaction.user_id == current_user.id,
-                Transaction.transaction_id == t.transaction_id.strip()
-            ).first()
-            if existing_dup:
-                is_duplicate = True
-                
-        if not is_duplicate and t.reference_number and t.reference_number.strip():
-            existing_dup = db.query(Transaction).filter(
-                Transaction.user_id == current_user.id,
-                Transaction.reference_number == t.reference_number.strip()
-            ).first()
-            if existing_dup:
-                is_duplicate = True
-                
-        if not is_duplicate:
-            dup_query = db.query(Transaction).filter(
-                Transaction.user_id == current_user.id,
-                Transaction.amount == t.amount,
-                Transaction.type == t.type
-            )
-            
-            if is_sqlite:
-                dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
-            else:
-                dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
-                
-            if t.merchant and t.merchant.strip():
-                dup_query_with_merch = dup_query.join(Merchant, Transaction.merchant_id == Merchant.id).filter(
-                    Merchant.name.ilike(t.merchant.strip())
-                )
-                existing_dup = dup_query_with_merch.first()
-                
-            if existing_dup:
-                is_duplicate = True
-                
-        if is_duplicate:
-            duplicates += 1
-            if req.duplicate_strategy == "skip":
-                skipped += 1
+            if t.amount <= 0:
+                errors += 1
                 continue
-            elif req.duplicate_strategy == "replace" and existing_dup:
-                db.delete(existing_dup)
-                db.commit()
                 
-        cat_id = None
-        if t.category and t.category.strip():
-            cat_clean = t.category.strip()
-            cat_key = cat_clean.lower()
-            if cat_key in category_cache:
-                cat_id = category_cache[cat_key]
-            else:
-                new_cat = Category(name=cat_clean, type=t.type, user_id=current_user.id)
-                db.add(new_cat)
-                db.commit()
-                db.refresh(new_cat)
-                cat_id = new_cat.id
-                category_cache[cat_key] = cat_id
+            is_duplicate = False
+            existing_dup = None
+            
+            if t.transaction_id and t.transaction_id.strip():
+                existing_dup = db.query(Transaction).filter(
+                    Transaction.user_id == current_user.id,
+                    Transaction.transaction_id == t.transaction_id.strip()
+                ).first()
+                if existing_dup:
+                    is_duplicate = True
+                    
+            if not is_duplicate and t.reference_number and t.reference_number.strip():
+                existing_dup = db.query(Transaction).filter(
+                    Transaction.user_id == current_user.id,
+                    Transaction.reference_number == t.reference_number.strip()
+                ).first()
+                if existing_dup:
+                    is_duplicate = True
+                    
+            if not is_duplicate:
+                dup_query = db.query(Transaction).filter(
+                    Transaction.user_id == current_user.id,
+                    Transaction.amount == t.amount,
+                    Transaction.type == t.type
+                )
                 
-        merch_id = None
-        if t.merchant and t.merchant.strip():
-            merch_clean = t.merchant.strip()
-            merch_key = merch_clean.lower()
-            if merch_key in merchant_cache:
-                merch_id = merchant_cache[merch_key]
-            else:
-                new_merch = Merchant(name=merch_clean, user_id=current_user.id, default_category_id=cat_id)
-                db.add(new_merch)
-                db.commit()
-                db.refresh(new_merch)
-                merch_id = new_merch.id
-                merchant_cache[merch_key] = merch_id
-                
-        db_trans = Transaction(
-            user_id=current_user.id,
-            amount=t.amount,
-            date=date_parsed,
-            description=t.description or "",
-            category_id=cat_id,
-            merchant_id=merch_id,
-            payment_method=t.payment_method or "Cash",
-            type=t.type,
-            is_recurring=False,
-            transaction_id=t.transaction_id,
-            reference_number=t.reference_number,
-            bank=t.bank,
-            balance=t.balance,
-            debit_amount=t.debit_amount,
-            credit_amount=t.credit_amount,
-            post_date=t.post_date,
-            time=t.time
-        )
-        db.add(db_trans)
-        # Automatically update matching investment quantities if this is an investment purchase
-        check_and_update_investments_from_transaction(db, db_trans)
-        imported += 1
+                if is_sqlite:
+                    dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
+                else:
+                    dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
+                    
+                if t.merchant and t.merchant.strip():
+                    dup_query_with_merch = dup_query.join(Merchant, Transaction.merchant_id == Merchant.id).filter(
+                        Merchant.name.ilike(t.merchant.strip())
+                    )
+                    existing_dup = dup_query_with_merch.first()
+                    
+                if existing_dup:
+                    is_duplicate = True
+                    
+            if is_duplicate:
+                duplicates += 1
+                if req.duplicate_strategy == "skip":
+                    skipped += 1
+                    continue
+                elif req.duplicate_strategy == "replace" and existing_dup:
+                    try:
+                        db.delete(existing_dup)
+                        db.commit()
+                    except Exception:
+                        db.rollback()
+                    
+            cat_id = None
+            if t.category and t.category.strip():
+                cat_clean = t.category.strip()
+                cat_key = cat_clean.lower()
+                if cat_key in category_cache:
+                    cat_id = category_cache[cat_key]
+                else:
+                    existing_c = db.query(Category).filter(
+                        func.lower(Category.name) == cat_key,
+                        or_(Category.user_id == None, Category.user_id == current_user.id)
+                    ).first()
+                    if existing_c:
+                        cat_id = existing_c.id
+                        category_cache[cat_key] = cat_id
+                    else:
+                        try:
+                            new_cat = Category(name=cat_clean, type=t.type, user_id=current_user.id)
+                            db.add(new_cat)
+                            db.commit()
+                            db.refresh(new_cat)
+                            cat_id = new_cat.id
+                            category_cache[cat_key] = cat_id
+                        except Exception:
+                            db.rollback()
+                            existing_c = db.query(Category).filter(
+                                func.lower(Category.name) == cat_key
+                            ).first()
+                            if existing_c:
+                                cat_id = existing_c.id
+                                category_cache[cat_key] = cat_id
+                    
+            merch_id = None
+            if t.merchant and t.merchant.strip():
+                merch_clean = t.merchant.strip()
+                merch_key = merch_clean.lower()
+                if merch_key in merchant_cache:
+                    merch_id = merchant_cache[merch_key]
+                else:
+                    existing_m = db.query(Merchant).filter(func.lower(Merchant.name) == merch_key).first()
+                    if existing_m:
+                        merch_id = existing_m.id
+                        merchant_cache[merch_key] = merch_id
+                    else:
+                        try:
+                            new_merch = Merchant(name=merch_clean, user_id=current_user.id, default_category_id=cat_id)
+                            db.add(new_merch)
+                            db.commit()
+                            db.refresh(new_merch)
+                            merch_id = new_merch.id
+                            merchant_cache[merch_key] = merch_id
+                        except Exception:
+                            db.rollback()
+                            existing_m = db.query(Merchant).filter(func.lower(Merchant.name) == merch_key).first()
+                            if existing_m:
+                                merch_id = existing_m.id
+                                merchant_cache[merch_key] = merch_id
+                    
+            db_trans = Transaction(
+                user_id=current_user.id,
+                amount=t.amount,
+                date=date_parsed,
+                description=t.description or "",
+                category_id=cat_id,
+                merchant_id=merch_id,
+                payment_method=t.payment_method or "Cash",
+                type=t.type,
+                is_recurring=False,
+                transaction_id=t.transaction_id,
+                reference_number=t.reference_number,
+                bank=t.bank,
+                balance=t.balance,
+                debit_amount=t.debit_amount,
+                credit_amount=t.credit_amount,
+                post_date=t.post_date,
+                time=t.time
+            )
+            db.add(db_trans)
+            try:
+                check_and_update_investments_from_transaction(db, db_trans)
+            except Exception:
+                pass
+            imported += 1
+        except Exception as ex:
+            db.rollback()
+            errors += 1
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
         
-    db.commit()
     return {
         "imported": imported,
         "skipped": skipped,
