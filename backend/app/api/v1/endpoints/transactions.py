@@ -418,6 +418,7 @@ def upload_and_parse_statement(
         is_sqlite = db.bind.dialect.name == "sqlite"
         
         for t in transactions:
+            is_duplicate = False
             if t.get("needs_review"):
                 needs_review_count += 1
 
