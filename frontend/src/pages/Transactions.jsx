@@ -5,6 +5,7 @@ import {
   Plus, 
   Search, 
   Trash2, 
+  Edit2,
   Download, 
   ArrowUpRight, 
   ArrowDownLeft, 
@@ -38,8 +39,10 @@ const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // Form states for manual logging
+  // Form states for manual logging and editing
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingTx, setEditingTx] = useState(null);
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('expense');
   const [category, setCategory] = useState('Shopping');
@@ -92,7 +95,47 @@ const Transactions = () => {
     }
   }, [type, categoriesList]);
 
-  const handleAddSubmit = async (e) => {
+  const resetForm = () => {
+    setIsEditMode(false);
+    setEditingTx(null);
+    setAmount('');
+    setType('expense');
+    setCategory('Shopping');
+    setMerchant('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setDescription('');
+    setPaymentMethod('Cash');
+  };
+
+  const handleEditClick = (t) => {
+    setIsEditMode(true);
+    setEditingTx(t);
+    setAmount(t.amount != null ? t.amount : '');
+    setType(t.type || 'expense');
+    setCategory(getCategoryName(t.category) || 'Shopping');
+    setMerchant(getMerchantName(t.merchant) || '');
+    setDate(t.date ? t.date.split('T')[0] : new Date().toISOString().split('T')[0]);
+    setDescription(t.description || '');
+    setPaymentMethod(t.payment_method || 'Cash');
+    setShowAddModal(true);
+  };
+
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const cleanStr = dateStr.split('T')[0];
+    const parts = cleanStr.split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const mIdx = parseInt(month, 10) - 1;
+      if (mIdx >= 0 && mIdx < 12) {
+        return `${day} ${months[mIdx]} ${year}`;
+      }
+    }
+    return cleanStr;
+  };
+
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -131,38 +174,43 @@ const Transactions = () => {
         setCategoriesList(prev => [...prev, newCat.data]);
       }
 
-      // 3. Post transaction
-      const txRes = await axios.post(`${API_URL}/transactions`, {
+      const payload = {
         amount: parseFloat(amount),
         type,
         category_id: finalCategoryId,
         merchant_id: finalMerchantId,
-        date: date + 'T12:00:00',
+        date: date.includes('T') ? date : date + 'T12:00:00',
         description,
         payment_method: paymentMethod
-      });
+      };
 
-      // Show success toast with transaction details
-      setToastData({
-        amount: parseFloat(amount),
-        category,
-        merchant: merchant.trim() || null,
-        date: date,
-        type,
-        id: txRes.data?.id || null
-      });
+      if (isEditMode && editingTx) {
+        // PUT update existing transaction
+        await axios.put(`${API_URL}/transactions/${editingTx.id}`, payload);
+        setSuccess('Transaction updated successfully!');
+      } else {
+        // POST create new transaction
+        const txRes = await axios.post(`${API_URL}/transactions`, payload);
 
-      setAmount('');
-      setMerchant('');
-      setDescription('');
-      setPaymentMethod('Cash');
+        // Show success toast with transaction details
+        setToastData({
+          amount: parseFloat(amount),
+          category,
+          merchant: merchant.trim() || null,
+          date: date,
+          type,
+          id: txRes.data?.id || null
+        });
+      }
+
+      resetForm();
       setShowAddModal(false);
       fetchTransactions();
       // Trigger real-time refresh on Dashboard, Budgets, Analytics, etc.
       invalidateCache();
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Failed to log transaction.');
+      setError(err.response?.data?.detail || `Failed to ${isEditMode ? 'update' : 'log'} transaction.`);
     } finally {
       setLoading(false);
     }
@@ -517,17 +565,27 @@ const Transactions = () => {
                           {getCategoryName(t.category)}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-textSecondary">{t.date}</td>
+                      <td className="py-4 px-6 text-textSecondary font-medium">{formatDateDisplay(t.date)}</td>
                       <td className={`py-4 px-6 text-right font-black privacy-mask ${isIncome ? 'text-success' : 'text-danger'}`}>
                         {isIncome ? '+' : '-'} ₹{t.amount.toLocaleString()}
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <button 
-                          onClick={() => handleDelete(t.id)}
-                          className="p-2 text-textMuted hover:text-danger hover:bg-danger/5 rounded-lg transition-all"
-                        >
-                          <Trash2 className="w-4.5 h-4.5" />
-                        </button>
+                        <div className="flex items-center justify-center space-x-1">
+                          <button 
+                            onClick={() => handleEditClick(t)}
+                            className="p-2 text-textMuted hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                            title="Edit transaction"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(t.id)}
+                            className="p-2 text-textMuted hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
+                            title="Delete transaction"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -569,7 +627,7 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Manual Logger Popup Modal */}
+      {/* Manual Logger / Edit Popup Modal */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm">
@@ -581,16 +639,16 @@ const Transactions = () => {
               className="w-full max-w-lg bg-cardBg border border-borderColor rounded-3xl p-6 shadow-xl relative"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-textPrimary">Log New Transaction</h3>
+                <h3 className="text-lg font-bold text-textPrimary">{isEditMode ? 'Edit Transaction' : 'Log New Transaction'}</h3>
                 <button 
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => { setShowAddModal(false); resetForm(); }}
                   className="p-1 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleAddSubmit} className="space-y-4">
+              <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Flow Type</label>
@@ -629,6 +687,7 @@ const Transactions = () => {
                       <input 
                         type="number" 
                         required
+                        step="any"
                         placeholder="0.00"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
@@ -691,7 +750,7 @@ const Transactions = () => {
                 <div className="flex space-x-3 pt-4 border-t border-borderColor">
                   <button 
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => { setShowAddModal(false); resetForm(); }}
                     className="w-1/2 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
                   >
                     Cancel
@@ -704,7 +763,7 @@ const Transactions = () => {
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <span>Log Transaction</span>
+                      <span>{isEditMode ? 'Update Transaction' : 'Log Transaction'}</span>
                     )}
                   </button>
                 </div>
