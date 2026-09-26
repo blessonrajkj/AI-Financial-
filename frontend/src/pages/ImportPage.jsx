@@ -25,6 +25,7 @@ import {
   Building2
 } from 'lucide-react';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
+import CategorySelect from '../components/ui/CategorySelect';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -759,22 +760,13 @@ const ImportPage = () => {
                         </td>
 
                         {/* Category */}
-                        <td className="py-2.5 px-3">
-                          {isEditing ? (
-                            <select 
-                              value={t.category || 'Others'}
-                              onChange={(e) => handleCellEdit(idx, 'category', e.target.value)}
-                              className="px-1.5 py-0.5 bg-background border rounded text-xs text-textPrimary"
-                            >
-                              {CATEGORY_OPTIONS.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-lg bg-background border border-borderColor text-[10px] font-semibold text-textSecondary">
-                              {t.category || 'Others'}
-                            </span>
-                          )}
+                        <td className="py-2.5 px-3 min-w-[140px]">
+                          <CategorySelect 
+                            value={t.category || 'Others'}
+                            onChange={(newCat) => handleCellEdit(idx, 'category', newCat)}
+                            options={CATEGORY_OPTIONS}
+                            size="sm"
+                          />
                         </td>
 
                         {/* Reference Number */}
