@@ -25,7 +25,8 @@ import {
   Building2
 } from 'lucide-react';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
-import CategorySelect from '../components/ui/CategorySelect';
+import CategorySelect, { SubcategorySelect } from '../components/ui/CategorySelect';
+import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../utils/taxonomy';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -655,7 +656,8 @@ const ImportPage = () => {
                     <th className="py-3 px-3">Description</th>
                     <th className="py-3 px-3">Type</th>
                     <th className="py-3 px-3 text-right">Amount</th>
-                    <th className="py-3 px-3">Category</th>
+                    <th className="py-3 px-3">Main Category</th>
+                    <th className="py-3 px-3">Subcategory</th>
                     <th className="py-3 px-3">Reference</th>
                     <th className="py-3 px-3 text-right">Balance</th>
                     <th className="py-3 px-3 text-center">Status</th>
@@ -759,12 +761,33 @@ const ImportPage = () => {
                           )}
                         </td>
 
-                        {/* Category */}
+                        {/* Main Category */}
                         <td className="py-2.5 px-3 min-w-[140px]">
                           <CategorySelect 
-                            value={t.category || 'Others'}
-                            onChange={(newCat) => handleCellEdit(idx, 'category', newCat)}
-                            options={CATEGORY_OPTIONS}
+                            value={t.category || 'Food & Dining'}
+                            onChange={(newCat) => {
+                              handleCellEdit(idx, 'category', newCat);
+                              const defaultSub = EXPENSE_TAXONOMY[newCat] ? EXPENSE_TAXONOMY[newCat][0] : 'Uncategorized';
+                              handleCellEdit(idx, 'subcategory', defaultSub);
+                            }}
+                            options={t.type === 'income' ? ['Income'] : t.type === 'transfer' ? ['Cash & Transfers'] : Object.keys(EXPENSE_TAXONOMY)}
+                            size="sm"
+                          />
+                        </td>
+
+                        {/* Subcategory */}
+                        <td className="py-2.5 px-3 min-w-[140px]">
+                          <SubcategorySelect
+                            category={t.category || 'Food & Dining'}
+                            value={t.subcategory || 'Uncategorized'}
+                            onChange={(newSub) => handleCellEdit(idx, 'subcategory', newSub)}
+                            subcategories={
+                              t.type === 'income'
+                                ? INCOME_CATEGORIES
+                                : t.type === 'transfer'
+                                ? TRANSFER_CATEGORIES
+                                : (EXPENSE_TAXONOMY[t.category] || ['Uncategorized'])
+                            }
                             size="sm"
                           />
                         </td>

@@ -6,6 +6,7 @@ import fitz  # PyMuPDF
 from datetime import datetime
 from app.core.config import settings
 from app.services.ocr_service import ocr_service
+from app.services.category_taxonomy import auto_categorize
 
 class PDFStatementParser:
     def __init__(self):
@@ -506,7 +507,7 @@ class PDFStatementParser:
             # Classify specific financial ledger type
             specific_type = self.classify_specific_type(desc_str, tx_type)
             merchant_name = self.extract_merchant(desc_str)
-            category = self.classify_category(desc_str, specific_type)
+            calc_type, main_cat, sub_cat = auto_categorize(tx_type, merchant_name, desc_str)
             upi_id = self.extract_upi_id(desc_str)
             payment_method = self.detect_payment_method(desc_str, upi_id)
             tx_id = self.extract_ref_number(desc_str) or ref_str
@@ -519,7 +520,7 @@ class PDFStatementParser:
                 "date": parsed_date.isoformat(),
                 "time": parsed_time,
                 "amount": amount,
-                "type": tx_type,  # matches bulk-import expectation: income or expense
+                "type": calc_type,
                 "merchant": merchant_name,
                 "description": desc_str,
                 "transaction_id": tx_id,
@@ -528,7 +529,8 @@ class PDFStatementParser:
                 "payment_method": payment_method,
                 "upi_id": upi_id,
                 "bank": bank_name,
-                "category": category
+                "category": main_cat,
+                "subcategory": sub_cat
             }
             transactions.append(tx_item)
             

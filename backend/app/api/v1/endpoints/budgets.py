@@ -32,6 +32,22 @@ def _compute_budget_with_spent(budget: Budget, db: Session, user_id: int) -> dic
         Transaction.date < month_end
     ).scalar() or 0.0
 
+    subcat_rows = db.query(
+        Transaction.subcategory,
+        func.sum(Transaction.amount).label("total")
+    ).filter(
+        Transaction.user_id == user_id,
+        Transaction.category_id == budget.category_id,
+        Transaction.type == "expense",
+        Transaction.date >= month_start,
+        Transaction.date < month_end
+    ).group_by(Transaction.subcategory).all()
+
+    subcategories_breakdown = [
+        {"subcategory": sub or "Uncategorized", "amount": round(total, 2)}
+        for sub, total in subcat_rows
+    ]
+
     limit = budget.amount if budget.amount > 0 else 1.0
     progress = (total_spent / limit) * 100
     remaining = budget.amount - total_spent
@@ -42,10 +58,10 @@ def _compute_budget_with_spent(budget: Budget, db: Session, user_id: int) -> dic
     if progress > 100:
         bar_color = "dark_red"
         status_label = "Exceeded"
-    elif progress >= 91:
+    elif progress >= 90:
         bar_color = "red"
         status_label = "Critical"
-    elif progress >= 71:
+    elif progress >= 70:
         bar_color = "yellow"
         status_label = "Warning"
     else:
@@ -66,7 +82,8 @@ def _compute_budget_with_spent(budget: Budget, db: Session, user_id: int) -> dic
         "progress_percentage": round(progress, 1),
         "bar_color": bar_color,
         "status_label": status_label,
-        "month_label": f"{datetime(y, m, 1).strftime('%B %Y')}"
+        "month_label": f"{datetime(y, m, 1).strftime('%B %Y')}",
+        "subcategories_breakdown": subcategories_breakdown
     }
 
 

@@ -382,9 +382,28 @@ def get_spending_trends(
         Transaction.date >= start_date
     ).group_by(Category.name).all()
 
-    category_data = [
-        {"name": name, "value": round(val, 2)} for name, val in category_sums
-    ]
+    cat_subcat_sums = db.query(
+        Category.name,
+        Transaction.subcategory,
+        func.sum(Transaction.amount)
+    ).join(Transaction, Transaction.category_id == Category.id).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.type == "expense",
+        Transaction.date >= start_date
+    ).group_by(Category.name, Transaction.subcategory).all()
+
+    cat_map = {}
+    for name, val in category_sums:
+        cat_map[name] = {"name": name, "value": round(val, 2), "subcategories": []}
+
+    for c_name, s_name, s_val in cat_subcat_sums:
+        if c_name in cat_map:
+            cat_map[c_name]["subcategories"].append({
+                "name": s_name or "Uncategorized",
+                "value": round(s_val, 2)
+            })
+
+    category_data = list(cat_map.values())
 
     # Daily sums of income and expense
     if db.bind.dialect.name == "sqlite":

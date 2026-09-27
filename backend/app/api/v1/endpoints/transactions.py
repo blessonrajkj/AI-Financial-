@@ -20,6 +20,13 @@ from app.schemas.transaction import TransactionCreate, TransactionUpdate, Transa
 from app.services.pdf_parser import pdf_parser
 from app.core.config import settings
 from app.services.market_data import check_and_update_investments_from_transaction
+from app.services.category_taxonomy import (
+    EXPENSE_TAXONOMY,
+    INCOME_CATEGORIES,
+    TRANSFER_CATEGORIES,
+    validate_category_combination,
+    auto_categorize
+)
 
 router = APIRouter()
 
@@ -71,25 +78,43 @@ def read_transactions(
     query = query.order_by(Transaction.date.desc())
     return query.offset(skip).limit(limit).all()
 
+@router.get("/taxonomy")
+def get_category_taxonomy():
+    return {
+        "expense": EXPENSE_TAXONOMY,
+        "income": INCOME_CATEGORIES,
+        "transfer": TRANSFER_CATEGORIES
+    }
+
 @router.post("", response_model=TransactionOut, status_code=status.HTTP_201_CREATED)
 def create_transaction(
     transaction_in: TransactionCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
+    subcat = transaction_in.subcategory or "Uncategorized"
     db_trans = Transaction(
         user_id=current_user.id,
         amount=transaction_in.amount,
         date=transaction_in.date,
         description=transaction_in.description,
         category_id=transaction_in.category_id,
+        subcategory=subcat,
         merchant_id=transaction_in.merchant_id,
         payment_method=transaction_in.payment_method,
         type=transaction_in.type,
         is_recurring=transaction_in.is_recurring,
         receipt_id=transaction_in.receipt_id,
         voice_log_id=transaction_in.voice_log_id,
-        tags=transaction_in.tags
+        tags=transaction_in.tags,
+        transaction_id=transaction_in.transaction_id,
+        reference_number=transaction_in.reference_number,
+        bank=transaction_in.bank,
+        balance=transaction_in.balance,
+        debit_amount=transaction_in.debit_amount,
+        credit_amount=transaction_in.credit_amount,
+        post_date=transaction_in.post_date,
+        time=transaction_in.time
     )
     
     db.add(db_trans)
@@ -345,6 +370,7 @@ def import_transactions(
                 date=datetime.fromisoformat(t["date"]),
                 description=t.get("description") or "",
                 category_id=cat_id,
+                subcategory=t.get("subcategory") or "Uncategorized",
                 merchant_id=merch_id,
                 payment_method=t.get("payment_method") or "Cash",
                 type=t["type"],
@@ -792,6 +818,7 @@ def bulk_import_transactions(
                 date=date_parsed,
                 description=t.description or "",
                 category_id=cat_id,
+                subcategory=t.subcategory or "Uncategorized",
                 merchant_id=merch_id,
                 payment_method=t.payment_method or "Cash",
                 type=t.type,

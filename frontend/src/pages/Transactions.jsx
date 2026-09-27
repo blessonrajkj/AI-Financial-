@@ -18,7 +18,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 import TransactionToast from '../components/ui/TransactionToast';
-import CategorySelect from '../components/ui/CategorySelect';
+import CategorySelect, { SubcategorySelect } from '../components/ui/CategorySelect';
+import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../utils/taxonomy';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -46,7 +47,8 @@ const Transactions = () => {
   const [editingTx, setEditingTx] = useState(null);
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('expense');
-  const [category, setCategory] = useState('Shopping');
+  const [category, setCategory] = useState('Food & Dining');
+  const [subcategory, setSubcategory] = useState('Groceries');
   const [merchant, setMerchant] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
@@ -86,22 +88,40 @@ const Transactions = () => {
     fetchMetadata();
   }, []);
 
-  // Update default selected category name when transaction type switches
+  // Update default selected category name & subcategory when transaction type switches
   useEffect(() => {
-    const filtered = categoriesList.filter(c => c.type === type);
-    if (filtered.length > 0) {
-      setCategory(filtered[0].name);
+    if (type === 'transfer') {
+      setCategory('Cash & Transfers');
+      setSubcategory('Internal Transfer');
+    } else if (type === 'income') {
+      setCategory('Income');
+      setSubcategory('Salary');
     } else {
-      setCategory(type === 'income' ? 'Salary' : 'Shopping');
+      setCategory('Food & Dining');
+      setSubcategory('Groceries');
     }
-  }, [type, categoriesList]);
+  }, [type]);
+
+  const handleCategoryChange = (newCat) => {
+    setCategory(newCat);
+    if (EXPENSE_TAXONOMY[newCat]) {
+      setSubcategory(EXPENSE_TAXONOMY[newCat][0] || 'Uncategorized');
+    } else if (newCat === 'Income') {
+      setSubcategory('Salary');
+    } else if (newCat === 'Cash & Transfers') {
+      setSubcategory('Internal Transfer');
+    } else {
+      setSubcategory('Uncategorized');
+    }
+  };
 
   const resetForm = () => {
     setIsEditMode(false);
     setEditingTx(null);
     setAmount('');
     setType('expense');
-    setCategory('Shopping');
+    setCategory('Food & Dining');
+    setSubcategory('Groceries');
     setMerchant('');
     setDate(new Date().toISOString().split('T')[0]);
     setDescription('');
@@ -113,7 +133,9 @@ const Transactions = () => {
     setEditingTx(t);
     setAmount(t.amount != null ? t.amount : '');
     setType(t.type || 'expense');
-    setCategory(getCategoryName(t.category) || 'Shopping');
+    const catName = getCategoryName(t.category) || 'Food & Dining';
+    setCategory(catName);
+    setSubcategory(t.subcategory || (EXPENSE_TAXONOMY[catName] ? EXPENSE_TAXONOMY[catName][0] : 'Uncategorized'));
     setMerchant(getMerchantName(t.merchant) || '');
     setDate(t.date ? t.date.split('T')[0] : new Date().toISOString().split('T')[0]);
     setDescription(t.description || '');
@@ -179,6 +201,7 @@ const Transactions = () => {
         amount: parseFloat(amount),
         type,
         category_id: finalCategoryId,
+        subcategory: subcategory || 'Uncategorized',
         merchant_id: finalMerchantId,
         date: date.includes('T') ? date : date + 'T12:00:00',
         description,
@@ -562,9 +585,16 @@ const Transactions = () => {
                         </div>
                       </td>
                       <td className="py-4 px-6 text-textSecondary">
-                        <span className="px-2.5 py-1 rounded-full bg-hoverBg border border-borderColor/60 text-xs font-semibold">
-                          {getCategoryName(t.category)}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2.5 py-1 rounded-full bg-hoverBg border border-borderColor/60 text-xs font-semibold text-textPrimary">
+                            {getCategoryName(t.category)}
+                          </span>
+                          {t.subcategory && t.subcategory !== "Uncategorized" && (
+                            <span className="px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
+                              · {t.subcategory}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-6 text-textSecondary font-medium">{formatDateDisplay(t.date)}</td>
                       <td className={`py-4 px-6 text-right font-black privacy-mask ${isIncome ? 'text-success' : 'text-danger'}`}>
@@ -650,27 +680,42 @@ const Transactions = () => {
               </div>
 
               <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Flow Type</label>
                     <select 
                       value={type}
                       onChange={(e) => setType(e.target.value)}
-                      className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                      className="w-full h-11 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs font-semibold focus:outline-none focus:border-primary transition-all"
                     >
                       <option value="expense">Expense (Outflow)</option>
                       <option value="income">Income (Inflow)</option>
+                      <option value="transfer">Transfer (Internal)</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Category</label>
+                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Main Category</label>
                     <CategorySelect 
                       value={category}
-                      onChange={(newCat) => setCategory(newCat)}
-                      options={categoriesList.filter(c => c.type === type).length > 0
-                        ? categoriesList.filter(c => c.type === type).map(c => c.name)
-                        : (type === 'income' ? ['Salary', 'Refunds', 'Other Income', 'Others'] : ['Food', 'Groceries', 'Transportation', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Bills', 'Subscriptions', 'Others'])
+                      onChange={handleCategoryChange}
+                      options={type === 'income' ? ['Income'] : type === 'transfer' ? ['Cash & Transfers'] : Object.keys(EXPENSE_TAXONOMY)}
+                      size="md"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Subcategory</label>
+                    <SubcategorySelect
+                      category={category}
+                      value={subcategory}
+                      onChange={(newSub) => setSubcategory(newSub)}
+                      subcategories={
+                        type === 'income'
+                          ? INCOME_CATEGORIES
+                          : type === 'transfer'
+                          ? TRANSFER_CATEGORIES
+                          : (EXPENSE_TAXONOMY[category] || ['Uncategorized'])
                       }
                       size="md"
                     />

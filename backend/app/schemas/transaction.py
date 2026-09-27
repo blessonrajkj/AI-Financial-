@@ -37,6 +37,7 @@ class TransactionBase(BaseModel):
     credit_amount: float | None = None
     post_date: str | None = None
     time: str | None = None
+    subcategory: str | None = "Uncategorized"
 
 class TransactionCreate(TransactionBase):
     pass
@@ -59,6 +60,7 @@ class TransactionUpdate(BaseModel):
     credit_amount: float | None = None
     post_date: str | None = None
     time: str | None = None
+    subcategory: str | None = None
 
 class TransactionOut(TransactionBase):
     id: int
@@ -79,6 +81,7 @@ class BulkTransactionItem(BaseModel):
     direction: str | None = None
     merchant: str | None = None
     category: str | None = None
+    subcategory: str | None = None
     description: str | None = None
     payment_method: str | None = "Cash"
     transaction_id: str | None = None

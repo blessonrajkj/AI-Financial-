@@ -28,6 +28,7 @@ class Transaction(Base):
     credit_amount = Column(Float, nullable=True)
     post_date = Column(String, nullable=True)
     time = Column(String, nullable=True)
+    subcategory = Column(String, nullable=True, default="Uncategorized")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

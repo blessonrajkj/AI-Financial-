@@ -276,7 +276,7 @@ const BudgetsPage = () => {
                     <div className="w-full h-2 bg-borderColor/60 rounded-full overflow-hidden p-0.5">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ${
-                          pct >= 90 ? 'bg-danger shadow-danger-glow' : pct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
+                          pct > 100 ? 'bg-red-700' : pct >= 90 ? 'bg-danger shadow-danger-glow' : pct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
                         }`}
                         style={{ width: `${displayPct}%` }}
                       />
@@ -292,6 +292,19 @@ const BudgetsPage = () => {
                         }
                       </span>
                     </div>
+
+                    {/* Subcategories Breakdown */}
+                    {b.subcategories_breakdown && b.subcategories_breakdown.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-borderColor/60 space-y-1.5">
+                        <p className="text-[10px] font-bold text-textMuted uppercase tracking-wider mb-1">Subcategory Breakdown</p>
+                        {b.subcategories_breakdown.map((sub) => (
+                          <div key={sub.subcategory} className="flex justify-between items-center text-xs">
+                            <span className="text-textSecondary font-medium">{sub.subcategory}</span>
+                            <span className="text-textPrimary font-semibold font-numeric">₹{sub.amount.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

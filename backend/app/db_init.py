@@ -16,37 +16,50 @@ from app.models.profile import UserProfile, LinkedBank, UserSettings
 from app.models.import_log import ImportLog
 
 DEFAULT_CATEGORIES = [
+    # Expense Main Categories
+    {"name": "Food & Dining", "type": "expense"},
+    {"name": "Transportation", "type": "expense"},
+    {"name": "Shopping", "type": "expense"},
+    {"name": "Bills & Utilities", "type": "expense"},
+    {"name": "Housing", "type": "expense"},
+    {"name": "Health & Medical", "type": "expense"},
+    {"name": "Education", "type": "expense"},
+    {"name": "Entertainment", "type": "expense"},
+    {"name": "Subscriptions", "type": "expense"},
+    {"name": "Personal Care", "type": "expense"},
+    {"name": "Travel", "type": "expense"},
+    {"name": "Family & Household", "type": "expense"},
+    {"name": "Financial", "type": "expense"},
+    {"name": "Investments", "type": "expense"},
+    {"name": "Cash & Transfers", "type": "expense"},
+    {"name": "Donations & Charity", "type": "expense"},
+    {"name": "Government & Taxes", "type": "expense"},
+    {"name": "Business / Work", "type": "expense"},
+    {"name": "Miscellaneous", "type": "expense"},
+    # Legacy fallbacks
     {"name": "Food", "type": "expense"},
     {"name": "Groceries", "type": "expense"},
-    {"name": "Transportation", "type": "expense"},
-    {"name": "Healthcare", "type": "expense"},
-    {"name": "Entertainment", "type": "expense"},
-    {"name": "Education", "type": "expense"},
-    {"name": "Shopping", "type": "expense"},
-    {"name": "Utilities", "type": "expense"},
-    {"name": "Travel", "type": "expense"},
     {"name": "Fuel", "type": "expense"},
-    {"name": "Insurance", "type": "expense"},
     {"name": "Bills", "type": "expense"},
-    {"name": "Investments", "type": "expense"},
-    {"name": "Subscriptions", "type": "expense"},
-    {"name": "Miscellaneous", "type": "expense"},
     {"name": "Recharge", "type": "expense"},
+    # Income Main Categories
+    {"name": "Income", "type": "income"},
     {"name": "Salary", "type": "income"},
     {"name": "Refunds", "type": "income"},
     {"name": "Other Income", "type": "income"},
+    # Transfer Categories
+    {"name": "Cash & Transfers", "type": "transfer"},
 ]
 
 def init_db(db: Session):
-    # Check if we have categories
-    existing_categories_count = db.query(Category).count()
-    if existing_categories_count == 0:
-        print("Inserting default categories...")
-        for cat in DEFAULT_CATEGORIES:
+    # Ensure all default main categories exist in the database
+    existing_cats = {c.name.lower(): c for c in db.query(Category).all()}
+    for cat in DEFAULT_CATEGORIES:
+        cat_key = cat["name"].lower()
+        if cat_key not in existing_cats:
             db_cat = Category(name=cat["name"], type=cat["type"], user_id=None)
             db.add(db_cat)
-        db.commit()
-        print("Default categories inserted successfully.")
+    db.commit()
 
     # Check and seed default demo accounts
     from app.core.security import get_password_hash
@@ -91,7 +104,8 @@ def create_tables():
             ("time", "ALTER TABLE transactions ADD COLUMN time VARCHAR;"),
             ("debit_amount", "ALTER TABLE transactions ADD COLUMN debit_amount FLOAT;"),
             ("credit_amount", "ALTER TABLE transactions ADD COLUMN credit_amount FLOAT;"),
-            ("post_date", "ALTER TABLE transactions ADD COLUMN post_date VARCHAR;")
+            ("post_date", "ALTER TABLE transactions ADD COLUMN post_date VARCHAR;"),
+            ("subcategory", "ALTER TABLE transactions ADD COLUMN subcategory VARCHAR DEFAULT 'Uncategorized';")
         ]
         
         for col_name, sql in migrations:

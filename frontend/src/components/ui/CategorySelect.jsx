@@ -20,42 +20,60 @@ import {
   CircleDollarSign,
   Fuel,
   Receipt,
-  GraduationCap
+  GraduationCap,
+  Home,
+  User,
+  Users,
+  Dog,
+  Landmark,
+  Briefcase,
+  Heart,
+  ArrowLeftRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EXPENSE_TAXONOMY } from '../../utils/taxonomy';
 
 // Category Icon Map
 const CATEGORY_ICONS = {
+  'Food & Dining': Utensils,
   Food: Utensils,
   Groceries: ShoppingCart,
   Transportation: Car,
   Fuel: Fuel,
   Healthcare: HeartPulse,
   Medical: HeartPulse,
+  'Health & Medical': HeartPulse,
   Entertainment: Film,
   Education: GraduationCap,
   Shopping: ShoppingCart,
+  'Bills & Utilities': Zap,
   Utilities: Zap,
   Bills: Receipt,
+  Housing: Home,
   Travel: Plane,
   Insurance: ShieldCheck,
-  Investment: TrendingUp,
   Investments: TrendingUp,
+  Investment: TrendingUp,
   Subscriptions: Repeat,
   Recharge: Smartphone,
   Salary: Wallet,
   'Other Income': CircleDollarSign,
   Refunds: CircleDollarSign,
+  'Personal Care': User,
+  'Debt & Loans': Landmark,
+  'Family & Kids': Users,
+  Pets: Dog,
+  'Taxes & Fees': Landmark,
+  Business: Briefcase,
+  'Charitable Giving': Heart,
+  'Cash & Transfers': ArrowLeftRight,
+  Transfer: ArrowLeftRight,
   'Cash Withdrawal': Wallet,
   Others: Tag,
   Miscellaneous: Tag
 };
 
-const DEFAULT_OPTIONS = [
-  'Food', 'Groceries', 'Transportation', 'Fuel', 'Healthcare', 'Entertainment', 
-  'Education', 'Shopping', 'Utilities', 'Bills', 'Travel', 'Insurance', 
-  'Investments', 'Subscriptions', 'Recharge', 'Salary', 'Other Income', 'Refunds', 'Others'
-];
+const DEFAULT_OPTIONS = Object.keys(EXPENSE_TAXONOMY);
 
 export const getCategoryIcon = (categoryName) => {
   if (!categoryName) return Tag;
@@ -63,7 +81,7 @@ export const getCategoryIcon = (categoryName) => {
   return key ? CATEGORY_ICONS[key] : Tag;
 };
 
-const CategorySelect = ({
+export const CategorySelect = ({
   value,
   onChange,
   options = DEFAULT_OPTIONS,
@@ -96,7 +114,7 @@ const CategorySelect = ({
     }
   }, [isOpen]);
 
-  const selectedValue = value || options[0] || "Others";
+  const selectedValue = value || (options[0] ? (typeof options[0] === 'string' ? options[0] : options[0].name) : "Miscellaneous");
   const SelectedIcon = getCategoryIcon(selectedValue);
 
   const filteredOptions = options.filter(opt => {
@@ -193,6 +211,93 @@ const CategorySelect = ({
                   No matching category
                 </div>
               )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export const SubcategorySelect = ({
+  category,
+  value,
+  onChange,
+  subcategories = [],
+  placeholder = "Select subcategory",
+  className = "",
+  size = "md",
+  disabled = false
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const optionsList = subcategories.length > 0
+    ? subcategories
+    : (EXPENSE_TAXONOMY[category] || ["Uncategorized", "Other"]);
+
+  const selectedValue = value || optionsList[0] || "Uncategorized";
+  const isSmall = size === "sm";
+
+  return (
+    <div ref={containerRef} className={`relative inline-block text-left w-full ${className}`}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between gap-2 border rounded-xl font-medium transition-all duration-200 outline-none focus:ring-2 focus:ring-primary/20 ${
+          isSmall 
+            ? 'px-2 py-1 text-xs bg-background hover:bg-hoverBg border-borderColor/80 shadow-xs' 
+            : 'px-3.5 py-2.5 text-sm bg-background hover:bg-hoverBg border-borderColor shadow-sm'
+        } ${isOpen ? 'border-primary ring-2 ring-primary/20' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      >
+        <div className="flex items-center gap-2 truncate">
+          <span className="truncate font-semibold text-textPrimary">{selectedValue}</span>
+        </div>
+        <ChevronDown className={`transition-transform duration-200 text-textMuted ${isSmall ? 'w-3 h-3' : 'w-4 h-4'} ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute z-50 left-0 right-0 mt-1 min-w-[180px] bg-cardBg border border-borderColor rounded-2xl shadow-xl overflow-hidden backdrop-blur-md"
+          >
+            <div className="max-h-52 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
+              {optionsList.map((sub) => {
+                const isSelected = sub.toLowerCase() === selectedValue.toLowerCase();
+                return (
+                  <button
+                    key={sub}
+                    type="button"
+                    onClick={() => {
+                      onChange(sub);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl transition-colors font-medium text-left ${
+                      isSelected 
+                        ? 'bg-primary/10 text-primary font-bold' 
+                        : 'text-textPrimary hover:bg-hoverBg'
+                    }`}
+                  >
+                    <span className="truncate">{sub}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         )}

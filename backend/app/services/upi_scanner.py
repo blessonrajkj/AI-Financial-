@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from datetime import datetime
 from app.services.ocr_service import ocr_service
+from app.services.category_taxonomy import auto_categorize
 
 class UPIScreenshotScanner:
     def __init__(self):
@@ -53,6 +54,7 @@ class UPIScreenshotScanner:
             "merchant": "Unknown Recipient",
             "type": "Expense",  # Expense or Income
             "category": "Miscellaneous",
+            "subcategory": "Other",
             "date": datetime.now().strftime("%d-%m-%Y"),
             "time": datetime.now().strftime("%I:%M %p"),
             "upi_id": None,
@@ -317,8 +319,16 @@ class UPIScreenshotScanner:
         elif "pending" in status_text or "processing" in status_text:
             result["status"] = "Pending"
 
-        # Category
-        result["category"] = self.auto_classify(result["merchant"], result["raw_text"])
+        # Category & Subcategory Taxonomy Mapping
+        calc_type, main_cat, sub_cat = auto_categorize(result["type"].lower(), result["merchant"], result["raw_text"])
+        result["category"] = main_cat
+        result["subcategory"] = sub_cat
+        if calc_type == "transfer":
+            result["type"] = "Transfer"
+        elif calc_type == "income":
+            result["type"] = "Income"
+        else:
+            result["type"] = "Expense"
 
         # Confidence score
         base_confidence = 100.0
