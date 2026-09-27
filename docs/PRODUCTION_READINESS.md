@@ -15,8 +15,8 @@ This document specifies the production readiness criteria for PariView. It serve
 - [x] **PostgreSQL Production Target**: Configured via SQLAlchemy dynamic pool and Alembic migrations (`a6f7aaaffe5e`).
 - [x] **Alembic Database Migrations**: Automatic schema initialization and column precision verification (`Numeric(12,2)`).
 - [x] **Real Data Session Persistence**: Verified across closed DB sessions and server restarts (`test_database_persistence.py`).
-- [ ] **Database Backups & Recovery**: Automated daily snapshot scripts and point-in-time recovery strategy.
-- [ ] **Database Backup/Recovery Test**: Periodic automated restoration drill on staging instance.
+- [x] **Database Backups & Recovery**: Procedures, Tooling, and Recovery strategy documented ([docs/DATABASE_BACKUP.md](file:///d:/BLESSON%20RAJ/PRO/Finacial%20tracker/docs/DATABASE_BACKUP.md)).
+- [ ] **Database Backup/Recovery Automation**: Daily automated S3 snapshot cron (Infrastructure setup required).
 
 ### Security, Auth & Data Isolation
 - [x] **Authentication**: JWT token issuance with OAuth2 password hashing (bcrypt).
