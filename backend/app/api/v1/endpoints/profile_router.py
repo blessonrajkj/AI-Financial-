@@ -120,6 +120,8 @@ def update_profile(
 
     return get_profile(db=db, current_user=current_user)
 
+from app.services.storage import storage_service, generate_object_key
+
 @router.post("/profile/avatar")
 def upload_avatar(
     file: UploadFile = File(...),
@@ -131,26 +133,20 @@ def upload_avatar(
     if file_ext not in [".png", ".jpg", ".jpeg", ".webp"]:
         raise HTTPException(status_code=400, detail="Unsupported file format.")
 
-    # Ensure uploads directory is configured and exists
-    avatars_dir = os.path.join(settings.UPLOAD_DIR, "avatars")
-    os.makedirs(avatars_dir, exist_ok=True)
-
-    # Save file
-    filename = f"{current_user.id}_{uuid.uuid4().hex}{file_ext}"
-    filepath = os.path.join(avatars_dir, filename)
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Save file via storage service
+    object_key = generate_object_key(current_user.id, "avatars", file.filename)
+    file_bytes = file.file.read()
+    storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
 
     # Clean old avatar if exists
     if current_user.avatar_url:
-        old_filepath = os.path.join(settings.UPLOAD_DIR, current_user.avatar_url.replace("/uploads/", ""))
-        if os.path.exists(old_filepath):
-            try:
-                os.remove(old_filepath)
-            except Exception:
-                pass
+        old_key = current_user.avatar_url.replace("/uploads/", "")
+        try:
+            storage_service.delete_file(old_key)
+        except Exception:
+            pass
 
-    current_user.avatar_url = f"/uploads/avatars/{filename}"
+    current_user.avatar_url = storage_service.get_url(object_key)
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
@@ -162,12 +158,11 @@ def remove_avatar(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     if current_user.avatar_url:
-        filepath = os.path.join(settings.UPLOAD_DIR, current_user.avatar_url.replace("/uploads/", ""))
-        if os.path.exists(filepath):
-            try:
-                os.remove(filepath)
-            except Exception:
-                pass
+        old_key = current_user.avatar_url.replace("/uploads/", "")
+        try:
+            storage_service.delete_file(old_key)
+        except Exception:
+            pass
         current_user.avatar_url = None
         db.add(current_user)
         db.commit()

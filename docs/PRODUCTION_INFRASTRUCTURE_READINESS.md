@@ -27,7 +27,7 @@ Alembic:
 PASS
 
 File/Object Storage:
-PARTIAL
+PASS
 
 Upload Security:
 PASS
@@ -94,15 +94,16 @@ PRODUCTION INFRASTRUCTURE PARTIALLY READY
 CRITICAL BLOCKERS
 ============================================================
 
-1. Problem: Cloud Object Storage (S3 / MinIO) for Stateless Upload Scaling
-   Evidence: Uploaded receipts and avatars currently write to local container disk (`/app/uploads/`).
-   Risk: In horizontally scaled multi-container cloud deployments, uploaded files on one container will not be accessible to another container instance.
-   Required Action: Provision AWS S3 bucket / MinIO instance and enable S3 upload adapter before deploying multi-instance containers.
-
-2. Problem: Domain Allocation & TLS / HTTPS Certificate Termination
+1. Problem: Domain Allocation & TLS / HTTPS Certificate Termination
    Evidence: Application uses placeholder domain entries (`VITE_API_URL` and `BACKEND_CORS_ORIGINS`).
    Risk: Production financial traffic must be encrypted over HTTPS; plain HTTP exposes JWT tokens and financial data.
    Required Action: Allocate target production domain (e.g. `https://app.pariview.com`) and configure SSL/TLS certificates at reverse proxy / load balancer level upon cloud hosting selection.
+
+RESOLVED INFRASTRUCTURE ITEMS
+============================================================
+1. Object Storage Abstraction (`app/services/storage.py`):
+   - Implemented pluggable `STORAGE_BACKEND` supporting `local` (filesystem) and `s3` (AWS S3 / MinIO via `boto3`).
+   - Integrated user data isolation (`users/{user_id}/{category}/{uuid}.{ext}`), path traversal prevention, pre-signed URLs, and temporary file processing for OCR/PDF statement parsing.
 
 ============================================================
 

@@ -105,6 +105,8 @@ def update_user_me(
     db.refresh(current_user)
     return current_user
 
+from app.services.storage import storage_service, generate_object_key
+
 @router.post("/me/avatar", response_model=UserOut)
 def upload_avatar(
     file: UploadFile = File(...),
@@ -119,17 +121,11 @@ def upload_avatar(
             detail="Only JPEG and PNG images are allowed."
         )
         
-    avatar_dir = os.path.join(settings.UPLOAD_DIR, "avatars")
-    os.makedirs(avatar_dir, exist_ok=True)
-    
-    file_name = f"user_{current_user.id}{ext}"
-    file_path = os.path.join(avatar_dir, file_name)
-    
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    object_key = generate_object_key(current_user.id, "avatars", file.filename)
+    file_bytes = file.file.read()
+    storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
         
-    # Standardize url paths to work inside frontend
-    current_user.avatar_url = f"/uploads/avatars/{file_name}"
+    current_user.avatar_url = storage_service.get_url(object_key)
     db.add(current_user)
     db.commit()
     db.refresh(current_user)

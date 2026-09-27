@@ -16,6 +16,8 @@ from app.services.ocr_service import ocr_service
 from app.services.ml_categorizer import ml_categorizer
 from app.schemas.receipt import ReceiptOut
 
+from app.services.storage import storage_service, generate_object_key, temp_file_for_processing
+
 router = APIRouter()
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
@@ -32,19 +34,14 @@ def upload_receipt(
             detail="Only JPEG, PNG and PDF files are allowed."
         )
 
-    receipts_dir = os.path.join(settings.UPLOAD_DIR, "receipts")
-    os.makedirs(receipts_dir, exist_ok=True)
-    
-    unique_name = f"{uuid.uuid4()}{ext}"
-    file_path = os.path.join(receipts_dir, unique_name)
-    
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    db_relative_path = f"/uploads/receipts/{unique_name}"
-    
-    # Run OCR Scan
-    ocr_result = ocr_service.scan_receipt(file_path)
+    object_key = generate_object_key(current_user.id, "receipts", file.filename)
+    file_bytes = file.file.read()
+    storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
+    db_relative_path = storage_service.get_url(object_key)
+
+    # Run OCR Scan using temporary file for processing
+    with temp_file_for_processing(storage_service, object_key, suffix=ext.lower()) as file_path:
+        ocr_result = ocr_service.scan_receipt(file_path)
     
     # Save receipt to DB with parsed stats
     db_receipt = Receipt(
@@ -97,19 +94,14 @@ def scan_upi_screenshot(
             detail="Only JPEG, PNG and WEBP screenshots are allowed."
         )
 
-    receipts_dir = os.path.join(settings.UPLOAD_DIR, "receipts")
-    os.makedirs(receipts_dir, exist_ok=True)
-    
-    unique_name = f"upi_{uuid.uuid4()}{ext}"
-    file_path = os.path.join(receipts_dir, unique_name)
-    
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    db_relative_path = f"/uploads/receipts/{unique_name}"
-    
-    # Run screenshot OCR & classification
-    scan_result = upi_scanner.scan_screenshot(file_path)
+    object_key = generate_object_key(current_user.id, "upi", file.filename)
+    file_bytes = file.file.read()
+    storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
+    db_relative_path = storage_service.get_url(object_key)
+
+    # Run screenshot OCR & classification using temporary file
+    with temp_file_for_processing(storage_service, object_key, suffix=ext) as file_path:
+        scan_result = upi_scanner.scan_screenshot(file_path)
     
     # Duplicate checking: check by amount + merchant + transaction_id (if available)
     is_duplicate = False

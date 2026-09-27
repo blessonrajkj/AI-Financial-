@@ -34,8 +34,14 @@ class Settings(BaseSettings):
     # AI Keys
     GEMINI_API_KEY: str | None = os.environ.get("GEMINI_API_KEY", None)
 
-    # Storage paths
+    # Storage configuration
     UPLOAD_DIR: str = "uploads"
+    STORAGE_BACKEND: str = os.environ.get("STORAGE_BACKEND", "local")  # "local" or "s3"
+    S3_ENDPOINT_URL: str | None = os.environ.get("S3_ENDPOINT_URL", None)  # e.g., "http://localhost:9000" for MinIO
+    S3_BUCKET_NAME: str = os.environ.get("S3_BUCKET_NAME", "pariview-uploads")
+    S3_REGION: str = os.environ.get("S3_REGION", "us-east-1")
+    S3_ACCESS_KEY_ID: str | None = os.environ.get("S3_ACCESS_KEY_ID", None)
+    S3_SECRET_ACCESS_KEY: str | None = os.environ.get("S3_SECRET_ACCESS_KEY", None)
 
     class Config:
         case_sensitive = True

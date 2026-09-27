@@ -393,6 +393,8 @@ def import_transactions(
             os.remove(temp_filepath)
         raise HTTPException(status_code=500, detail=str(e))
 
+from app.services.storage import storage_service, generate_object_key, temp_file_for_processing
+
 @router.post("/upload-parse")
 def upload_and_parse_statement(
     file: UploadFile = File(...),
@@ -401,14 +403,12 @@ def upload_and_parse_statement(
 ):
     filename = file.filename.lower()
     ext = os.path.splitext(filename)[1]
-    
-    temp_dir = os.path.join(settings.UPLOAD_DIR, "temp")
-    os.makedirs(temp_dir, exist_ok=True)
-    temp_filename = f"{uuid.uuid4()}{ext}"
-    temp_filepath = os.path.join(temp_dir, temp_filename)
-    
-    with open(temp_filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    if ext not in [".pdf", ".csv", ".xlsx", ".xls"]:
+        raise HTTPException(status_code=400, detail="Unsupported file format. Please upload CSV, Excel, or PDF.")
+
+    object_key = generate_object_key(current_user.id, "statements", file.filename)
+    file_bytes = file.file.read()
+    storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
         
     try:
         transactions = []
@@ -416,23 +416,20 @@ def upload_and_parse_statement(
         bank_name = "Generic"
         is_sbi = False
         confidence_score = 90
-        
-        if ext == ".pdf":
-            parse_result = pdf_parser.parse_pdf(temp_filepath, file.filename)
-            transactions = parse_result["transactions"]
-            invalid_rows = parse_result["invalid_rows"]
-            bank_name = parse_result["bank"]
-            is_scanned = parse_result["is_scanned"]
-            is_sbi = parse_result.get("is_sbi", False)
-            confidence_score = parse_result.get("confidence_score", 90)
-        elif ext in [".csv", ".xlsx", ".xls"]:
-            transactions, invalid_rows = parse_excel_csv_backend(temp_filepath, filename)
-            bank_name = "Generic CSV/Excel"
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload CSV, Excel, or PDF.")
-            
-        if os.path.exists(temp_filepath):
-            os.remove(temp_filepath)
+        is_scanned = False
+
+        with temp_file_for_processing(storage_service, object_key, suffix=ext) as temp_filepath:
+            if ext == ".pdf":
+                parse_result = pdf_parser.parse_pdf(temp_filepath, file.filename)
+                transactions = parse_result["transactions"]
+                invalid_rows = parse_result["invalid_rows"]
+                bank_name = parse_result["bank"]
+                is_scanned = parse_result["is_scanned"]
+                is_sbi = parse_result.get("is_sbi", False)
+                confidence_score = parse_result.get("confidence_score", 90)
+            elif ext in [".csv", ".xlsx", ".xls"]:
+                transactions, invalid_rows = parse_excel_csv_backend(temp_filepath, filename)
+                bank_name = "Generic CSV/Excel"
             
         enriched_transactions = []
         duplicate_count = 0
