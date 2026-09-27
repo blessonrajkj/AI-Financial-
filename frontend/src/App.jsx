@@ -55,7 +55,7 @@ const Layout = () => {
       
       {/* Content wrapper — offset by sidebar width on desktop */}
       <div className="lg:ml-[240px] min-h-screen transition-all duration-300">
-        <main className="max-w-7xl mx-auto px-5 py-6 animate-page-enter">
+        <main className="w-full px-4 sm:px-6 lg:px-8 py-6 animate-page-enter">
           <Outlet />
         </main>
       </div>
