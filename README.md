@@ -414,6 +414,73 @@ Suggested screenshots:
 
 ---
 
+# Automated Quality & CI/CD Pipeline
+
+PariView uses a multi-stage GitHub Actions automated quality control pipeline triggered on push to `master`/`main`/`dev` and pull requests.
+
+```
+Git Push / PR
+    ↓
+GitHub Actions CI
+    ├── Stage A: Backend Static Compilation & Linting
+    ├── Stage B & C & D: PostgreSQL DB, Alembic Migrations & Pytest (29 tests)
+    ├── Stage E: Frontend Production Build Validation
+    ├── Stage F & G & H & K: Fixtures, Health Check & Playwright E2E (6 tests)
+    ├── Stage I & J & K: Secret Scan, Dependency Audit & Docker Build
+    └── Stage M: CI Results Summary
+    ↓
+PASS → Production Manual Approval Gate
+```
+
+## Local Testing Commands
+
+Developers can run the full local CI equivalent suite before pushing:
+
+### Windows (PowerShell - Primary Dev Environment):
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\test-all.ps1
+```
+
+### Windows (CMD Batch):
+```cmd
+scripts\test-all.bat
+```
+
+### Linux / macOS / Git Bash:
+```bash
+chmod +x scripts/test-all.sh
+./scripts/test-all.sh
+```
+
+## Environment Variables Configuration
+
+Copy `.env.example` to `.env` in the root and backend directories:
+
+```ini
+# Database & Core
+DATABASE_URL=postgresql://pariview:pariviewpassword@localhost:5432/pariview
+SECRET_KEY=your_super_secret_jwt_key_min_32_chars
+ACCESS_TOKEN_EXPIRE_MINUTES=11520
+
+# Application
+PROJECT_NAME="PariView AI Financial Assistant"
+API_V1_STR=/api/v1
+BACKEND_CORS_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]
+
+# Optional AI Features
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+> **Security Note**: Never commit actual credentials or `.env` files to git.
+
+## Production Readiness & Deployment Safety
+
+- Detailed checklist: [docs/PRODUCTION_READINESS.md](file:///d:/BLESSON%20RAJ/PRO/Finacial%20tracker/docs/PRODUCTION_READINESS.md)
+- CI/CD Architecture doc: [docs/CI_CD.md](file:///d:/BLESSON%20RAJ/PRO/Finacial%20tracker/docs/CI_CD.md)
+- **Deployment Safety**: Automatic production deployment is disabled. Passing CI enables manual approval for production deployment.
+
+---
+
 # Contributing
 
 Contributions are welcome.
