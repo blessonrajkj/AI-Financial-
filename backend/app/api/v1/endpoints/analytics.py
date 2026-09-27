@@ -62,34 +62,34 @@ def get_dashboard_summary(
             prev_month_end = datetime(now.year, now.month, 1) - timedelta(seconds=1)
 
     # 1. Total spent and income calculations for current month (Task 7 & 8)
-    current_month_expense = db.query(func.sum(Transaction.amount)).filter(
+    current_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "expense",
         Transaction.date >= month_start,
         Transaction.date < next_month_start
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
-    current_month_income = db.query(func.sum(Transaction.amount)).filter(
+    current_month_income = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "income",
         Transaction.date >= month_start,
         Transaction.date < next_month_start
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
     # 2. Previous Month Comparisons (Task 7 & 8)
-    prev_month_expense = db.query(func.sum(Transaction.amount)).filter(
+    prev_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "expense",
         Transaction.date >= prev_month_start,
         Transaction.date <= prev_month_end
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
-    prev_month_income = db.query(func.sum(Transaction.amount)).filter(
+    prev_month_income = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "income",
         Transaction.date >= prev_month_start,
         Transaction.date <= prev_month_end
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
     expense_diff_pct = 0.0
     if prev_month_expense > 0:
@@ -100,34 +100,34 @@ def get_dashboard_summary(
         income_diff_pct = round(((current_month_income - prev_month_income) / prev_month_income) * 100, 1)
 
     # 3. Balance parameters: Total Income - Total Expense + Investment Returns (Task 6)
-    total_income = db.query(func.sum(Transaction.amount)).filter(
+    total_income = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "income"
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
-    total_expense = db.query(func.sum(Transaction.amount)).filter(
+    total_expense = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "expense"
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
     # Investment returns
     from app.services.market_data import market_data_service
     market_data_service.update_prices_for_user(db, current_user.id)
     
     investments_db = db.query(Investment).filter(Investment.user_id == current_user.id).all()
-    total_investments_current = sum(i.quantity * i.current_price for i in investments_db)
-    total_investments_cost = sum(i.quantity * i.purchase_price for i in investments_db)
-    dividends_received = sum(i.dividends_received for i in investments_db)
+    total_investments_current = float(sum(i.quantity * i.current_price for i in investments_db))
+    total_investments_cost = float(sum(i.quantity * i.purchase_price for i in investments_db))
+    dividends_received = float(sum(i.dividends_received for i in investments_db))
     investment_returns = total_investments_current - total_investments_cost + dividends_received
 
     current_balance = total_income - total_expense + investment_returns
 
     # 4. Budgets parameters (Task 9)
-    total_budget_limit = db.query(func.sum(Budget.amount)).filter(
+    total_budget_limit = float(db.query(func.sum(Budget.amount)).filter(
         Budget.user_id == current_user.id,
         Budget.month == now.month,
         Budget.year == now.year
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
     display_budget_limit = total_budget_limit if total_budget_limit > 0 else 50000.0
     budget_remaining = max(0.0, display_budget_limit - current_month_expense)
@@ -394,13 +394,13 @@ def get_spending_trends(
 
     cat_map = {}
     for name, val in category_sums:
-        cat_map[name] = {"name": name, "value": round(val, 2), "subcategories": []}
+        cat_map[name] = {"name": name, "value": round(float(val or 0.0), 2), "subcategories": []}
 
     for c_name, s_name, s_val in cat_subcat_sums:
         if c_name in cat_map:
             cat_map[c_name]["subcategories"].append({
                 "name": s_name or "Uncategorized",
-                "value": round(s_val, 2)
+                "value": round(float(s_val or 0.0), 2)
             })
 
     category_data = list(cat_map.values())
@@ -445,6 +445,7 @@ def get_spending_trends(
 
     for row in daily_sums:
         day_val, t_type, total_val = row
+        total_val = float(total_val or 0.0)
         if isinstance(day_val, datetime):
             d_obj = day_val.date()
         elif isinstance(day_val, str):
@@ -820,19 +821,19 @@ def generate_custom_report(
 
     if report_type in ["monthly", "annual"]:
         # Summarize income, expenses, savings
-        total_income = db.query(func.sum(Transaction.amount)).filter(
+        total_income = float(db.query(func.sum(Transaction.amount)).filter(
             Transaction.user_id == current_user.id,
             Transaction.type == "income",
             Transaction.date >= start_date,
             Transaction.date < end_date
-        ).scalar() or 0.0
+        ).scalar() or 0.0)
 
-        total_expense = db.query(func.sum(Transaction.amount)).filter(
+        total_expense = float(db.query(func.sum(Transaction.amount)).filter(
             Transaction.user_id == current_user.id,
             Transaction.type == "expense",
             Transaction.date >= start_date,
             Transaction.date < end_date
-        ).scalar() or 0.0
+        ).scalar() or 0.0)
 
         net_savings = total_income - total_expense
         savings_rate = (net_savings / total_income * 100.0) if total_income > 0 else 0.0
@@ -857,10 +858,11 @@ def generate_custom_report(
         }
 
         headers = ["Category", "Amount Spent", "Percentage of Budget"]
-        total_spent = sum(val for name, val in category_sums)
+        total_spent = sum(float(val or 0.0) for name, val in category_sums)
         for name, val in category_sums:
-            pct = (val / total_spent * 100.0) if total_spent > 0 else 0.0
-            rows.append([name, f"₹{val:,.2f}", f"{pct:.1f}%"])
+            val_f = float(val or 0.0)
+            pct = (val_f / total_spent * 100.0) if total_spent > 0 else 0.0
+            rows.append([name, f"₹{val_f:,.2f}", f"{pct:.1f}%"])
 
     elif report_type in ["income", "expense"]:
         tx_type = "income" if report_type == "income" else "expense"
@@ -890,23 +892,23 @@ def generate_custom_report(
 
     elif report_type == "tax":
         # Calculate income
-        total_income = db.query(func.sum(Transaction.amount)).filter(
+        total_income = float(db.query(func.sum(Transaction.amount)).filter(
             Transaction.user_id == current_user.id,
             Transaction.type == "income",
             Transaction.date >= start_date,
             Transaction.date < end_date
-        ).scalar() or 0.0
+        ).scalar() or 0.0)
 
         # Calculate deductions from PPF and NPS investments
-        ppf_deduction = db.query(func.sum(Investment.quantity * Investment.purchase_price)).filter(
+        ppf_deduction = float(db.query(func.sum(Investment.quantity * Investment.purchase_price)).filter(
             Investment.user_id == current_user.id,
             Investment.asset_type == "PPF"
-        ).scalar() or 0.0
+        ).scalar() or 0.0)
 
-        nps_deduction = db.query(func.sum(Investment.quantity * Investment.purchase_price)).filter(
+        nps_deduction = float(db.query(func.sum(Investment.quantity * Investment.purchase_price)).filter(
             Investment.user_id == current_user.id,
             Investment.asset_type == "NPS"
-        ).scalar() or 0.0
+        ).scalar() or 0.0)
 
         sec_80c = min(ppf_deduction, 150000.0)
         sec_80ccd = min(nps_deduction, 50000.0)
@@ -1040,15 +1042,15 @@ def generate_custom_report(
 
         headers = ["Category", "Spend Limit Cap", "Actual Monthly Spending", "Variance Amount", "Performance Status"]
         for b in budgets:
-            actual_spent = db.query(func.sum(Transaction.amount)).filter(
+            actual_spent = float(db.query(func.sum(Transaction.amount)).filter(
                 Transaction.user_id == current_user.id,
                 Transaction.category_id == b.category_id,
                 Transaction.type == "expense",
                 Transaction.date >= start_date,
                 Transaction.date < end_date
-            ).scalar() or 0.0
+            ).scalar() or 0.0)
 
-            variance = b.amount - actual_spent
+            variance = float(b.amount) - actual_spent
             status_text = "OVERSPENT ⚠️" if variance < 0 else "Under Budget ✅"
             rows.append([
                 b.category.name if b.category else "Unknown",
@@ -1250,27 +1252,27 @@ def get_dashboard_ai_summary(
         return {"insights": []}
 
     # 1. Income calculations
-    current_month_income = db.query(func.sum(Transaction.amount)).filter(
+    current_month_income = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "income",
         Transaction.date >= month_start,
         Transaction.date < next_month_start
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
-    current_month_expense = db.query(func.sum(Transaction.amount)).filter(
+    current_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "expense",
         Transaction.date >= month_start,
         Transaction.date < next_month_start
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
     # Previous Month Comparisons
-    prev_month_expense = db.query(func.sum(Transaction.amount)).filter(
+    prev_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "expense",
         Transaction.date >= prev_month_start,
         Transaction.date <= prev_month_end
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
     # 2. Income Source Count (Section 2)
     income_sources = db.query(Transaction.description).filter(
@@ -1306,27 +1308,28 @@ def get_dashboard_ai_summary(
         Budget.year == now.year
     ).all()
     for b in budgets:
-        spent = db.query(func.sum(Transaction.amount)).filter(
+        spent = float(db.query(func.sum(Transaction.amount)).filter(
             Transaction.user_id == current_user.id,
             Transaction.category_id == b.category_id,
             Transaction.type == "expense",
             Transaction.date >= month_start,
             Transaction.date < next_month_start
-        ).scalar() or 0.0
+        ).scalar() or 0.0)
         
-        if spent > b.amount:
+        b_amount = float(b.amount)
+        if spent > b_amount:
             insights.append({
                 "title": f"Budget Exceeded",
-                "description": f"You have exceeded your {b.category.name if b.category else 'Category'} budget limit by ₹{int(spent - b.amount):,}.",
+                "description": f"You have exceeded your {b.category.name if b.category else 'Category'} budget limit by ₹{int(spent - b_amount):,}.",
                 "priority": "Critical",
                 "category": "Budget",
                 "confidence": 100,
                 "action": "Create Budget"
             })
-        elif spent >= 0.8 * b.amount:
+        elif spent >= 0.8 * b_amount:
             insights.append({
                 "title": f"Budget Limit Alert",
-                "description": f"You have spent {int((spent/b.amount)*100)}% of your {b.category.name if b.category else 'Category'} budget limit.",
+                "description": f"You have spent {int((spent/b_amount)*100)}% of your {b.category.name if b.category else 'Category'} budget limit.",
                 "priority": "High",
                 "category": "Budget",
                 "confidence": 99,
@@ -1336,7 +1339,9 @@ def get_dashboard_ai_summary(
     # 5. Goal Check (Section 2)
     goals = db.query(SavingsGoal).filter(SavingsGoal.user_id == current_user.id).all()
     for g in goals:
-        pct = (g.current_amount / g.target_amount) * 100 if g.target_amount > 0 else 0
+        g_target = float(g.target_amount)
+        g_current = float(g.current_amount)
+        pct = (g_current / g_target) * 100 if g_target > 0 else 0
         if 50 <= pct < 100:
             insights.append({
                 "title": f"Savings Goal Progress",
@@ -1358,8 +1363,8 @@ def get_dashboard_ai_summary(
 
     # 6. Investment Check (Section 2)
     investments_db = db.query(Investment).filter(Investment.user_id == current_user.id).all()
-    total_current = sum(i.quantity * i.current_price for i in investments_db)
-    total_cost = sum(i.quantity * i.purchase_price for i in investments_db)
+    total_current = sum(float(i.quantity) * float(i.current_price) for i in investments_db)
+    total_cost = sum(float(i.quantity) * float(i.purchase_price) for i in investments_db)
     returns = total_current - total_cost
     if returns > 0:
         insights.append({
@@ -1383,7 +1388,7 @@ def get_dashboard_ai_summary(
     # 7. Subscriptions Check (Section 2)
     subs = db.query(Subscription).filter(Subscription.user_id == current_user.id, Subscription.is_active == True).all()
     if subs:
-        total_sub_cost = sum(s.amount for s in subs)
+        total_sub_cost = sum(float(s.amount) for s in subs)
         insights.append({
             "title": "Recurring Subscription Costs",
             "description": f"You spent ₹{int(total_sub_cost):,} on subscriptions this month.",
@@ -1406,19 +1411,19 @@ def get_dashboard_ai_summary(
                     })
 
     # 8. Dining Out vs Groceries (Section 2)
-    food_spent = db.query(func.sum(Transaction.amount)).join(Category).filter(
+    food_spent = float(db.query(func.sum(Transaction.amount)).join(Category).filter(
         Transaction.user_id == current_user.id,
         Category.name.ilike("%food%"),
         Transaction.type == "expense",
         Transaction.date >= month_start
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
-    groceries_spent = db.query(func.sum(Transaction.amount)).join(Category).filter(
+    groceries_spent = float(db.query(func.sum(Transaction.amount)).join(Category).filter(
         Transaction.user_id == current_user.id,
         Category.name.ilike("%groceries%"),
         Transaction.type == "expense",
         Transaction.date >= month_start
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
     if food_spent > groceries_spent and food_spent > 0:
         insights.append({
@@ -1433,12 +1438,12 @@ def get_dashboard_ai_summary(
     # 9. Suspicious Spending Alerts (Section 2)
     avg_daily_spent = prev_month_expense / 30.0 if prev_month_expense > 0 else 500.0
     yesterday_start = today_start - timedelta(days=1)
-    yesterday_spent = db.query(func.sum(Transaction.amount)).filter(
+    yesterday_spent = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "expense",
         Transaction.date >= yesterday_start,
         Transaction.date < today_start
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
 
     if yesterday_spent > 3 * avg_daily_spent and yesterday_spent > 1000:
         insights.append({

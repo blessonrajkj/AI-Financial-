@@ -24,17 +24,17 @@ def get_savings_goals(
     now = datetime.utcnow()
     last_30_days = now - timedelta(days=30)
     
-    income_30 = db.query(func.sum(Transaction.amount)).filter(
+    income_30 = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "income",
         Transaction.date >= last_30_days
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
     
-    expense_30 = db.query(func.sum(Transaction.amount)).filter(
+    expense_30 = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
         Transaction.type == "expense",
         Transaction.date >= last_30_days
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
     
     net_savings_30 = income_30 - expense_30
     
@@ -52,15 +52,15 @@ def get_savings_goals(
         else:
             days_span = 30
             
-        total_income = db.query(func.sum(Transaction.amount)).filter(
+        total_income = float(db.query(func.sum(Transaction.amount)).filter(
             Transaction.user_id == current_user.id,
             Transaction.type == "income"
-        ).scalar() or 0.0
+        ).scalar() or 0.0)
         
-        total_expense = db.query(func.sum(Transaction.amount)).filter(
+        total_expense = float(db.query(func.sum(Transaction.amount)).filter(
             Transaction.user_id == current_user.id,
             Transaction.type == "expense"
-        ).scalar() or 0.0
+        ).scalar() or 0.0)
         
         net_savings_all = total_income - total_expense
         monthly_savings_rate = (net_savings_all / days_span) * 30.0
