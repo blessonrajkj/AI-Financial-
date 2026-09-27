@@ -119,7 +119,10 @@ def create_transaction(
     
     db.add(db_trans)
     # Automatically update matching investment quantities if this is an investment purchase
-    check_and_update_investments_from_transaction(db, db_trans)
+    try:
+        check_and_update_investments_from_transaction(db, db_trans)
+    except Exception as err:
+        print(f"Investment update notice: {err}")
     db.commit()
     db.refresh(db_trans)
     return db_trans
@@ -213,13 +216,13 @@ def create_category(
 ):
     # Check if category already exists
     existing = db.query(Category).filter(
-        Category.name.ilike(name),
+        Category.name.ilike(name.strip()),
         or_(Category.user_id == None, Category.user_id == current_user.id)
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Category already exists")
+        return existing
         
-    db_cat = Category(name=name, type=type, user_id=current_user.id)
+    db_cat = Category(name=name.strip(), type=type, user_id=current_user.id)
     db.add(db_cat)
     db.commit()
     db.refresh(db_cat)

@@ -743,8 +743,7 @@ const Transactions = () => {
                     <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Merchant Name</label>
                     <input 
                       type="text" 
-                      required
-                      placeholder="e.g. Amazon, Starbucks"
+                      placeholder="e.g. Amazon, Starbucks (Optional)"
                       value={merchant}
                       onChange={(e) => setMerchant(e.target.value)}
                       className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
