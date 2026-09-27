@@ -3,15 +3,25 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# Since we might have concurrent sqlite or postgres threads, add connection args
 connect_args = {}
 db_url = settings.get_database_url()
+
+engine_kwargs = {
+    "pool_pre_ping": True,
+}
 
 # If using sqlite (e.g. fallback for development/testing), allow multi-threaded access
 if db_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+else:
+    # PostgreSQL connection pooling defaults
+    engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_recycle": 1800,
+    })
 
-engine = create_engine(db_url, connect_args=connect_args, pool_pre_ping=True)
+engine = create_engine(db_url, connect_args=connect_args, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -21,3 +31,4 @@ def get_db():
         yield db
     finally:
         db.close()
+

@@ -32,3 +32,5 @@ class User(Base):
     voice_logs = relationship("VoiceLog", back_populates="user", cascade="all, delete-orphan")
     savings_goals = relationship("SavingsGoal", back_populates="user", cascade="all, delete-orphan")
     india_post_investments = relationship("IndiaPostInvestment", back_populates="user", cascade="all, delete-orphan")
+    import_batches = relationship("ImportBatch", back_populates="user", cascade="all, delete-orphan")
+

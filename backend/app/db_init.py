@@ -14,6 +14,8 @@ from app.models.savings_goal import SavingsGoal
 from app.models.india_post_investment import IndiaPostInvestment
 from app.models.profile import UserProfile, LinkedBank, UserSettings
 from app.models.import_log import ImportLog
+from app.models.import_batch import ImportBatch
+
 
 DEFAULT_CATEGORIES = [
     # Expense Main Categories

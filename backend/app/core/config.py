@@ -18,18 +18,21 @@ class Settings(BaseSettings):
 ]
 
     # Database
-    POSTGRES_SERVER: str | None = None
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "kjbb2320"
-    POSTGRES_DB: str = "finance_db"
-    POSTGRES_PORT: str = "5432"
-    DATABASE_URL: str = "sqlite:///./finance.db"
+    POSTGRES_SERVER: str | None = os.environ.get("POSTGRES_SERVER", "localhost")
+    POSTGRES_USER: str = os.environ.get("POSTGRES_USER", "postgres")
+    POSTGRES_PASSWORD: str = os.environ.get("POSTGRES_PASSWORD", "kjbb2320")
+    POSTGRES_DB: str = os.environ.get("POSTGRES_DB", "pariview")
+    POSTGRES_PORT: str = os.environ.get("POSTGRES_PORT", "5432")
+    DATABASE_URL: str = os.environ.get(
+        "DATABASE_URL",
+        "postgresql://postgres:kjbb2320@localhost:5432/pariview"
+    )
 
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
     # AI Keys
-    GEMINI_API_KEY: str | None = None
+    GEMINI_API_KEY: str | None = os.environ.get("GEMINI_API_KEY", None)
 
     # Storage paths
     UPLOAD_DIR: str = "uploads"
@@ -39,14 +42,14 @@ class Settings(BaseSettings):
         env_file = ".env"
 
     def get_database_url(self) -> str:
-        # Prioritize standard DATABASE_URL env var (e.g. from Render or Heroku)
-        env_db_url = os.environ.get("DATABASE_URL")
+        # Prioritize standard DATABASE_URL env var
+        env_db_url = os.environ.get("DATABASE_URL") or self.DATABASE_URL
         if env_db_url:
             if env_db_url.startswith("postgres://"):
                 env_db_url = env_db_url.replace("postgres://", "postgresql://", 1)
             return env_db_url
 
-        # If POSTGRES_SERVER is set, use PostgreSQL
+        # If POSTGRES_SERVER is set, construct PostgreSQL URL
         pg_server = os.environ.get("POSTGRES_SERVER") or self.POSTGRES_SERVER
         if pg_server:
             user = os.environ.get("POSTGRES_USER") or self.POSTGRES_USER
@@ -54,7 +57,7 @@ class Settings(BaseSettings):
             db = os.environ.get("POSTGRES_DB") or self.POSTGRES_DB
             port = os.environ.get("POSTGRES_PORT") or self.POSTGRES_PORT
             return f"postgresql://{user}:{password}@{pg_server}:{port}/{db}"
-        return self.DATABASE_URL
+        return "postgresql://postgres:kjbb2320@localhost:5432/pariview"
 
 settings = Settings()
 # Ensure uploads directory exists

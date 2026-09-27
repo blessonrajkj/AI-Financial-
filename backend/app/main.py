@@ -51,6 +51,29 @@ def read_root():
         "message": f"Welcome to the {settings.PROJECT_NAME} API. Access documentation at /docs"
     }
 
+@app.get("/health")
+def health_check():
+    from app.core.database import SessionLocal
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        db_type = "postgresql" if "postgresql" in settings.get_database_url() else "sqlite"
+        return {
+            "status": "ok",
+            "database": "connected",
+            "db_engine": db_type
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "database": "disconnected",
+            "error": str(e)
+        }
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
