@@ -131,50 +131,50 @@ export const CategorySelect = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-2 border rounded-xl font-medium transition-all duration-200 outline-none focus:ring-2 focus:ring-primary/20 ${
+        className={`w-full flex items-center justify-between gap-2 border rounded-xl font-medium transition-all duration-200 outline-none ${
           isSmall 
-            ? 'px-2 py-1 text-xs bg-background hover:bg-hoverBg border-borderColor/80 shadow-xs' 
-            : 'px-3.5 py-2.5 text-sm bg-background hover:bg-hoverBg border-borderColor shadow-sm'
-        } ${isOpen ? 'border-primary ring-2 ring-primary/20' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            ? 'px-2.5 py-1.5 text-xs bg-background/80 hover:bg-hoverBg border-borderColor/80 shadow-xs' 
+            : 'px-3.5 py-2.5 text-sm bg-background/80 hover:bg-hoverBg border-borderColor shadow-sm'
+        } ${isOpen ? 'border-primary ring-2 ring-primary/20 shadow-glow' : 'hover:border-primary/40'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
-        <div className="flex items-center gap-2 truncate">
-          <span className={`p-1 rounded-md flex items-center justify-center ${isSmall ? 'bg-primary/10 text-primary' : 'bg-primary/10 text-primary'}`}>
-            <SelectedIcon className={isSmall ? "w-3 h-3" : "w-4 h-4"} />
+        <div className="flex items-center gap-2.5 truncate">
+          <span className={`p-1.5 rounded-lg flex items-center justify-center transition-all ${isSmall ? 'bg-primary/10 text-primary' : 'bg-primary/10 text-primary shadow-xs'}`}>
+            <SelectedIcon className={isSmall ? "w-3.5 h-3.5" : "w-4 h-4"} />
           </span>
           <span className="truncate font-semibold text-textPrimary">{selectedValue}</span>
         </div>
-        <ChevronDown className={`transition-transform duration-200 text-textMuted ${isSmall ? 'w-3 h-3' : 'w-4 h-4'} ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`transition-transform duration-300 text-textMuted ${isSmall ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isOpen ? 'rotate-180 text-primary' : ''}`} />
       </button>
 
       {/* Animated Dropdown Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute z-50 left-0 right-0 mt-1 min-w-[200px] max-w-[280px] bg-cardBg border border-borderColor rounded-2xl shadow-xl overflow-hidden backdrop-blur-md"
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 28 }}
+            className="absolute z-50 left-0 right-0 mt-1.5 min-w-[210px] max-w-[300px] bg-cardBg/95 border border-borderColor/80 rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden backdrop-blur-xl"
           >
             {/* Search Input Header */}
             {options.length > 5 && (
-              <div className="p-2 border-b border-borderColor bg-background/50">
+              <div className="p-2 border-b border-borderColor/70 bg-background/60 backdrop-blur-md">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-textMuted absolute left-2.5 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-textMuted absolute left-3 top-2.5" />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search categories..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-8 pl-8 pr-3 bg-background border border-borderColor/60 rounded-lg text-xs text-textPrimary placeholder-textMuted focus:outline-none focus:border-primary transition-all font-medium"
+                    className="w-full h-8 pl-8 pr-3 bg-cardBg border border-borderColor/70 rounded-xl text-xs text-textPrimary placeholder-textMuted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all font-medium"
                   />
                 </div>
               </div>
             )}
 
             {/* Options List */}
-            <div className="max-h-56 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
+            <div className="max-h-60 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((opt) => {
                   const optName = typeof opt === 'string' ? opt : opt.name || opt.label;
@@ -182,28 +182,30 @@ export const CategorySelect = ({
                   const isSelected = optName.toLowerCase() === selectedValue.toLowerCase();
 
                   return (
-                    <button
+                    <motion.button
                       key={optName}
                       type="button"
+                      whileHover={{ x: 3 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => {
                         onChange(optName);
                         setIsOpen(false);
                         setSearchQuery("");
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl transition-colors font-medium text-left ${
+                      className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl transition-all font-medium text-left ${
                         isSelected 
-                          ? 'bg-primary/10 text-primary font-bold' 
+                          ? 'bg-primary/12 text-primary font-bold shadow-xs border border-primary/20' 
                           : 'text-textPrimary hover:bg-hoverBg'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate">
-                        <span className={`p-1 rounded-md ${isSelected ? 'bg-primary text-white' : 'bg-surface text-textSecondary'}`}>
+                        <span className={`p-1.5 rounded-lg transition-colors ${isSelected ? 'bg-primary text-white shadow-xs' : 'bg-surface text-textSecondary border border-borderColor/50'}`}>
                           <IconComp className="w-3.5 h-3.5" />
                         </span>
                         <span className="truncate">{optName}</span>
                       </div>
                       {isSelected && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
-                    </button>
+                    </motion.button>
                   );
                 })
               ) : (

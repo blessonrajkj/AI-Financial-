@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Plus, Wallet, AlertTriangle, Check, AlertCircle, Pencil, Trash2, X, TrendingUp } from 'lucide-react';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
+import CategorySelect from '../components/ui/CategorySelect';
+import { EXPENSE_TAXONOMY } from '../utils/taxonomy';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -88,11 +90,15 @@ const BudgetsPage = () => {
 
     try {
       // Resolve category ID
-      const existingCategory = categoriesList.find(
+      let existingCategory = categoriesList.find(
         c => c.name.toLowerCase() === category.toLowerCase()
       );
       if (!existingCategory) {
-        throw new Error(`Category "${category}" not found. Add a transaction with this category first.`);
+        const newCat = await axios.post(
+          `${API_URL}/transactions/categories/all?name=${encodeURIComponent(category)}&type=expense`
+        );
+        existingCategory = newCat.data;
+        setCategoriesList(prev => [...prev, newCat.data]);
       }
 
       const [yearStr, monthStr] = month.split('-');
@@ -338,18 +344,12 @@ const BudgetsPage = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Category</label>
-                <select
+                <CategorySelect
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                >
-                  {(expenseCategories.length > 0
-                    ? expenseCategories
-                    : [{ name: 'Shopping' }, { name: 'Food' }, { name: 'Travel' }, { name: 'Entertainment' }, { name: 'Healthcare' }, { name: 'Utilities' }]
-                  ).map(c => (
-                    <option key={c.name} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
+                  onChange={(newCat) => setCategory(newCat)}
+                  options={Object.keys(EXPENSE_TAXONOMY)}
+                  size="md"
+                />
               </div>
 
               <div>
