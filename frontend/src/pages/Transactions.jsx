@@ -466,7 +466,7 @@ const Transactions = () => {
               />
             </label>
             <button 
-              onClick={() => { resetForm(); setShowModal(true); }}
+              onClick={() => { resetForm(); setShowAddModal(true); }}
               className="btn-island group"
             >
               <span>Add Record</span>
