@@ -149,7 +149,6 @@ const Navbar = ({ toggleSidebar }) => {
         style={{
           position: 'fixed',
           top: 0,
-          left: 0,
           right: 0,
           zIndex: 50,
           height: '72px',
@@ -162,7 +161,7 @@ const Navbar = ({ toggleSidebar }) => {
           WebkitBackdropFilter: 'blur(24px)',
           borderBottom: '1px solid var(--border)',
         }}
-        className="lg:pl-[276px]"
+        className="left-0 lg:left-[260px]"
       >
         {/* ─── Left: Brand / Mobile Hamburger ─── */}
         <div className="flex items-center gap-3">
@@ -501,9 +500,6 @@ const Navbar = ({ toggleSidebar }) => {
           )}
         </div>
       </nav>
-
-      {/* Spacer for fixed navbar */}
-      <div style={{ height: 72 }} />
     </>
   );
 };
