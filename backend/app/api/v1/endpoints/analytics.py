@@ -1206,280 +1206,302 @@ def generate_custom_report(
         "rows": rows
     }
 
+def _to_naive_datetime(dt):
+    if dt is None:
+        return None
+    if isinstance(dt, datetime):
+        return dt.replace(tzinfo=None)
+    if hasattr(dt, "year") and hasattr(dt, "month") and hasattr(dt, "day"):
+        return datetime(dt.year, dt.month, dt.day)
+    return None
+
 @router.get("/dashboard/ai-summary")
 def get_dashboard_ai_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    now = datetime.now()
-    
-    # Check if there are any transactions for the user in the current month/year
-    has_current_month_tx = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.date >= datetime(now.year, now.month, 1)
-    ).first()
-    
-    # If no transactions in the current month, fallback to the latest transaction's month and year
-    if not has_current_month_tx:
-        latest_tx = db.query(Transaction).filter(
-            Transaction.user_id == current_user.id
-        ).order_by(Transaction.date.desc()).first()
-        if latest_tx:
-            now = latest_tx.date
-
-    month_start = datetime(now.year, now.month, 1)
-    today_start = datetime(now.year, now.month, now.day)
-    
-    # Calculate next month start
-    if now.month == 12:
-        next_month_start = datetime(now.year + 1, 1, 1)
-        prev_month_start = datetime(now.year, 11, 1)
-        prev_month_end = datetime(now.year, 12, 1) - timedelta(seconds=1)
-    else:
-        next_month_start = datetime(now.year, now.month + 1, 1)
-        if now.month == 1:
-            prev_month_start = datetime(now.year - 1, 12, 1)
-            prev_month_end = datetime(now.year, 1, 1) - timedelta(seconds=1)
-        else:
-            prev_month_start = datetime(now.year, now.month - 1, 1)
-            prev_month_end = datetime(now.year, now.month, 1) - timedelta(seconds=1)
-
-    insights = []
-
-    # Check if the user has any transactions at all. If not, return empty list (to trigger empty state)
-    total_tx_count = db.query(Transaction).filter(Transaction.user_id == current_user.id).count()
-    if total_tx_count == 0:
-        return {"insights": []}
-
-    # 1. Income calculations
-    current_month_income = float(db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "income",
-        Transaction.date >= month_start,
-        Transaction.date < next_month_start
-    ).scalar() or 0.0)
-
-    current_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "expense",
-        Transaction.date >= month_start,
-        Transaction.date < next_month_start
-    ).scalar() or 0.0)
-
-    # Previous Month Comparisons
-    prev_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "expense",
-        Transaction.date >= prev_month_start,
-        Transaction.date <= prev_month_end
-    ).scalar() or 0.0)
-
-    # 2. Income Source Count (Section 2)
-    income_sources = db.query(Transaction.description).filter(
-        Transaction.user_id == current_user.id, 
-        Transaction.type == "income"
-    ).distinct().count()
-    if income_sources >= 2:
-        insights.append({
-            "title": "Multiple Income Streams",
-            "description": f"You received income from {income_sources} different sources this month.",
-            "priority": "Low",
-            "category": "Income",
-            "confidence": 98,
-            "action": "View Transaction"
-        })
-
-    # 3. Savings Rate Calculations (Section 2)
-    current_savings = current_month_income - current_month_expense
-    if current_savings > 0:
-        insights.append({
-            "title": "Monthly Savings Track",
-            "description": f"You saved ₹{int(current_savings):,} this month.",
-            "priority": "Medium",
-            "category": "Savings",
-            "confidence": 95,
-            "action": "View Transaction"
-        })
-
-    # 4. Budget Check (Section 2)
-    budgets = db.query(Budget).filter(
-        Budget.user_id == current_user.id, 
-        Budget.month == now.month, 
-        Budget.year == now.year
-    ).all()
-    for b in budgets:
-        spent = float(db.query(func.sum(Transaction.amount)).filter(
+    try:
+        now = datetime.now()
+        
+        # Check if there are any transactions for the user in the current month/year
+        has_current_month_tx = db.query(Transaction).filter(
             Transaction.user_id == current_user.id,
-            Transaction.category_id == b.category_id,
+            Transaction.date >= datetime(now.year, now.month, 1)
+        ).first()
+        
+        # If no transactions in the current month, fallback to the latest transaction's month and year
+        if not has_current_month_tx:
+            latest_tx = db.query(Transaction).filter(
+                Transaction.user_id == current_user.id
+            ).order_by(Transaction.date.desc()).first()
+            if latest_tx and latest_tx.date:
+                latest_naive = _to_naive_datetime(latest_tx.date)
+                if latest_naive:
+                    now = latest_naive
+
+        month_start = datetime(now.year, now.month, 1)
+        today_start = datetime(now.year, now.month, now.day)
+        
+        # Calculate next month start
+        if now.month == 12:
+            next_month_start = datetime(now.year + 1, 1, 1)
+            prev_month_start = datetime(now.year, 11, 1)
+            prev_month_end = datetime(now.year, 12, 1) - timedelta(seconds=1)
+        else:
+            next_month_start = datetime(now.year, now.month + 1, 1)
+            if now.month == 1:
+                prev_month_start = datetime(now.year - 1, 12, 1)
+                prev_month_end = datetime(now.year, 1, 1) - timedelta(seconds=1)
+            else:
+                prev_month_start = datetime(now.year, now.month - 1, 1)
+                prev_month_end = datetime(now.year, now.month, 1) - timedelta(seconds=1)
+
+        insights = []
+
+        # Check if the user has any transactions at all. If not, return empty list (to trigger empty state)
+        total_tx_count = db.query(Transaction).filter(Transaction.user_id == current_user.id).count()
+        if total_tx_count == 0:
+            return {"insights": []}
+
+        # 1. Income calculations
+        current_month_income = float(db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "income",
+            Transaction.date >= month_start,
+            Transaction.date < next_month_start
+        ).scalar() or 0.0)
+
+        current_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == current_user.id,
             Transaction.type == "expense",
             Transaction.date >= month_start,
             Transaction.date < next_month_start
         ).scalar() or 0.0)
-        
-        b_amount = float(b.amount)
-        if spent > b_amount:
-            insights.append({
-                "title": f"Budget Exceeded",
-                "description": f"You have exceeded your {b.category.name if b.category else 'Category'} budget limit by ₹{int(spent - b_amount):,}.",
-                "priority": "Critical",
-                "category": "Budget",
-                "confidence": 100,
-                "action": "Create Budget"
-            })
-        elif spent >= 0.8 * b_amount:
-            insights.append({
-                "title": f"Budget Limit Alert",
-                "description": f"You have spent {int((spent/b_amount)*100)}% of your {b.category.name if b.category else 'Category'} budget limit.",
-                "priority": "High",
-                "category": "Budget",
-                "confidence": 99,
-                "action": "Create Budget"
-            })
 
-    # 5. Goal Check (Section 2)
-    goals = db.query(SavingsGoal).filter(SavingsGoal.user_id == current_user.id).all()
-    for g in goals:
-        g_target = float(g.target_amount)
-        g_current = float(g.current_amount)
-        pct = (g_current / g_target) * 100 if g_target > 0 else 0
-        if 50 <= pct < 100:
+        # Previous Month Comparisons
+        prev_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "expense",
+            Transaction.date >= prev_month_start,
+            Transaction.date <= prev_month_end
+        ).scalar() or 0.0)
+
+        # 2. Income Source Count (Section 2)
+        income_sources = db.query(Transaction.description).filter(
+            Transaction.user_id == current_user.id, 
+            Transaction.type == "income"
+        ).distinct().count()
+        if income_sources >= 2:
             insights.append({
-                "title": f"Savings Goal Progress",
-                "description": f"You are {int(pct)}% closer to your savings goal '{g.name}'.",
-                "priority": "Medium",
-                "category": "Goals",
-                "confidence": 97,
-                "action": "Increase Goal"
-            })
-        elif pct >= 100:
-            insights.append({
-                "title": f"Savings Goal Completed",
-                "description": f"Congratulations! You've achieved your savings goal '{g.name}'!",
+                "title": "Multiple Income Streams",
+                "description": f"You received income from {income_sources} different sources this month.",
                 "priority": "Low",
-                "category": "Goals",
-                "confidence": 100,
-                "action": "Mark Done"
+                "category": "Income",
+                "confidence": 98,
+                "action": "View Transaction"
             })
 
-    # 6. Investment Check (Section 2)
-    investments_db = db.query(Investment).filter(Investment.user_id == current_user.id).all()
-    total_current = sum(float(i.quantity) * float(i.current_price) for i in investments_db)
-    total_cost = sum(float(i.quantity) * float(i.purchase_price) for i in investments_db)
-    returns = total_current - total_cost
-    if returns > 0:
-        insights.append({
-            "title": "Investment Growth Tracker",
-            "description": f"Your investments generated ₹{int(returns):,} profit this month.",
-            "priority": "Medium",
-            "category": "Investment",
-            "confidence": 96,
-            "action": "Open Investments"
-        })
-    elif len(investments_db) == 0:
-        insights.append({
-            "title": "Zero Investments Logged",
-            "description": "You haven't invested this month. Move idle cash to investments.",
-            "priority": "High",
-            "category": "Investment",
-            "confidence": 94,
-            "action": "Open Investments"
-        })
+        # 3. Savings Rate Calculations (Section 2)
+        current_savings = current_month_income - current_month_expense
+        if current_savings > 0:
+            insights.append({
+                "title": "Monthly Savings Track",
+                "description": f"You saved ₹{int(current_savings):,} this month.",
+                "priority": "Medium",
+                "category": "Savings",
+                "confidence": 95,
+                "action": "View Transaction"
+            })
 
-    # 7. Subscriptions Check (Section 2)
-    subs = db.query(Subscription).filter(Subscription.user_id == current_user.id, Subscription.is_active == True).all()
-    if subs:
-        total_sub_cost = sum(float(s.amount) for s in subs)
-        insights.append({
-            "title": "Recurring Subscription Costs",
-            "description": f"You spent ₹{int(total_sub_cost):,} on subscriptions this month.",
-            "priority": "Medium",
-            "category": "Subscriptions",
-            "confidence": 98,
-            "action": "Renew Subscription"
-        })
-        for s in subs:
-            if s.next_billing_date:
-                days_rem = (s.next_billing_date - now).days
-                if 0 <= days_rem <= 5:
+        # 4. Budget Check (Section 2)
+        budgets = db.query(Budget).filter(
+            Budget.user_id == current_user.id, 
+            Budget.month == now.month, 
+            Budget.year == now.year
+        ).all()
+        for b in budgets:
+            spent = float(db.query(func.sum(Transaction.amount)).filter(
+                Transaction.user_id == current_user.id,
+                Transaction.category_id == b.category_id,
+                Transaction.type == "expense",
+                Transaction.date >= month_start,
+                Transaction.date < next_month_start
+            ).scalar() or 0.0)
+            
+            b_amount = float(b.amount)
+            if b_amount > 0:
+                if spent > b_amount:
                     insights.append({
-                        "title": f"Upcoming Renewal",
-                        "description": f"{s.name} subscription renews in {days_rem} days.",
+                        "title": f"Budget Exceeded",
+                        "description": f"You have exceeded your {b.category.name if b.category else 'Category'} budget limit by ₹{int(spent - b_amount):,}.",
+                        "priority": "Critical",
+                        "category": "Budget",
+                        "confidence": 100,
+                        "action": "Create Budget"
+                    })
+                elif spent >= 0.8 * b_amount:
+                    insights.append({
+                        "title": f"Budget Limit Alert",
+                        "description": f"You have spent {int((spent/b_amount)*100)}% of your {b.category.name if b.category else 'Category'} budget limit.",
                         "priority": "High",
-                        "category": "Upcoming Payments",
+                        "category": "Budget",
                         "confidence": 99,
-                        "action": "Renew Subscription"
+                        "action": "Create Budget"
                     })
 
-    # 8. Dining Out vs Groceries (Section 2)
-    food_spent = float(db.query(func.sum(Transaction.amount)).join(Category).filter(
-        Transaction.user_id == current_user.id,
-        Category.name.ilike("%food%"),
-        Transaction.type == "expense",
-        Transaction.date >= month_start
-    ).scalar() or 0.0)
+        # 5. Goal Check (Section 2)
+        goals = db.query(SavingsGoal).filter(SavingsGoal.user_id == current_user.id).all()
+        for g in goals:
+            g_target = float(g.target_amount)
+            g_current = float(g.current_amount)
+            pct = (g_current / g_target) * 100 if g_target > 0 else 0
+            if 50 <= pct < 100:
+                insights.append({
+                    "title": f"Savings Goal Progress",
+                    "description": f"You are {int(pct)}% closer to your savings goal '{g.name}'.",
+                    "priority": "Medium",
+                    "category": "Goals",
+                    "confidence": 97,
+                    "action": "Increase Goal"
+                })
+            elif pct >= 100:
+                insights.append({
+                    "title": f"Savings Goal Completed",
+                    "description": f"Congratulations! You've achieved your savings goal '{g.name}'!",
+                    "priority": "Low",
+                    "category": "Goals",
+                    "confidence": 100,
+                    "action": "Mark Done"
+                })
 
-    groceries_spent = float(db.query(func.sum(Transaction.amount)).join(Category).filter(
-        Transaction.user_id == current_user.id,
-        Category.name.ilike("%groceries%"),
-        Transaction.type == "expense",
-        Transaction.date >= month_start
-    ).scalar() or 0.0)
-
-    if food_spent > groceries_spent and food_spent > 0:
-        insights.append({
-            "title": "High Dining Expenses",
-            "description": "You spent more on Swiggy / dining out than groceries this month.",
-            "priority": "Medium",
-            "category": "Expense",
-            "confidence": 93,
-            "action": "Create Budget"
-        })
-
-    # 9. Suspicious Spending Alerts (Section 2)
-    avg_daily_spent = prev_month_expense / 30.0 if prev_month_expense > 0 else 500.0
-    yesterday_start = today_start - timedelta(days=1)
-    yesterday_spent = float(db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "expense",
-        Transaction.date >= yesterday_start,
-        Transaction.date < today_start
-    ).scalar() or 0.0)
-
-    if yesterday_spent > 3 * avg_daily_spent and yesterday_spent > 1000:
-        insights.append({
-            "title": "High Spending Detected",
-            "description": f"Detected unusually high spending yesterday: ₹{int(yesterday_spent):,}.",
-            "priority": "High",
-            "category": "Fraud Detection",
-            "confidence": 90,
-            "action": "View Transaction"
-        })
-    else:
-        insights.append({
-            "title": "Account Activity Guard",
-            "description": "No suspicious spending patterns detected recently.",
-            "priority": "Low",
-            "category": "Fraud Detection",
-            "confidence": 95,
-            "action": "Ignore"
-        })
-
-    # 10. India Post / FD Maturity Alert
-    post_office_investments = db.query(IndiaPostInvestment).filter(
-        IndiaPostInvestment.user_id == current_user.id,
-        IndiaPostInvestment.status == "Active"
-    ).all()
-    for p in post_office_investments:
-        days_to_mat = (p.maturity_date - now).days
-        if 0 <= days_to_mat <= 15:
+        # 6. Investment Check (Section 2)
+        investments_db = db.query(Investment).filter(Investment.user_id == current_user.id).all()
+        total_current = sum(float(i.quantity) * float(i.current_price) for i in investments_db)
+        total_cost = sum(float(i.quantity) * float(i.purchase_price) for i in investments_db)
+        returns = total_current - total_cost
+        if returns > 0:
             insights.append({
-                "title": "Investment Reaching Maturity",
-                "description": f"Your Post Office investment '{p.scheme_name}' matures in {days_to_mat} days.",
+                "title": "Investment Growth Tracker",
+                "description": f"Your investments generated ₹{int(returns):,} profit this month.",
+                "priority": "Medium",
+                "category": "Investment",
+                "confidence": 96,
+                "action": "Open Investments"
+            })
+        elif len(investments_db) == 0:
+            insights.append({
+                "title": "Zero Investments Logged",
+                "description": "You haven't invested this month. Move idle cash to investments.",
                 "priority": "High",
-                "category": "Upcoming Payments",
-                "confidence": 99,
+                "category": "Investment",
+                "confidence": 94,
                 "action": "Open Investments"
             })
 
-    return {"insights": insights}
+        # 7. Subscriptions Check (Section 2)
+        subs = db.query(Subscription).filter(Subscription.user_id == current_user.id, Subscription.is_active == True).all()
+        if subs:
+            total_sub_cost = sum(float(s.amount) for s in subs)
+            insights.append({
+                "title": "Recurring Subscription Costs",
+                "description": f"You spent ₹{int(total_sub_cost):,} on subscriptions this month.",
+                "priority": "Medium",
+                "category": "Subscriptions",
+                "confidence": 98,
+                "action": "Renew Subscription"
+            })
+            for s in subs:
+                if s.next_billing_date:
+                    nbd_naive = _to_naive_datetime(s.next_billing_date)
+                    if nbd_naive:
+                        days_rem = (nbd_naive - now).days
+                        if 0 <= days_rem <= 5:
+                            insights.append({
+                                "title": f"Upcoming Renewal",
+                                "description": f"{s.name} subscription renews in {days_rem} days.",
+                                "priority": "High",
+                                "category": "Upcoming Payments",
+                                "confidence": 99,
+                                "action": "Renew Subscription"
+                            })
+
+        # 8. Dining Out vs Groceries (Section 2)
+        food_spent = float(db.query(func.sum(Transaction.amount)).join(Category, Transaction.category_id == Category.id).filter(
+            Transaction.user_id == current_user.id,
+            Category.name.ilike("%food%"),
+            Transaction.type == "expense",
+            Transaction.date >= month_start
+        ).scalar() or 0.0)
+
+        groceries_spent = float(db.query(func.sum(Transaction.amount)).join(Category, Transaction.category_id == Category.id).filter(
+            Transaction.user_id == current_user.id,
+            Category.name.ilike("%groceries%"),
+            Transaction.type == "expense",
+            Transaction.date >= month_start
+        ).scalar() or 0.0)
+
+        if food_spent > groceries_spent and food_spent > 0:
+            insights.append({
+                "title": "High Dining Expenses",
+                "description": "You spent more on Swiggy / dining out than groceries this month.",
+                "priority": "Medium",
+                "category": "Expense",
+                "confidence": 93,
+                "action": "Create Budget"
+            })
+
+        # 9. Suspicious Spending Alerts (Section 2)
+        avg_daily_spent = prev_month_expense / 30.0 if prev_month_expense > 0 else 500.0
+        yesterday_start = today_start - timedelta(days=1)
+        yesterday_spent = float(db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "expense",
+            Transaction.date >= yesterday_start,
+            Transaction.date < today_start
+        ).scalar() or 0.0)
+
+        if yesterday_spent > 3 * avg_daily_spent and yesterday_spent > 1000:
+            insights.append({
+                "title": "High Spending Detected",
+                "description": f"Detected unusually high spending yesterday: ₹{int(yesterday_spent):,}.",
+                "priority": "High",
+                "category": "Fraud Detection",
+                "confidence": 90,
+                "action": "View Transaction"
+            })
+        else:
+            insights.append({
+                "title": "Account Activity Guard",
+                "description": "No suspicious spending patterns detected recently.",
+                "priority": "Low",
+                "category": "Fraud Detection",
+                "confidence": 95,
+                "action": "Ignore"
+            })
+
+        # 10. India Post / FD Maturity Alert
+        post_office_investments = db.query(IndiaPostInvestment).filter(
+            IndiaPostInvestment.user_id == current_user.id,
+            IndiaPostInvestment.status == "Active"
+        ).all()
+        for p in post_office_investments:
+            if p.maturity_date:
+                mat_naive = _to_naive_datetime(p.maturity_date)
+                if mat_naive:
+                    days_to_mat = (mat_naive - now).days
+                    if 0 <= days_to_mat <= 15:
+                        insights.append({
+                            "title": "Investment Reaching Maturity",
+                            "description": f"Your Post Office investment '{p.scheme_name}' matures in {days_to_mat} days.",
+                            "priority": "High",
+                            "category": "Upcoming Payments",
+                            "confidence": 99,
+                            "action": "Open Investments"
+                        })
+
+        return {"insights": insights}
+    except Exception as e:
+        import logging
+        logging.error(f"Error generating dashboard AI summary: {e}")
+        return {"insights": []}
 

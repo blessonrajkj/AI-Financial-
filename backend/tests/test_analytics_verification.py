@@ -228,4 +228,51 @@ def test_transaction_updates_investment(client):
     assert apple_inv["purchase_price"] == 156.67
 
 
+def test_dashboard_ai_summary_edge_cases(client):
+    # Register & Login
+    client.post(
+        "/api/v1/auth/register",
+        json={"email": "aisummary@example.com", "password": "testpassword", "full_name": "AI User"}
+    )
+    login_res = client.post(
+        "/api/v1/auth/login",
+        data={"username": "aisummary@example.com", "password": "testpassword"}
+    )
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Fetch AI summary for user with zero transactions
+    res = client.get("/api/v1/analytics/dashboard/ai-summary", headers=headers)
+    assert res.status_code == 200
+    assert "insights" in res.json()
+
+    # 2. Add zero amount budget and recurring subscription to test edge cases
+    cat_res = client.post("/api/v1/transactions/categories/all?name=Streaming&type=expense", headers=headers)
+    cat_id = cat_res.json()["id"]
+
+    client.post(
+        "/api/v1/budgets",
+        headers=headers,
+        json={"category_id": cat_id, "amount": 0.0, "month": 9, "year": 2026}
+    )
+
+    client.post(
+        "/api/v1/subscriptions",
+        headers=headers,
+        json={"name": "Netflix", "amount": 499.0, "billing_cycle": "monthly", "next_billing_date": "2026-09-30T00:00:00+05:30"}
+    )
+
+    client.post(
+        "/api/v1/transactions",
+        headers=headers,
+        json={"amount": 499.0, "date": "2026-09-20T10:00:00", "description": "Netflix", "category_id": cat_id, "type": "expense", "payment_method": "Card"}
+    )
+
+    # 3. Fetch AI summary again - must return 200 OK without 500 error
+    res2 = client.get("/api/v1/analytics/dashboard/ai-summary", headers=headers)
+    assert res2.status_code == 200
+    assert isinstance(res2.json().get("insights"), list)
+
+
+
 

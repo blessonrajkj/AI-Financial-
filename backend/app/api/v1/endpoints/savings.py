@@ -71,6 +71,20 @@ def get_savings_goals(
         percentage = round((g.current_amount / g.target_amount) * 100.0, 1) if g.target_amount > 0 else 0.0
         percentage = min(percentage, 100.0)
         
+        # Calculate goal's implied historical savings velocity
+        g_created = g.created_at
+        if g_created and g_created.tzinfo is not None:
+            g_created = g_created.replace(tzinfo=None)
+        elif not g_created:
+            g_created = now
+
+        days_elapsed = max((now - g_created).days, 1)
+        months_elapsed = max(days_elapsed / 30.0, 1.0)
+        implied_goal_rate = (g.current_amount / months_elapsed) if g.current_amount > 0 else 0.0
+
+        # Effective savings velocity considering both tx history and saved goal amount
+        effective_rate = max(monthly_savings_rate, implied_goal_rate)
+
         # Calculate AI prediction text
         if remaining <= 0:
             ai_prediction = "Goal achieved! Congratulations!"
@@ -80,29 +94,29 @@ def get_savings_goals(
                 g_target = g_target.replace(tzinfo=None)
                 
             now_naive = datetime.utcnow()
-            days_left = (g_target - now_naive).days
+            days_left = max((g_target - now_naive).days, 1)
             time_left_months = max((days_left / 30.0), 0.1)
             required_rate = remaining / time_left_months
             
-            if monthly_savings_rate <= 0:
-                ai_prediction = f"⚠️ Spending exceeds income. Save ₹{required_rate:,.2f}/mo to hit target."
+            if effective_rate <= 0:
+                ai_prediction = f"⚠️ Target: {g_target.strftime('%b %Y')}. Save ₹{required_rate:,.2f}/mo to hit target on time."
             else:
-                months_needed = remaining / monthly_savings_rate
+                months_needed = remaining / effective_rate
                 
                 # Check if target is out of range (more than 100 years / 1200 months)
                 if months_needed > 1200:
-                    ai_prediction = f"⚠️ Behind Target. Goal is out of reach at current rate (100+ years). Increase savings by ₹{required_rate - monthly_savings_rate:,.2f}/mo."
+                    ai_prediction = f"⚠️ Behind Target. Save ₹{required_rate:,.2f}/mo to reach target by {g_target.strftime('%b %Y')}."
                 else:
                     try:
                         projected_date = now_naive + timedelta(days=int(months_needed * 30.0))
                         
-                        if projected_date <= g_target:
-                            ai_prediction = f"✅ On Track! Expected: {projected_date.strftime('%B %Y')} (Monthly savings: ₹{monthly_savings_rate:,.2f})"
+                        if projected_date <= g_target or effective_rate >= required_rate:
+                            ai_prediction = f"✅ On Track! Expected: {projected_date.strftime('%B %Y')} (Monthly velocity: ₹{effective_rate:,.2f})"
                         else:
-                            needed_extra = required_rate - monthly_savings_rate
+                            needed_extra = max(required_rate - effective_rate, 0.0)
                             ai_prediction = f"⚠️ Behind Target. Expected: {projected_date.strftime('%B %Y')}. Increase savings by ₹{needed_extra:,.2f}/mo."
                     except OverflowError:
-                        ai_prediction = f"⚠️ Behind Target. Goal is out of reach at current rate. Increase savings by ₹{required_rate - monthly_savings_rate:,.2f}/mo."
+                        ai_prediction = f"⚠️ Behind Target. Save ₹{required_rate:,.2f}/mo to reach target by {g_target.strftime('%b %Y')}."
                         
         response.append({
             "id": g.id,
@@ -110,7 +124,7 @@ def get_savings_goals(
             "target_amount": g.target_amount,
             "current_amount": g.current_amount,
             "target_date": g.target_date.isoformat(),
-            "created_at": g.created_at.isoformat(),
+            "created_at": g.created_at.isoformat() if g.created_at else now.isoformat(),
             "percentage_completed": percentage,
             "remaining_amount": remaining,
             "ai_prediction": ai_prediction
