@@ -53,8 +53,8 @@ const Layout = () => {
       <Navbar toggleSidebar={toggleSidebar} />
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
-      {/* Content wrapper — offset by sidebar width on desktop & navbar height */}
-      <div className="lg:ml-[240px] pt-[72px] min-h-screen transition-all duration-300">
+      {/* Content wrapper — offset by 260px sidebar width on desktop & navbar height */}
+      <div className="lg:ml-[260px] pt-[72px] min-h-screen transition-all duration-300">
         <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl mx-auto animate-page-enter">
           <Outlet />
         </main>

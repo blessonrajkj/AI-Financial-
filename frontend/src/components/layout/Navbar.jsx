@@ -162,8 +162,9 @@ const Navbar = ({ toggleSidebar }) => {
           WebkitBackdropFilter: 'blur(24px)',
           borderBottom: '1px solid var(--border)',
         }}
+        className="lg:pl-[276px]"
       >
-        {/* ─── Left: Brand ─── */}
+        {/* ─── Left: Brand / Mobile Hamburger ─── */}
         <div className="flex items-center gap-3">
           {/* Mobile hamburger */}
           <button
@@ -173,7 +174,7 @@ const Navbar = ({ toggleSidebar }) => {
             <MenuIcon />
           </button>
 
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/" className="lg:hidden flex items-center gap-2.5 group">
             <PariViewLogo size="md" />
           </Link>
         </div>

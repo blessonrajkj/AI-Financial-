@@ -163,14 +163,24 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           flexDirection: 'column',
           transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
         }}
-        className={`lg:translate-x-0 lg:pt-[72px] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        {/* Mobile Header inside Drawer */}
-        <div className="flex lg:hidden items-center justify-between px-4 py-3 border-b border-borderColor">
-          <PariViewLogo size="sm" />
+        {/* Sidebar Brand Header with PariView Logo */}
+        <div style={{ height: 72, padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <NavLink to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+            <PariViewLogo size="md" />
+          </NavLink>
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-xl text-textSecondary hover:bg-surface transition-colors"
+            className="lg:hidden"
+            style={{
+              padding: 6,
+              borderRadius: 10,
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+            }}
             aria-label="Close navigation menu"
           >
             <CloseIcon />
