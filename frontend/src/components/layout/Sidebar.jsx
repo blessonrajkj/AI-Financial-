@@ -1,6 +1,14 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import PariViewLogo from '../common/PariViewLogo';
+
+// Close Icon SVG for mobile drawer
+const CloseIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
 
 // Precise SVG icons — not generic Lucide strokes
 const icons = {
@@ -130,34 +138,44 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'rgba(0,0,0,0.6)',
             backdropFilter: 'blur(4px)',
-            zIndex: 30,
+            zIndex: 90,
             animation: 'fadeIn 0.2s ease forwards',
           }}
           className="lg:hidden"
         />
       )}
 
-      {/* Sidebar shell — always obsidian dark regardless of theme */}
+      {/* Sidebar shell — obsidian dark structural design */}
       <aside
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           bottom: 0,
-          width: 240,
+          width: 260,
           background: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--border)',
-          paddingTop: '72px',
-          zIndex: 40,
+          zIndex: 100,
           transform: isOpen ? 'translateX(0)' : undefined,
           display: 'flex',
           flexDirection: 'column',
           transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
         }}
-        className={`lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`lg:translate-x-0 lg:pt-[72px] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
+        {/* Mobile Header inside Drawer */}
+        <div className="flex lg:hidden items-center justify-between px-4 py-3 border-b border-borderColor">
+          <PariViewLogo size="sm" />
+          <button
+            onClick={toggleSidebar}
+            className="p-2 rounded-xl text-textSecondary hover:bg-surface transition-colors"
+            aria-label="Close navigation menu"
+          >
+            <CloseIcon />
+          </button>
+        </div>
         {/* Ambient glow */}
         <div style={{
           position: 'absolute',

@@ -478,22 +478,22 @@ const SettingsPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        {/* Navigation Sidebar */}
-        <div className="space-y-1.5 lg:col-span-1">
+        {/* Navigation Sidebar / Mobile Scrollable Tabs */}
+        <div className="flex lg:flex-col overflow-x-auto pb-2 lg:pb-0 space-x-2 lg:space-x-0 lg:space-y-1.5 lg:col-span-1 border-b lg:border-b-0 border-borderColor">
           {navTabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-sm text-left transition-colors ${
+                className={`flex-shrink-0 flex items-center space-x-2.5 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-left transition-colors ${
                   activeTab === tab.id 
                     ? 'bg-primary text-white shadow-md shadow-primary/20' 
-                    : 'text-textSecondary hover:bg-hoverBg hover:text-textPrimary'
+                    : 'text-textSecondary hover:bg-hoverBg hover:text-textPrimary bg-surface border border-borderColor lg:border-transparent'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span>{tab.name}</span>
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">{tab.name}</span>
               </button>
             );
           })}
