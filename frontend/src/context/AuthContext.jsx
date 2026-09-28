@@ -6,12 +6,30 @@ const AuthContext = createContext(null);
 // Configure backend API endpoint base url
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
+// Synchronously configure Authorization header on module load if token exists
+const initialToken = localStorage.getItem('token');
+if (initialToken) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${initialToken}`;
+}
+
+// Global request interceptor to guarantee token presence on every request
+axios.interceptors.request.use(
+  (config) => {
+    const activeToken = localStorage.getItem('token');
+    if (activeToken && !config.headers['Authorization']) {
+      config.headers['Authorization'] = `Bearer ${activeToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
-  // Configure global axios interceptors
+  // Configure global axios state when token changes
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;

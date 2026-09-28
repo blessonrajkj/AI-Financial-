@@ -68,7 +68,7 @@ const App = () => {
   return (
     <ThemeAndRefreshProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             {/* Public Auth Routes */}
             <Route path="/login" element={<Login />} />
