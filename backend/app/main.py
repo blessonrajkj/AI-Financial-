@@ -1,4 +1,5 @@
 import os
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -6,11 +7,15 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db_init import create_tables
+from app.middleware.rate_limit import RateLimitMiddleware
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+# Add rate limiting middleware
+app.add_middleware(RateLimitMiddleware)
 
 # Set up CORS middleware
 if settings.BACKEND_CORS_ORIGINS:
@@ -35,8 +40,6 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 def on_startup():
     try:
         create_tables()
-        # Spawn background daily price updater
-        import asyncio
         from app.services.market_data import start_daily_price_updater
         asyncio.create_task(start_daily_price_updater())
     except Exception as e:

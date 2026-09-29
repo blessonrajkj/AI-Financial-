@@ -48,10 +48,11 @@ def _compute_budget_with_spent(budget: Budget, db: Session, user_id: int) -> dic
         for sub, total in subcat_rows
     ]
 
-    limit = budget.amount if budget.amount > 0 else 1.0
+    b_amt = float(budget.amount)
+    limit = b_amt if b_amt > 0 else 1.0
     progress = (total_spent / limit) * 100
-    remaining = budget.amount - total_spent
-    exceeded = max(0.0, total_spent - budget.amount)
+    remaining = b_amt - total_spent
+    exceeded = max(0.0, total_spent - b_amt)
 
     category_name = budget.category.name if budget.category else "Unknown"
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.api import deps
 from app.core.database import get_db
@@ -21,7 +21,7 @@ def get_savings_goals(
     goals = db.query(SavingsGoal).filter(SavingsGoal.user_id == current_user.id).all()
     
     # 1. Calculate user's monthly savings rate based on recent transactions (last 30 days)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     last_30_days = now - timedelta(days=30)
     
     income_30 = float(db.query(func.sum(Transaction.amount)).filter(
@@ -47,7 +47,8 @@ def get_savings_goals(
             tx_date = first_tx.date
             if tx_date.tzinfo is not None:
                 tx_date = tx_date.replace(tzinfo=None)
-            days_span = (now - tx_date).days
+            now_naive = now.replace(tzinfo=None)
+            days_span = (now_naive - tx_date).days
             days_span = max(days_span, 15)  # min 15 days to prevent extreme skew
         else:
             days_span = 30
@@ -63,29 +64,26 @@ def get_savings_goals(
         ).scalar() or 0.0)
         
         net_savings_all = total_income - total_expense
-        monthly_savings_rate = (net_savings_all / days_span) * 30.0
-    
-    response = []
+        monthly_savings_rate = (net_savings_all / days_span) * 30.0 if days_span > 0 else 0.0
+
+    result = []
     for g in goals:
-        remaining = max(g.target_amount - g.current_amount, 0.0)
-        percentage = round((g.current_amount / g.target_amount) * 100.0, 1) if g.target_amount > 0 else 0.0
-        percentage = min(percentage, 100.0)
-        
-        # Calculate goal's implied historical savings velocity
-        g_created = g.created_at
-        if g_created and g_created.tzinfo is not None:
+        target_amt = float(g.target_amount)
+        current_amt = float(g.current_amount)
+        remaining = max(target_amt - current_amt, 0.0)
+        progress_percentage = min((current_amt / target_amt * 100.0), 100.0) if target_amt > 0 else 0.0
+
+        g_created = g.created_at or datetime.now(timezone.utc)
+        if g_created.tzinfo is not None:
             g_created = g_created.replace(tzinfo=None)
-        elif not g_created:
-            g_created = now
+        now_naive = now.replace(tzinfo=None)
 
-        days_elapsed = max((now - g_created).days, 1)
+        days_elapsed = max((now_naive - g_created).days, 1)
         months_elapsed = max(days_elapsed / 30.0, 1.0)
-        implied_goal_rate = (g.current_amount / months_elapsed) if g.current_amount > 0 else 0.0
+        implied_goal_rate = (current_amt / months_elapsed) if current_amt > 0 else 0.0
 
-        # Effective savings velocity considering both tx history and saved goal amount
         effective_rate = max(monthly_savings_rate, implied_goal_rate)
 
-        # Calculate AI prediction text
         if remaining <= 0:
             ai_prediction = "Goal achieved! Congratulations!"
         else:
@@ -93,7 +91,6 @@ def get_savings_goals(
             if g_target.tzinfo is not None:
                 g_target = g_target.replace(tzinfo=None)
                 
-            now_naive = datetime.utcnow()
             days_left = max((g_target - now_naive).days, 1)
             time_left_months = max((days_left / 30.0), 0.1)
             required_rate = remaining / time_left_months
@@ -103,7 +100,6 @@ def get_savings_goals(
             else:
                 months_needed = remaining / effective_rate
                 
-                # Check if target is out of range (more than 100 years / 1200 months)
                 if months_needed > 1200:
                     ai_prediction = f"⚠️ Behind Target. Save ₹{required_rate:,.2f}/mo to reach target by {g_target.strftime('%b %Y')}."
                 else:
@@ -117,20 +113,23 @@ def get_savings_goals(
                             ai_prediction = f"⚠️ Behind Target. Expected: {projected_date.strftime('%B %Y')}. Increase savings by ₹{needed_extra:,.2f}/mo."
                     except OverflowError:
                         ai_prediction = f"⚠️ Behind Target. Save ₹{required_rate:,.2f}/mo to reach target by {g_target.strftime('%b %Y')}."
-                        
-        response.append({
+
+        result.append({
             "id": g.id,
+            "user_id": g.user_id,
             "name": g.name,
-            "target_amount": g.target_amount,
-            "current_amount": g.current_amount,
-            "target_date": g.target_date.isoformat(),
-            "created_at": g.created_at.isoformat() if g.created_at else now.isoformat(),
-            "percentage_completed": percentage,
-            "remaining_amount": remaining,
+            "target_amount": target_amt,
+            "current_amount": current_amt,
+            "target_date": g.target_date.isoformat() if g.target_date else None,
+            "created_at": g.created_at.isoformat() if g.created_at else None,
+            "remaining": round(remaining, 2),
+            "remaining_amount": round(remaining, 2),
+            "progress_percentage": round(progress_percentage, 1),
+            "percentage_completed": round(progress_percentage, 1),
             "ai_prediction": ai_prediction
         })
         
-    return response
+    return result
 
 @router.post("", response_model=SavingsGoalOut, status_code=status.HTTP_201_CREATED)
 def create_savings_goal(
@@ -138,17 +137,17 @@ def create_savings_goal(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    db_goal = SavingsGoal(
+    goal = SavingsGoal(
         user_id=current_user.id,
         name=goal_in.name,
         target_amount=goal_in.target_amount,
-        current_amount=goal_in.current_amount,
+        current_amount=goal_in.current_amount or 0.0,
         target_date=goal_in.target_date
     )
-    db.add(db_goal)
+    db.add(goal)
     db.commit()
-    db.refresh(db_goal)
-    return db_goal
+    db.refresh(goal)
+    return goal
 
 @router.put("/{goal_id}", response_model=SavingsGoalOut)
 def update_savings_goal(
@@ -157,34 +156,28 @@ def update_savings_goal(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    db_goal = db.query(SavingsGoal).filter(
-        SavingsGoal.id == goal_id,
-        SavingsGoal.user_id == current_user.id
-    ).first()
-    if not db_goal:
-        raise HTTPException(status_code=404, detail="Savings Goal not found")
+    goal = db.query(SavingsGoal).filter(SavingsGoal.id == goal_id, SavingsGoal.user_id == current_user.id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Savings goal not found")
         
-    update_data = goal_in.dict(exclude_unset=True)
+    update_data = goal_in.model_dump(exclude_unset=True)
     for field, val in update_data.items():
-        setattr(db_goal, field, val)
+        setattr(goal, field, val)
         
     db.commit()
-    db.refresh(db_goal)
-    return db_goal
+    db.refresh(goal)
+    return goal
 
-@router.delete("/{goal_id}")
+@router.delete("/{goal_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_savings_goal(
     goal_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    db_goal = db.query(SavingsGoal).filter(
-        SavingsGoal.id == goal_id,
-        SavingsGoal.user_id == current_user.id
-    ).first()
-    if not db_goal:
-        raise HTTPException(status_code=404, detail="Savings Goal not found")
+    goal = db.query(SavingsGoal).filter(SavingsGoal.id == goal_id, SavingsGoal.user_id == current_user.id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Savings goal not found")
         
-    db.delete(db_goal)
+    db.delete(goal)
     db.commit()
-    return {"message": "Savings goal deleted successfully."}
+    return None

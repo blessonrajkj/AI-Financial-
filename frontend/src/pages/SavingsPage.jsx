@@ -253,7 +253,12 @@ const SavingsPage = () => {
           {goals.map((g) => {
             const dateObj = new Date(g.target_date);
             const formattedDate = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-            const isCompleted = g.remaining_amount <= 0;
+            
+            const currentAmt = g.current_amount || 0;
+            const targetAmt = g.target_amount || 0;
+            const remainingAmt = g.remaining_amount ?? g.remaining ?? Math.max(targetAmt - currentAmt, 0);
+            const pctCompleted = g.percentage_completed ?? g.progress_percentage ?? (targetAmt > 0 ? (currentAmt / targetAmt) * 100 : 0);
+            const isCompleted = remainingAmt <= 0;
 
             return (
               <div 
@@ -301,11 +306,11 @@ const SavingsPage = () => {
                   <div className="flex justify-between items-end mb-2">
                     <div>
                       <span className="text-xs font-semibold text-textSecondary">Amount Saved</span>
-                      <p className="text-xl font-extrabold text-textPrimary">₹{g.current_amount.toLocaleString()}</p>
+                      <p className="text-xl font-extrabold text-textPrimary">₹{currentAmt.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-semibold text-textSecondary">Target Goal</span>
-                      <p className="text-xl font-extrabold text-textPrimary">₹{g.target_amount.toLocaleString()}</p>
+                      <p className="text-xl font-extrabold text-textPrimary">₹{targetAmt.toLocaleString()}</p>
                     </div>
                   </div>
 
@@ -313,17 +318,17 @@ const SavingsPage = () => {
                   <div className="w-full bg-background border border-borderColor rounded-full h-3 overflow-hidden mb-4 relative">
                     <div 
                       className={`h-full transition-all duration-500 ${isCompleted ? 'bg-success' : 'bg-primary'}`} 
-                      style={{ width: `${g.percentage_completed}%` }}
+                      style={{ width: `${Math.min(pctCompleted, 100)}%` }}
                     ></div>
                   </div>
 
                   {/* Percentage & Remaining details */}
                   <div className="flex justify-between items-center text-xs font-bold mb-4">
                     <span className={`px-2 py-0.5 rounded-full ${isCompleted ? 'bg-success/15 text-success' : 'bg-primary/10 text-primary'}`}>
-                      {g.percentage_completed}% Completed
+                      {pctCompleted.toFixed(1)}% Completed
                     </span>
                     <span className="text-textSecondary">
-                      {isCompleted ? 'Target achieved!' : `₹${g.remaining_amount.toLocaleString()} Remaining`}
+                      {isCompleted ? 'Target achieved!' : `₹${remainingAmt.toLocaleString()} Remaining`}
                     </span>
                   </div>
                 </div>

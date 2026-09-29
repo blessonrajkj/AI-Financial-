@@ -47,3 +47,18 @@ def client(db):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+@pytest.fixture(scope="function")
+def normal_user_token_headers(client: TestClient) -> dict:
+    email = "testuser@example.com"
+    password = "TestPassword123!"
+    client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password, "full_name": "Test User"}
+    )
+    login_res = client.post(
+        "/api/v1/auth/login",
+        data={"username": email, "password": password}
+    )
+    token = login_res.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}

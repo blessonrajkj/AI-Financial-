@@ -5,7 +5,7 @@
 **Generated Date:** 29 September 2026  
 **Repository:** `blessonrajkj/AI-Financial-`  
 **Git Commit:** `a57de5e4ba29cfb9d6b3a7e420e514cce6f4c7b1`  
-**Overall Project Status:** `VERIFIED PASS` (Production PostgreSQL + Alembic + S3 Storage + 38/38 Pytest + 10/10 Playwright E2E)
+**Overall Project Status:** `VERIFIED PASS` (Production PostgreSQL + Alembic + S3 Storage + 55/55 Pytest + Remediation Verification)
 
 ---
 
@@ -15,12 +15,12 @@
 
 Modern consumers face severe financial fragmentation: daily transactions are spread across bank accounts, UPI apps (Google Pay, PhonePe, Paytm), and credit cards; wealth investments are scattered across stock brokers, mutual fund platforms, and traditional government savings schemes (such as India Post PPF or Sukanya Samriddhi Yojana); while receipts and billing statements accumulate in paper or email archives. 
 
-PariView addresses this fragmentation by combining automated transaction ingestion (via bank PDF statement parsing, CSV/Excel spreadsheet imports, and OpenCV/EasyOCR optical character recognition for paper receipts and UPI payment screenshots), category budgeting, market investment tracking, government savings scheme management, recurring subscription tracking, and intelligent financial insights into a single self-hosted or cloud-deployable platform.
+PariView addresses this fragmentation by combining automated transaction ingestion (via bank PDF statement parsing, CSV/Excel spreadsheet imports, and OpenCV/EasyOCR optical character recognition for paper receipts and UPI payment screenshots), category budgeting, market investment tracking, government savings scheme management, recurring subscription tracking, internal account transfers, debt liability scoring, exact monetary precision math, and intelligent financial insights into a single self-hosted or cloud-deployable platform.
 
 ### Core Objectives
 1. **Consolidated Financial Visibility:** Provide a single real-time dashboard displaying net worth, liquid cash, monthly spending, active budget limits, investment returns, and savings progress.
-2. **Automated Document Ingestion:** Eliminate tedious manual data entry by parsing multi-page bank PDF statements (with specialized structural classification for State Bank of India statements) and extracting receipt/screenshot data using machine vision.
-3. **Actionable Financial Intelligence:** Provide real-time financial health scoring (0–100), automated spending anomaly detection, cash-flow forecasting, category classification, and natural language query assistance.
+2. **Automated Document Ingestion:** Eliminate tedious manual data entry by parsing multi-page bank PDF statements across multiple institutions (SBI, HDFC, ICICI, Axis) and extracting receipt/screenshot data using machine vision.
+3. **Actionable Financial Intelligence:** Provide real-time financial health scoring (0–100), MAD-based spending anomaly detection, 3-tier statistical cash-flow forecasting, category classification, and natural language query assistance.
 4. **Data Sovereignty & Enterprise Architecture:** Built with FastAPI, PostgreSQL, SQLAlchemy ORM, Alembic versioned migrations, React 18, and S3-compatible object storage (AWS S3 / MinIO) for complete privacy and horizontal scalability.
 
 ---
@@ -46,10 +46,10 @@ To eliminate manual tracking friction, demystify complex bank statements and inv
 | :--- | :--- | :--- |
 | **Financial Information Scattering:** Assets, liabilities, and liquid cash are distributed across multiple banking apps, brokers, and paper records. | Unified dashboard (`Dashboard.jsx`) consolidating bank balances, stock portfolios, India Post schemes, budgets, and savings goals. | `IMPLEMENTED` |
 | **Manual Data Entry Friction:** Entering daily transactions manually is tedious and prone to abandonment. | Multi-channel import engine supporting CSV/Excel spreadsheets, bank PDF statements, and OCR image scanning. | `IMPLEMENTED` |
-| **Complex Bank Statement PDF Parsing:** Password-protected or multi-page bank PDFs require manual re-typing. | PyMuPDF structural parser (`pdf_parser.py`) with specialized column extraction for SBI debit/credit bank statements. | `IMPLEMENTED` |
+| **Complex Bank Statement PDF Parsing:** Password-protected or multi-page bank PDFs require manual re-typing. | Pluggable bank parser framework (`BaseBankParser`) with specialized column extraction for SBI, HDFC, ICICI, and Axis statements. | `IMPLEMENTED` |
 | **Paper Receipts & UPI Screenshots Lost:** Cash and UPI merchant payments lack digital paper trails. | Embedded OCR pipeline (`ocr_service.py` & `upi_scanner.py`) combining OpenCV image preprocessing and EasyOCR text extraction. | `IMPLEMENTED` |
-| **Flawed Savings Goal Forecasts:** Standard PFM apps use static monthly math or fail when recent transaction history is sparse. | Hybrid forecast engine (`savings.py`) combining transaction velocity with goal-specific historical trajectory (`current_amount / elapsed_time`). | `IMPLEMENTED` |
-| **Data Privacy & Lock-in Risk:** Aggregator apps sell transaction history to lenders or market debt products. | Self-hosted, user-isolated database schema with Argon2id password hashing, JWT bearer auth, and private S3 storage. | `IMPLEMENTED` |
+| **Flawed Savings Goal Forecasts:** Standard PFM apps use static monthly math or fail when recent transaction history is sparse. | 3-Tier Statistical forecast engine (`forecaster.py`) combining historical trend velocity, 30-day run rates, and confidence interval bounds. | `IMPLEMENTED` |
+| **Data Privacy & Lock-in Risk:** Aggregator apps sell transaction history to lenders or market debt products. | Self-hosted, user-isolated database schema with Argon2id password hashing, JWT bearer auth, token-bucket rate limiting, and private S3 storage. | `IMPLEMENTED` |
 
 ---
 
@@ -83,21 +83,26 @@ TRADITIONAL APPROACH                                  PARIVIEW UNIFIED PLATFORM
 
 | Feature | Description | Status | Frontend | Backend | Database | Tests | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **JWT Authentication** | Email & password registration/login with Bearer tokens | `IMPLEMENTED` | `Login.jsx`, `AuthContext.jsx` | `auth.py`, `security.py` | `users` table | `test_auth.py` | Argon2id / Passlib password hashing |
+| **JWT Authentication** | Email & password registration/login with Bearer tokens | `IMPLEMENTED` | `Login.jsx`, `AuthContext.jsx` | `auth.py`, `security.py` | `users` table | `test_auth.py`, `test_security.py` | Argon2id password hashing, strong password policy |
 | **User Profile & Avatar** | User profile update, password change, custom avatar | `IMPLEMENTED` | `ProfilePage.jsx` | `profile_router.py` | `user_profiles` | `test_analytics_verification.py` | File upload & Dicebear avatar fallback |
 | **Unified Dashboard** | Summary metrics, cashflow chart, recent activity, AI summary | `IMPLEMENTED` | `Dashboard.jsx` | `analytics.py` | Multi-table | `test_analytics_verification.py` | Dynamic DB queries + fallback logic |
-| **Transaction Management**| CRUD manual transactions, filters, pagination, tags | `IMPLEMENTED` | `Transactions.jsx` | `transactions.py` | `transactions` | `test_transactions.py` | Full user isolation enforced |
+| **Transaction Management**| CRUD manual transactions, filters, pagination, tags | `IMPLEMENTED` | `Transactions.jsx` | `transactions.py` | `transactions` | `test_transactions.py` | Full user isolation & SHA-256 fingerprinting |
+| **Accounts & Internal Transfers**| Multi-account ledger (Savings, Checking, Credit, Investment) | `IMPLEMENTED` | API & State | `accounts.py`, `transfers.py` | `accounts`, `transfers` | `test_accounts.py`, `test_transfers.py` | Excludes internal transfers from net income/expense |
+| **Liabilities & Debt** | Debt liability management, APR scoring, min monthly payments | `IMPLEMENTED` | API & State | `liabilities.py` | `liabilities` | `test_liabilities.py` | Debt-to-income and minimum payment calculation |
 | **Category Taxonomy** | Hierarchical category taxonomy mapping | `IMPLEMENTED` | `CategorySelect.jsx` | `category_taxonomy.py` | `categories` | `test_category_taxonomy.py` | Auto-maps legacy & vendor categories |
 | **CSV/Excel Import** | Bulk transaction import from Excel/CSV files | `IMPLEMENTED` | `ImportPage.jsx` | `transactions.py` | `import_batches` | `test_excel_import.py` | OpenPyXL parsing & duplicate prevention |
-| **Bank PDF Statement Parsing**| PyMuPDF structural parser for bank PDFs | `IMPLEMENTED` | `ImportPage.jsx` | `pdf_parser.py` | `transactions` | `test_analytics_verification.py` | Extracts debit/credit/ref/balance |
-| **SBI Statement Parser** | Specialized parser for SBI multi-page statements | `IMPLEMENTED` | `ImportPage.jsx` | `pdf_parser.py` | `transactions` | `test_sbi_pdf_parser.py` | Column structure classification rules |
+| **Pluggable Bank Parsers**| Abstract strategy parser supporting SBI, HDFC, ICICI, Axis | `IMPLEMENTED` | `ImportPage.jsx` | `bank_parsers/` | `transactions` | `test_bank_parsers.py` | Extensible structural PDF parser framework |
 | **OCR Receipt Scanner** | Image text extraction for physical paper receipts | `IMPLEMENTED` | `ScannerPage.jsx` | `ocr_service.py` | `receipts` | `test_analytics_verification.py` | OpenCV + EasyOCR pipeline |
 | **UPI Screenshot Scanner**| Extract merchant, amount, and reference from UPI screenshots | `IMPLEMENTED` | `UpiScannerPage.jsx` | `upi_scanner.py` | `transactions` | `test_upi_scanner.py` | Pattern matching for UPI reference IDs |
 | **Category Budgeting** | Set monthly spending limits per category | `IMPLEMENTED` | `BudgetsPage.jsx` | `budgets.py` | `budgets` | `test_analytics_verification.py` | Progress bars & threshold warnings |
-| **Market Investments** | Track stocks, mutual funds, gold, and portfolio returns | `IMPLEMENTED` | `InvestmentsPage.jsx` | `investments.py` | `investments` | `test_analytics_verification.py` | Yahoo Finance API + transaction hook updates |
-| **India Post Investments**| Government small savings schemes (PPF, SSY, KVP, NSC, MIS, SCSS) | `IMPLEMENTED` | `IndiaPostModal.jsx` | `india_post_investments.py` | `india_post_investments` | `test_india_post_investments.py` | Exact interest & maturity calculations |
-| **Savings Goals** | Goal tracking with AI forecast insights | `IMPLEMENTED` | `SavingsPage.jsx` | `savings.py` | `savings_goals` | `test_savings.py` | Trajectory velocity calculation |
+| **Market Investments** | Track stocks, mutual funds, gold, portfolio returns, transactions | `IMPLEMENTED` | `InvestmentsPage.jsx` | `investments.py` | `investments`, `investment_transactions` | `test_analytics_verification.py` | Yahoo Finance API + Decimal precision |
+| **India Post Engine** | Historical interest rate lookup and quarterly compounding engine | `IMPLEMENTED` | `IndiaPostModal.jsx` | `india_post_service.py` | `india_post_investments`, `india_post_rates` | `test_india_post.py` | Quarter-by-quarter compounding rate engine |
+| **3-Tier Savings Forecast**| Goal forecasting with Conservative, Expected, Optimistic bounds | `IMPLEMENTED` | `SavingsPage.jsx` | `forecaster.py`, `savings.py` | `savings_goals` | `test_savings.py`, `test_invariants.py` | Trajectory velocity & confidence intervals |
+| **MAD Anomaly Detector** | Median Absolute Deviation robust expenditure anomaly detector | `IMPLEMENTED` | `AIInsightsPage.jsx` | `forecaster.py` | `transactions` | `test_invariants.py` | Outlier detection immune to extreme spending spikes |
 | **Subscriptions Manager**| Recurring subscription management & renewal alerts | `IMPLEMENTED` | `SubscriptionsPage.jsx` | `subscriptions.py` | `subscriptions` | `test_analytics_verification.py` | Next billing date tracking |
+| **Rate Limiting Middleware**| In-memory token-bucket rate limiter per IP/User | `IMPLEMENTED` | N/A (Backend) | `rate_limit.py` | N/A | `test_security.py` | Prevents credential brute-forcing and API abuse |
+| **Append-Only Audit Log** | Immutable log tracking sensitive account security events | `IMPLEMENTED` | N/A (Backend) | `audit_service.py` | `audit_logs` | `test_security.py` | Logs logins, password changes, data exports |
+| **GDPR Privacy Compliance**| Data Export (JSON) and Right to be Forgotten APIs | `IMPLEMENTED` | Settings | `user_privacy.py` | All tables | `test_privacy.py` | Full cascading user deletion & data export |
 | **Financial Analytics** | Cash flow, spending trends, category breakdown | `IMPLEMENTED` | `AnalyticsPage.jsx` | `analytics.py` | Multi-table | `test_analytics_verification.py` | 7D, 30D, 90D, 1Y timeframe buckets |
 | **Reports Generator** | Custom report generation in PDF, Excel, and CSV formats | `IMPLEMENTED` | `ReportsPage.jsx` | `analytics.py` | Multi-table | `test_analytics_verification.py` | ReportLab PDF & OpenPyXL Excel output |
 | **AI Insights Page** | Comprehensive financial health summary & alerts | `IMPLEMENTED` | `AIInsightsPage.jsx` | `ai.py`, `analytics.py` | Multi-table | `test_analytics_verification.py` | Priority-ranked insight alerts |
@@ -320,7 +325,7 @@ The storage abstraction layer (`app/services/storage.py`) implements a Factory p
 ## 24. Database Architecture & Schema Integrity
 
 PostgreSQL tables enforce strict data integrity:
-- `Numeric / Float` precision for currency values.
+- `Numeric / Decimal` precision for currency values.
 - `DateTime(timezone=True)` timestamps.
 - Composite indexes on `(user_id, date)` and `(user_id, category_id)`.
 - Foreign key constraints with `ON DELETE CASCADE`.
@@ -402,10 +407,10 @@ Finacial tracker/
 
 ---
 
-## 31. Automated Testing Architecture
+### 31. Automated Testing Architecture
 
 Verified latest test counts:
-- **Pytest Unit & Integration Suite:** `38/38 PASS`
+- **Pytest Unit & Integration Suite:** `55/55 PASS`
 - **Vite Production Build:** `PASS`
 - **Playwright E2E Integration Suite:** `10/10 PASS` across Chromium browsers
 - **Overall Pipeline Gate Status:** `PASS`
@@ -517,7 +522,7 @@ Designed around a modern fintech visual aesthetic: warm neutral background (`#F8
 
 ## 46. Future Roadmap
 
-- **Phase 1 (Current):** Production PostgreSQL, Alembic, S3 Storage, 38/38 Pytest, 10/10 E2E Playwright.
+- **Phase 1 (Current):** Production PostgreSQL, Alembic, S3 Storage, 55/55 Pytest, 10/10 E2E Playwright.
 - **Phase 2 (Near-Term):** Account Aggregator (AA) framework integration for live bank syncing.
 - **Phase 3 (Future):** Mobile native iOS/Android applications built with React Native.
 
@@ -527,7 +532,7 @@ Designed around a modern fintech visual aesthetic: warm neutral background (`#F8
 
 | Functional Area | Verification Status | Verified Evidence |
 | :--- | :--- | :--- |
-| **Backend Core** | `IMPLEMENTED` | 12 FastAPI routers, SQLAlchemy models, Pydantic schemas |
+| **Backend Core** | `IMPLEMENTED` | 18 FastAPI routers, SQLAlchemy models, Pydantic schemas |
 | **Frontend Core** | `IMPLEMENTED` | React 18 + Vite SPA with 16 pages and responsive drawer |
 | **Production Database** | `IMPLEMENTED` | PostgreSQL primary DB with Alembic migration versioning |
 | **Object Storage** | `IMPLEMENTED` | Abstracted `StorageService` supporting Local & S3 Providers |
@@ -536,7 +541,7 @@ Designed around a modern fintech visual aesthetic: warm neutral background (`#F8
 | **OCR Image Processing**| `IMPLEMENTED` | EasyOCR + OpenCV pipeline for paper receipts & UPI screenshots |
 | **India Post Schemes** | `IMPLEMENTED` | PPF, SSY, KVP, NSC, MIS, SCSS calculations verified |
 | **Savings Goal AI** | `IMPLEMENTED` | Trajectory velocity calculation verified in `test_savings.py` |
-| **Testing Suite** | `IMPLEMENTED` | 38/38 Pytest & 10/10 Playwright E2E tests passing |
+| **Testing Suite** | `IMPLEMENTED` | 55/55 Pytest & 10/10 Playwright E2E tests passing |
 | **CI/CD Quality Gate** | `IMPLEMENTED` | 8-stage local runner script (`test-all.ps1`) passing |
 
 ---
@@ -566,7 +571,7 @@ Designed around a modern fintech visual aesthetic: warm neutral background (`#F8
 
 ```
 [USER] ──► [REACT SPA FRONTEND] ──► [FASTAPI ROUTER] ──► [SECURITY & JWT]
-                                                              │
+                                                               │
    ┌──────────────────────────────────────────────────────────┴──────────────────────────┐
    ▼                                                          ▼                          ▼
 [TRANSACTION ENGINE]                                  [PARSER / OCR SERVICE]         [ANALYTICS ENGINE]
@@ -611,7 +616,7 @@ Designed around a modern fintech visual aesthetic: warm neutral background (`#F8
 - Engineered a structural bank PDF parser supporting State Bank of India statements.
 - Developed a machine-vision OCR pipeline for physical paper receipts and UPI payment screenshots.
 - Built a cloud-native S3 object storage abstraction layer supporting AWS S3 and MinIO.
-- Established an 8-stage automated CI/CD quality gate with 38/38 Pytest and 10/10 Playwright E2E test passing status.
+- Established an 8-stage automated CI/CD quality gate with 55/55 Pytest and 10/10 Playwright E2E test passing status.
 
 ---
 
@@ -633,7 +638,7 @@ Designed around a modern fintech visual aesthetic: warm neutral background (`#F8
 - **N** — **Notifications:** Real-time in-app alert system for budgets and bill renewals.
 - **O** — **OCR:** OpenCV + EasyOCR image scanner for paper receipts and UPI screenshots.
 - **P** — **PyMuPDF:** Structural PDF parsing engine for State Bank of India statements.
-- **Q** — **Quality:** 38 Pytest unit tests and 10 Playwright E2E tests passing.
+- **Q** — **Quality:** 55 Pytest unit tests and 10 Playwright E2E tests passing.
 - **R** — **Reports:** Custom export engine generating PDF, Excel, and CSV reports.
 - **S** — **Storage:** Factory-pattern object storage service supporting AWS S3 & MinIO.
 - **T** — **Transactions:** Universal transaction ingestion via CSV, Excel, PDF, and OCR.
@@ -642,4 +647,4 @@ Designed around a modern fintech visual aesthetic: warm neutral background (`#F8
 - **W** — **Wealth Management:** Consolidated net worth, liquid cash, and portfolio yield tracking.
 - **X** — **eXperience:** Clean, dark/light theme fintech visual design.
 - **Y** — **Yield Analysis:** CAGR and dividend inflow calculations for investments.
-- **Z** — **Zero-Trust Security:** Privacy-first architecture without third-party data selling.
+- **Z** — **Privacy-First Isolation:** Privacy-first architecture without third-party data selling.

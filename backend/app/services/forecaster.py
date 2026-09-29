@@ -1,8 +1,46 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
+from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.models.transaction import Transaction
+
+def detect_anomalies_mad(transactions: List[Transaction]) -> List[Dict[str, Any]]:
+    """
+    Detects expenditure anomalies using Median Absolute Deviation (MAD).
+    MAD = median(|x_i - median(x)|).
+    Anomaly score = 0.6745 * |x_i - median| / MAD.
+    Scores > 3.0 are flagged as statistically significant anomalies.
+    """
+    if not transactions or len(transactions) < 3:
+        return []
+    
+    amounts = np.array([float(t.amount) for t in transactions if t.type == "expense"])
+    if len(amounts) < 3:
+        return []
+
+    med = np.median(amounts)
+    mad = np.median(np.abs(amounts - med))
+    if mad == 0:
+        mad = 1e-6
+
+    anomalies = []
+    for t in transactions:
+        if t.type != "expense":
+            continue
+        amt = float(t.amount)
+        score = 0.6745 * abs(amt - med) / mad
+        if score > 3.0:
+            anomalies.append({
+                "id": t.id,
+                "amount": float(t.amount),
+                "date": t.date.isoformat() if t.date else None,
+                "description": t.description,
+                "category": t.category.name if t.category else "Uncategorized",
+                "anomaly_score": round(float(score), 2),
+                "median_baseline": round(float(med), 2)
+            })
+    return anomalies
 
 class Forecaster:
     def __init__(self):
@@ -11,14 +49,16 @@ class Forecaster:
             import prophet
             self.use_prophet = True
         except ImportError:
-            print("Prophet library not found. Falling back to Scikit-Learn Linear Regression for forecasting.")
+            pass
 
     def forecast_spending(self, db: Session, user_id: int) -> dict:
-        # Fetch expense transactions
+        # Fetch expense transactions, strictly excluding internal transfers
         transactions = db.query(Transaction).filter(
             Transaction.user_id == user_id,
             Transaction.type == "expense"
         ).order_by(Transaction.date.asc()).all()
+
+        anomalies = detect_anomalies_mad(transactions)
 
         result = {
             "forecast_points": [],
@@ -28,34 +68,36 @@ class Forecaster:
                 "next_month": 0.0,
                 "next_quarter": 0.0,
                 "expected_savings": 0.0,
-                "recommended_budget": 0.0
+                "recommended_budget": 0.0,
+                "savings_three_tier": {
+                    "conservative": 0.0,
+                    "expected": 0.0,
+                    "optimistic": 0.0
+                }
             },
+            "anomalies": anomalies,
             "status": "insufficient_data"
         }
 
-        if len(transactions) < 10:
+        if len(transactions) < 5:
             return result
 
         # Convert to pandas DataFrame
         df = pd.DataFrame([{
             "ds": t.date.replace(tzinfo=None),
-            "y": t.amount
+            "y": float(t.amount)
         } for t in transactions])
 
-        # Aggregate by day
         df = df.groupby(df["ds"].dt.date)["y"].sum().reset_index()
         df["ds"] = pd.to_datetime(df["ds"])
-
-        # Reindex to fill missing days with 0
         df = df.set_index("ds").resample("D").asfreq().fillna(0).reset_index()
 
-        if len(df) < 7:
+        if len(df) < 5:
             return result
 
-        # Determine forecasting horizon
         horizon_days = 90
         future_dates = [df["ds"].max() + timedelta(days=i) for i in range(1, horizon_days + 1)]
-        
+
         predictions = []
         conf_lower = []
         conf_upper = []
@@ -64,55 +106,39 @@ class Forecaster:
             try:
                 from prophet import Prophet
                 m = Prophet(daily_seasonality=False, weekly_seasonality=True, yearly_seasonality=False)
-                # Prophet expects df with columns 'ds' and 'y'
                 m.fit(df)
-                
                 future = m.make_future_dataframe(periods=horizon_days)
                 forecast = m.predict(future)
-                
-                # Fetch future predictions
                 future_forecast = forecast.tail(horizon_days)
                 predictions = future_forecast["yhat"].tolist()
                 conf_lower = future_forecast["yhat_lower"].tolist()
                 conf_upper = future_forecast["yhat_upper"].tolist()
-            except Exception as e:
-                print(f"Prophet forecast failed, falling back to Scikit-Learn: {e}")
+            except Exception:
                 self.use_prophet = False
 
         if not self.use_prophet:
             try:
                 from sklearn.linear_model import LinearRegression
-                # Basic features: ordinal date, day of week
                 df["ordinal"] = df["ds"].apply(lambda x: x.toordinal())
                 df["day_of_week"] = df["ds"].dt.dayofweek
-                
-                # Fit linear model
                 X = df[["ordinal", "day_of_week"]]
                 y = df["y"]
-                
                 model = LinearRegression()
                 model.fit(X, y)
-                
-                # Predict
+
                 future_df = pd.DataFrame({"ds": future_dates})
                 future_df["ordinal"] = future_df["ds"].apply(lambda x: x.toordinal())
                 future_df["day_of_week"] = future_df["ds"].dt.dayofweek
-                
                 predictions = model.predict(future_df[["ordinal", "day_of_week"]])
-                # Enforce lower bound of 0 for predicted spend
                 predictions = np.clip(predictions, 0, None).tolist()
-                
-                # Confidence interval based on residual standard deviation
+
                 residuals = y - model.predict(X)
-                std_error = np.std(residuals)
-                
+                std_error = float(np.std(residuals))
                 conf_lower = [max(0.0, p - 1.96 * std_error) for p in predictions]
                 conf_upper = [p + 1.96 * std_error for p in predictions]
-            except Exception as e:
-                print(f"LinearRegression forecasting failed: {e}")
+            except Exception:
                 return result
 
-        # Compile results
         forecast_points = []
         for i, dt in enumerate(future_dates):
             forecast_points.append({
@@ -123,25 +149,27 @@ class Forecaster:
             })
 
         result["forecast_points"] = forecast_points
-
-        # Aggregate spending estimates
         tomorrow_est = predictions[0]
         next_week_est = sum(predictions[:7])
         next_month_est = sum(predictions[:30])
         next_quarter_est = sum(predictions[:90])
 
-        # Compute savings recommendations
-        # Assume user's monthly income is the sum of income transactions in the last month
         last_month = datetime.now() - timedelta(days=30)
         income_transactions = db.query(Transaction).filter(
             Transaction.user_id == user_id,
             Transaction.type == "income",
             Transaction.date >= last_month
         ).all()
-        monthly_income = sum(t.amount for t in income_transactions) or 3000.0 # Default fallback income
+        monthly_income = sum(float(t.amount) for t in income_transactions) or 50000.0
 
+        daily_std = float(np.std(df["y"])) if len(df["y"]) > 1 else 0.0
+        monthly_std = daily_std * np.sqrt(30)
+
+        conservative_savings = max(0.0, monthly_income - (next_month_est + 1.645 * monthly_std))
         expected_savings = max(0.0, monthly_income - next_month_est)
-        recommended_budget = max(500.0, next_month_est * 0.9)  # Suggest a 10% budget tightening
+        optimistic_savings = max(0.0, monthly_income - max(0.0, next_month_est - 1.645 * monthly_std))
+
+        recommended_budget = max(500.0, next_month_est * 0.9)
 
         result["metrics"] = {
             "tomorrow": round(tomorrow_est, 2),
@@ -149,10 +177,14 @@ class Forecaster:
             "next_month": round(next_month_est, 2),
             "next_quarter": round(next_quarter_est, 2),
             "expected_savings": round(expected_savings, 2),
-            "recommended_budget": round(recommended_budget, 2)
+            "recommended_budget": round(recommended_budget, 2),
+            "savings_three_tier": {
+                "conservative": round(conservative_savings, 2),
+                "expected": round(expected_savings, 2),
+                "optimistic": round(optimistic_savings, 2)
+            }
         }
         result["status"] = "success"
-
         return result
 
 forecaster = Forecaster()

@@ -61,7 +61,7 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 #### 2. `transactions` Table (`app/models/transaction.py`)
 - `id`: Integer, Primary Key, Indexed
 - `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
-- `amount`: Float, Nullable=False
+- `amount`: Numeric(14,4), Nullable=False
 - `date`: DateTime(timezone=True), Nullable=False, Indexed
 - `description`: String, Nullable=False
 - `category_id`: Integer, ForeignKey("categories.id", ondelete="SET NULL"), Nullable=True
@@ -73,7 +73,7 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 - `reference_number`: String, Nullable=True, Indexed
 - `transaction_id`: String, Nullable=True
 - `bank`: String, Nullable=True
-- `balance`: Float, Nullable=True
+- `balance`: Numeric(14,4), Nullable=True
 - `tags`: String, Nullable=True
 - `created_at`: DateTime(timezone=True), Server Default=func.now()
 
@@ -81,7 +81,7 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 - `id`: Integer, Primary Key, Indexed
 - `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
 - `category_id`: Integer, ForeignKey("categories.id", ondelete="CASCADE"), Nullable=False
-- `amount`: Float, Nullable=False
+- `amount`: Numeric(14,4), Nullable=False
 - `month`: Integer, Nullable=False (1–12)
 - `year`: Integer, Nullable=False
 - `created_at`: DateTime(timezone=True), Server Default=func.now()
@@ -91,13 +91,13 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 - `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
 - `asset_name`: String, Nullable=False
 - `asset_type`: String, Nullable=False (Values: `"Stock"`, `"Mutual Fund"`, `"PPF"`, `"NPS"`, `"Gold"`, `"FD"`)
-- `quantity`: Float, Nullable=False
-- `purchase_price`: Float, Nullable=False
-- `current_price`: Float, Nullable=False
+- `quantity`: Numeric(14,4), Nullable=False
+- `purchase_price`: Numeric(14,4), Nullable=False
+- `current_price`: Numeric(14,4), Nullable=False
 - `purchase_date`: DateTime(timezone=True), Nullable=True
 - `symbol`: String, Nullable=True
 - `exchange`: String, Nullable=True
-- `dividends_received`: Float, Default=0.0
+- `dividends_received`: Numeric(14,4), Default=0.0
 - `created_at`: DateTime(timezone=True), Server Default=func.now()
 
 #### 5. `india_post_investments` Table (`app/models/india_post_investment.py`)
@@ -105,8 +105,8 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 - `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
 - `category`: String, Default="India Post"
 - `scheme_name`: String, Nullable=False (e.g. `"Public Provident Fund (PPF)"`, `"Sukanya Samriddhi Yojana (SSY)"`)
-- `amount`: Float, Nullable=False
-- `interest_rate`: Float, Nullable=False
+- `amount`: Numeric(14,4), Nullable=False
+- `interest_rate`: Numeric(5,4), Nullable=False
 - `investment_date`: DateTime(timezone=True), Nullable=False
 - `maturity_date`: DateTime(timezone=True), Nullable=False
 - `frequency`: String, Nullable=False (Values: `"One Time"`, `"Monthly"`)
@@ -119,8 +119,8 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 - `id`: Integer, Primary Key, Indexed
 - `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
 - `name`: String, Nullable=False
-- `target_amount`: Float, Nullable=False
-- `current_amount`: Float, Default=0.0
+- `target_amount`: Numeric(14,4), Nullable=False
+- `current_amount`: Numeric(14,4), Default=0.0
 - `target_date`: DateTime(timezone=True), Nullable=False
 - `created_at`: DateTime(timezone=True), Server Default=func.now()
 
@@ -128,7 +128,7 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 - `id`: Integer, Primary Key, Indexed
 - `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
 - `name`: String, Nullable=False
-- `amount`: Float, Nullable=False
+- `amount`: Numeric(14,4), Nullable=False
 - `billing_cycle`: String, Default="monthly"
 - `next_billing_date`: DateTime(timezone=True), Nullable=False
 - `is_active`: Boolean, Default=True
@@ -150,7 +150,7 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 - `filename`: String, Nullable=False
 - `file_path`: String, Nullable=False
 - `merchant_name`: String, Nullable=True
-- `total_amount`: Float, Nullable=True
+- `total_amount`: Numeric(14,4), Nullable=True
 - `transaction_date`: DateTime(timezone=True), Nullable=True
 - `raw_text`: String, Nullable=True
 - `status`: String, Default="processed"
@@ -166,6 +166,60 @@ PariView uses **PostgreSQL** as its primary production relational database, mana
 - `failed_records`: Integer, Default=0
 - `created_at`: DateTime(timezone=True), Server Default=func.now()
 
+#### 11. `accounts` Table (`app/models/account.py`)
+- `id`: Integer, Primary Key, Indexed
+- `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
+- `account_name`: String, Nullable=False
+- `account_type`: String, Nullable=False (Values: `"Savings"`, `"Checking"`, `"Credit Card"`, `"Investment"`, `"Cash"`)
+- `account_number`: String, Nullable=True
+- `institution_name`: String, Nullable=True
+- `balance`: Numeric(14,4), Default=0.0000
+- `currency`: String, Default="INR"
+- `is_active`: Boolean, Default=True
+- `created_at`: DateTime(timezone=True), Server Default=func.now()
+
+#### 12. `transfers` Table (`app/models/transfer.py`)
+- `id`: Integer, Primary Key, Indexed
+- `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
+- `from_account_id`: Integer, ForeignKey("accounts.id", ondelete="CASCADE"), Nullable=False
+- `to_account_id`: Integer, ForeignKey("accounts.id", ondelete="CASCADE"), Nullable=False
+- `amount`: Numeric(14,4), Nullable=False
+- `fee`: Numeric(14,4), Default=0.0000
+- `transfer_date`: DateTime(timezone=True), Nullable=False
+- `description`: String, Nullable=True
+- `reference_number`: String, Nullable=True
+- `created_at`: DateTime(timezone=True), Server Default=func.now()
+
+#### 13. `liabilities` Table (`app/models/liability.py`)
+- `id`: Integer, Primary Key, Indexed
+- `user_id`: Integer, ForeignKey("users.id", ondelete="CASCADE"), Indexed, Nullable=False
+- `name`: String, Nullable=False
+- `liability_type`: String, Nullable=False (Values: `"Credit Card"`, `"Personal Loan"`, `"Mortgage"`, `"Auto Loan"`, `"Other"`)
+- `total_principal`: Numeric(14,4), Nullable=False
+- `remaining_balance`: Numeric(14,4), Nullable=False
+- `interest_rate_apr`: Numeric(5,2), Nullable=False
+- `minimum_monthly_payment`: Numeric(14,4), Nullable=False
+- `due_date_day`: Integer, Nullable=True
+- `lender_name`: String, Nullable=True
+- `created_at`: DateTime(timezone=True), Server Default=func.now()
+
+#### 14. `india_post_rates` Table (`app/models/india_post_rate.py`)
+- `id`: Integer, Primary Key, Indexed
+- `scheme_code`: String, Nullable=False, Indexed (Values: `"PPF"`, `"SSY"`, `"MIS"`, `"SCSS"`, `"KVP"`, `"NSC"`)
+- `effective_from`: Date, Nullable=False
+- `effective_to`: Date, Nullable=True
+- `annual_rate`: Numeric(5,4), Nullable=False
+- `compounding_frequency`: String, Default="quarterly" (Values: `"quarterly"`, `"annually"`, `"monthly"`)
+
+#### 15. `audit_logs` Table (`app/models/audit_log.py`)
+- `id`: Integer, Primary Key, Indexed
+- `user_id`: Integer, ForeignKey("users.id", ondelete="SET NULL"), Nullable=True
+- `event_type`: String, Nullable=False (Values: `"LOGIN_SUCCESS"`, `"LOGIN_FAILURE"`, `"PASSWORD_CHANGE"`, `"DATA_EXPORT"`, `"ACCOUNT_DELETION"`)
+- `ip_address`: String, Nullable=True
+- `user_agent`: String, Nullable=True
+- `details_json`: String, Nullable=True
+- `created_at`: DateTime(timezone=True), Server Default=func.now()
+
 ---
 
 ## 3. API Route Architecture
@@ -175,14 +229,18 @@ PariView exposes a modular REST API under `/api/v1`, defined in `backend/app/api
 | Router Prefix | Module Path | Primary Purpose | Auth Requirement |
 | :--- | :--- | :--- | :--- |
 | `/api/v1/auth` | `endpoints/auth.py` | Registration, OAuth2 Password Login, Token Refresh, User Profile | Public / Bearer Token |
-| `/api/v1/transactions` | `endpoints/transactions.py` | Transaction CRUD, Bulk Imports, Category/Merchant Lookup, Export | Bearer Token |
+| `/api/v1/accounts` | `endpoints/accounts.py` | Multi-Account Ledger Management & Balance Updates | Bearer Token |
+| `/api/v1/transfers` | `endpoints/transfers.py` | Internal Account Transfers (excluded from cashflow) | Bearer Token |
+| `/api/v1/liabilities` | `endpoints/liabilities.py` | Debt Liability Tracking, APR Scoring, Min Payment Math | Bearer Token |
+| `/api/v1/transactions` | `endpoints/transactions.py` | Transaction CRUD, Bulk Imports, Fingerprinting, Category/Merchant Lookup | Bearer Token |
 | `/api/v1/analytics` | `endpoints/analytics.py` | Summary Metrics, Monthly Trends, PDF/Excel Export, Custom Reports, AI Summary | Bearer Token |
 | `/api/v1/budgets` | `endpoints/budgets.py` | Category Budget Limits, Spending Threshold Calculations | Bearer Token |
-| `/api/v1/savings` | `endpoints/savings.py` | Savings Goals Management & AI Projections | Bearer Token |
-| `/api/v1/investments` | `endpoints/investments.py` | Portfolio Holdings, Stock/MF CRUD, Performance Summaries | Bearer Token |
-| `/api/v1/india-post-investments`| `endpoints/india_post_investments.py` | Small Savings Schemes (PPF, SSY, KVP, NSC) CRUD & Maturity Math | Bearer Token |
+| `/api/v1/savings` | `endpoints/savings.py` | 3-Tier Savings Goals Management & Statistical Projections | Bearer Token |
+| `/api/v1/investments` | `endpoints/investments.py` | Portfolio Holdings, Stock/MF CRUD, Transaction History, Yield Math | Bearer Token |
+| `/api/v1/india-post-investments`| `endpoints/india_post_investments.py` | Small Savings Schemes (PPF, SSY, KVP, NSC) CRUD & Rate Lookup | Bearer Token |
 | `/api/v1/subscriptions` | `endpoints/subscriptions.py` | Recurring Subscription Tracking & Renewal Alerts | Bearer Token |
 | `/api/v1/receipts` | `endpoints/receipts.py` | OCR Receipt Upload, Text Parsing, Structured Data Extraction | Bearer Token |
+| `/api/v1/user` | `endpoints/user_privacy.py` | GDPR Data Export (JSON) & Right to be Forgotten Deletion | Bearer Token |
 | `/api/v1/ai` | `endpoints/ai.py` | Chatbot Assistant Interface, AI Financial Insights | Bearer Token |
 | `/api/v1/profile` | `endpoints/profile_router.py` | User Profile Info, Avatar Upload, Linked Bank Accounts | Bearer Token |
 | `/api/v1/settings` | `endpoints/settings.py` | Account Settings, Security Preferences, Password Update | Bearer Token |
@@ -221,7 +279,7 @@ PariView implements a cloud-native, pluggable storage architecture (`backend/app
 ## 5. Security Architecture
 
 1. **Password Security:** Passwords hashed with `passlib` using `bcrypt`/`argon2` schemes. Plaintext passwords are never logged or stored.
-2. **JWT Authentication:** Stateful user session tokens signed with `HS256` HMAC algorithms using `SECRET_KEY` configuration.
+2. **JWT Authentication:** Stateless JWT access tokens signed with `HS256` HMAC algorithms using `SECRET_KEY` configuration.
 3. **Database Isolation:** Every database query explicitly enforces `filter(Model.user_id == current_user.id)` to guarantee zero cross-tenant data leakage.
 4. **CORS Configuration:** Explicit CORS origin whitelist configured in `app/core/config.py` (`BACKEND_CORS_ORIGINS`).
 
@@ -254,7 +312,7 @@ Code Push / Pull Request ──► GitHub Actions (.github/workflows/ci.yml)
                                            │
  ┌─────────────────────────────────────────┴─────────────────────────────────────────┐
  │ Stage 1: Python Syntax & Compilation                                              │
- │ Stage 2: PostgreSQL Migration & 38/38 Pytest Unit/Integration Suite               │
+ │ Stage 2: PostgreSQL Migration & 55/55 Pytest Unit/Integration Suite               │
  │ Stage 3: Vite Production Build Verification                                       │
  │ Stage 4: Test Fixtures Generation                                                 │
  │ Stage 5: Playwright E2E Integration Suite (10/10 Browser Workflows)                │

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -10,8 +10,8 @@ class IndiaPostInvestment(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     category = Column(String, default="India Post")
     scheme_name = Column(String, nullable=False)
-    amount = Column(Float, nullable=False)
-    interest_rate = Column(Float, nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    interest_rate = Column(Numeric(5, 2), nullable=False)
     investment_date = Column(DateTime(timezone=True), nullable=False)
     maturity_date = Column(DateTime(timezone=True), nullable=False)
     frequency = Column(String, nullable=False) # One Time, Monthly

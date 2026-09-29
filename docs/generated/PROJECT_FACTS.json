@@ -1,0 +1,815 @@
+{
+  "generated_at": "2026-09-29T16:56:54.809829+00:00",
+  "git": {
+    "commit_hash": "cf84d44c53d78e24708e58b6bea5692d439a3d0a",
+    "branch": "master",
+    "commit_timestamp": "2026-09-29 15:30:10 +0530"
+  },
+  "environment": {
+    "python_version": "3.13.14",
+    "backend_framework": {
+      "name": "FastAPI",
+      "version": "0.139.0"
+    },
+    "frontend_framework": {
+      "name": "React",
+      "version": "^18.2.0",
+      "vite_version": "^4.3.9"
+    },
+    "database_type": "PostgreSQL (Production) / SQLite (Fallback)",
+    "storage_backend": "S3StorageProvider (AWS S3 / MinIO) / LocalStorageProvider",
+    "rate_limiter_backend": "Redis (Production) / TokenBucket (In-Memory Fallback)"
+  },
+  "database": {
+    "migration_head": "b7f8bbbeff6f_remediation_financial_precision_and_new_models.py",
+    "table_count": 24,
+    "tables": [
+      "accounts",
+      "audit_logs",
+      "budgets",
+      "categories",
+      "category_feedbacks",
+      "chat_history",
+      "import_batches",
+      "india_post_investments",
+      "india_post_rates",
+      "investment_transactions",
+      "investments",
+      "liabilities",
+      "linked_banks",
+      "merchants",
+      "notifications",
+      "receipts",
+      "savings_goals",
+      "subscriptions",
+      "transactions",
+      "transfers",
+      "user_profiles",
+      "user_settings",
+      "users",
+      "voice_logs"
+    ]
+  },
+  "api": {
+    "router_count": 18,
+    "endpoint_count": 69,
+    "routers": [
+      "accounts",
+      "ai",
+      "analytics",
+      "auth",
+      "banks",
+      "budgets",
+      "india-post-investments",
+      "investments",
+      "liabilities",
+      "profile",
+      "receipts",
+      "savings",
+      "settings",
+      "subscriptions",
+      "transactions",
+      "transfers",
+      "user",
+      "user_privacy"
+    ],
+    "endpoints": [
+      {
+        "path": "/api/v1/auth/register",
+        "methods": [
+          "POST"
+        ],
+        "name": "Register",
+        "tags": [
+          "auth"
+        ]
+      },
+      {
+        "path": "/api/v1/auth/login",
+        "methods": [
+          "POST"
+        ],
+        "name": "Login",
+        "tags": [
+          "auth"
+        ]
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "methods": [
+          "GET",
+          "PUT"
+        ],
+        "name": "Read User Me",
+        "tags": [
+          "auth"
+        ]
+      },
+      {
+        "path": "/api/v1/auth/me/avatar",
+        "methods": [
+          "POST"
+        ],
+        "name": "Upload Avatar",
+        "tags": [
+          "auth"
+        ]
+      },
+      {
+        "path": "/api/v1/accounts/",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Get User Accounts",
+        "tags": [
+          "accounts"
+        ]
+      },
+      {
+        "path": "/api/v1/accounts/{account_id}",
+        "methods": [
+          "GET",
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Get Account",
+        "tags": [
+          "accounts"
+        ]
+      },
+      {
+        "path": "/api/v1/transfers/",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Get User Transfers",
+        "tags": [
+          "transfers"
+        ]
+      },
+      {
+        "path": "/api/v1/liabilities/",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Get User Liabilities",
+        "tags": [
+          "liabilities"
+        ]
+      },
+      {
+        "path": "/api/v1/liabilities/summary",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Liabilities Summary",
+        "tags": [
+          "liabilities"
+        ]
+      },
+      {
+        "path": "/api/v1/liabilities/{liability_id}",
+        "methods": [
+          "GET",
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Get Liability",
+        "tags": [
+          "liabilities"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Read Transactions",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/taxonomy",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Category Taxonomy",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/{id}",
+        "methods": [
+          "GET",
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Read Transaction",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/bulk-delete",
+        "methods": [
+          "POST"
+        ],
+        "name": "Bulk Delete Transactions",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/categories/all",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Read Categories",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/merchants/all",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Read Merchants",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/import",
+        "methods": [
+          "POST"
+        ],
+        "name": "Import Transactions",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/upload-parse",
+        "methods": [
+          "POST"
+        ],
+        "name": "Upload And Parse Statement",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/bulk-validate",
+        "methods": [
+          "POST"
+        ],
+        "name": "Bulk Validate Transactions",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/transactions/bulk-import",
+        "methods": [
+          "POST"
+        ],
+        "name": "Bulk Import Transactions",
+        "tags": [
+          "transactions"
+        ]
+      },
+      {
+        "path": "/api/v1/budgets",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Read Budgets",
+        "tags": [
+          "budgets"
+        ]
+      },
+      {
+        "path": "/api/v1/budgets/{id}",
+        "methods": [
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Update Budget",
+        "tags": [
+          "budgets"
+        ]
+      },
+      {
+        "path": "/api/v1/budgets/status",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Budgets Status",
+        "tags": [
+          "budgets"
+        ]
+      },
+      {
+        "path": "/api/v1/receipts/upload",
+        "methods": [
+          "POST"
+        ],
+        "name": "Upload Receipt",
+        "tags": [
+          "receipts"
+        ]
+      },
+      {
+        "path": "/api/v1/receipts/scan-upi",
+        "methods": [
+          "POST"
+        ],
+        "name": "Scan Upi Screenshot",
+        "tags": [
+          "receipts"
+        ]
+      },
+      {
+        "path": "/api/v1/receipts/confirm/{receipt_id}",
+        "methods": [
+          "POST"
+        ],
+        "name": "Confirm Receipt",
+        "tags": [
+          "receipts"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/summary",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Dashboard Summary",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/notifications",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get User Notifications",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/notifications/{id}/read",
+        "methods": [
+          "POST"
+        ],
+        "name": "Mark Notification Read",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/notifications/mark-all-read",
+        "methods": [
+          "POST"
+        ],
+        "name": "Mark All Notifications Read",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/trends",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Spending Trends",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/forecast",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Forecast",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/fraud",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Fraud Warnings",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/top-merchants",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Top Merchants",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/export/csv",
+        "methods": [
+          "GET"
+        ],
+        "name": "Export Csv",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/export/excel",
+        "methods": [
+          "GET"
+        ],
+        "name": "Export Excel",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/export/pdf",
+        "methods": [
+          "GET"
+        ],
+        "name": "Export Pdf",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/reports/generate",
+        "methods": [
+          "GET"
+        ],
+        "name": "Generate Custom Report",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/analytics/dashboard/ai-summary",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Dashboard Ai Summary",
+        "tags": [
+          "analytics"
+        ]
+      },
+      {
+        "path": "/api/v1/ai/chat",
+        "methods": [
+          "POST"
+        ],
+        "name": "Chat With Finny",
+        "tags": [
+          "ai"
+        ]
+      },
+      {
+        "path": "/api/v1/ai/voice-entry",
+        "methods": [
+          "POST"
+        ],
+        "name": "Parse Voice Transaction",
+        "tags": [
+          "ai"
+        ]
+      },
+      {
+        "path": "/api/v1/ai/voice-entry/confirm",
+        "methods": [
+          "POST"
+        ],
+        "name": "Confirm Voice Transaction",
+        "tags": [
+          "ai"
+        ]
+      },
+      {
+        "path": "/api/v1/ai/insights",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Insights",
+        "tags": [
+          "ai"
+        ]
+      },
+      {
+        "path": "/api/v1/settings/subscriptions",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Read Subscriptions",
+        "tags": [
+          "settings"
+        ]
+      },
+      {
+        "path": "/api/v1/settings/subscriptions/{id}",
+        "methods": [
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Update Subscription",
+        "tags": [
+          "settings"
+        ]
+      },
+      {
+        "path": "/api/v1/settings/investments",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Read Investments",
+        "tags": [
+          "settings"
+        ]
+      },
+      {
+        "path": "/api/v1/settings/investments/{id}",
+        "methods": [
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Update Investment",
+        "tags": [
+          "settings"
+        ]
+      },
+      {
+        "path": "/api/v1/savings",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Get Savings Goals",
+        "tags": [
+          "savings"
+        ]
+      },
+      {
+        "path": "/api/v1/savings/{goal_id}",
+        "methods": [
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Update Savings Goal",
+        "tags": [
+          "savings"
+        ]
+      },
+      {
+        "path": "/api/v1/investments",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Get Investments",
+        "tags": [
+          "investments"
+        ]
+      },
+      {
+        "path": "/api/v1/investments/{inv_id}",
+        "methods": [
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Update Investment",
+        "tags": [
+          "investments"
+        ]
+      },
+      {
+        "path": "/api/v1/subscriptions",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Get Subscriptions",
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      {
+        "path": "/api/v1/subscriptions/{sub_id}",
+        "methods": [
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Update Subscription",
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      {
+        "path": "/api/v1/india-post-investments",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "name": "Get Investments",
+        "tags": [
+          "india-post-investments"
+        ]
+      },
+      {
+        "path": "/api/v1/india-post-investments/summary",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Investments Summary",
+        "tags": [
+          "india-post-investments"
+        ]
+      },
+      {
+        "path": "/api/v1/india-post-investments/ai-insights",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Ai Insights",
+        "tags": [
+          "india-post-investments"
+        ]
+      },
+      {
+        "path": "/api/v1/india-post-investments/{inv_id}",
+        "methods": [
+          "GET",
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Get Investment",
+        "tags": [
+          "india-post-investments"
+        ]
+      },
+      {
+        "path": "/api/v1/user/export-data",
+        "methods": [
+          "GET"
+        ],
+        "name": "Export User Data",
+        "tags": [
+          "user_privacy"
+        ]
+      },
+      {
+        "path": "/api/v1/user/delete-account",
+        "methods": [
+          "DELETE"
+        ],
+        "name": "Delete User Account",
+        "tags": [
+          "user_privacy"
+        ]
+      },
+      {
+        "path": "/api/v1/profile",
+        "methods": [
+          "GET",
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Get Profile",
+        "tags": [
+          "profile"
+        ]
+      },
+      {
+        "path": "/api/v1/profile/avatar",
+        "methods": [
+          "POST",
+          "DELETE"
+        ],
+        "name": "Upload Avatar",
+        "tags": [
+          "profile"
+        ]
+      },
+      {
+        "path": "/api/v1/settings",
+        "methods": [
+          "GET",
+          "PUT"
+        ],
+        "name": "Get User Settings",
+        "tags": [
+          "profile"
+        ]
+      },
+      {
+        "path": "/api/v1/auth/change-password",
+        "methods": [
+          "POST"
+        ],
+        "name": "Change Password",
+        "tags": [
+          "profile"
+        ]
+      },
+      {
+        "path": "/api/v1/banks",
+        "methods": [
+          "GET"
+        ],
+        "name": "Get Linked Banks",
+        "tags": [
+          "profile"
+        ]
+      },
+      {
+        "path": "/api/v1/banks/link",
+        "methods": [
+          "POST"
+        ],
+        "name": "Link Bank",
+        "tags": [
+          "profile"
+        ]
+      },
+      {
+        "path": "/api/v1/banks/{id}",
+        "methods": [
+          "PUT",
+          "DELETE"
+        ],
+        "name": "Update Bank",
+        "tags": [
+          "profile"
+        ]
+      },
+      {
+        "path": "/api/v1/profile/export",
+        "methods": [
+          "GET"
+        ],
+        "name": "Export Profile Data",
+        "tags": [
+          "profile"
+        ]
+      },
+      {
+        "path": "/",
+        "methods": [
+          "GET"
+        ],
+        "name": "Read Root",
+        "tags": []
+      },
+      {
+        "path": "/health",
+        "methods": [
+          "GET"
+        ],
+        "name": "Health Check",
+        "tags": []
+      }
+    ]
+  },
+  "testing": {
+    "pytest": {
+      "total": 55,
+      "passed": 55,
+      "failed": 0,
+      "skipped": 0,
+      "status": "PASS"
+    },
+    "frontend_test_status": "PASS (Vite build verified)",
+    "e2e_test_status": "PASS (Playwright verified)"
+  },
+  "security": {
+    "authentication": "Argon2id password hashing + JWT Bearer Access/Refresh Tokens",
+    "rate_limiting": "IP & User-scoped Token-Bucket Rate Limiter Middleware",
+    "audit_logging": "Append-Only Security Audit Log (audit_logs table)",
+    "privacy": "GDPR / DPDP JSON Data Export & Cascading Account Deletion"
+  }
+}

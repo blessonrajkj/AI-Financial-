@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -10,8 +11,8 @@ class SavingsGoal(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, nullable=False)
-    target_amount = Column(Float, nullable=False)
-    current_amount = Column(Float, default=0.0)
+    target_amount = Column(Numeric(12, 2), nullable=False)
+    current_amount = Column(Numeric(12, 2), default=0.00)
     target_date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

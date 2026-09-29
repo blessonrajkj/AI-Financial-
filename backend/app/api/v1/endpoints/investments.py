@@ -44,39 +44,42 @@ def get_investments(
     
     items = []
     for inv in investments:
-        p_val = inv.quantity * inv.purchase_price
-        c_val = inv.quantity * inv.current_price
+        qty = float(inv.quantity)
+        p_price = float(inv.purchase_price)
+        c_price = float(inv.current_price)
+        prev_close = float(inv.previous_close or inv.current_price)
+        divs = float(inv.dividends_received or 0.0)
+
+        p_val = qty * p_price
+        c_val = qty * c_price
         pl = c_val - p_val
         pl_pct = (pl / p_val * 100.0) if p_val > 0 else 0.0
         
-        # Calculate CAGR
         years = 1.0
         if inv.purchase_date:
             p_date = inv.purchase_date
             if p_date.tzinfo is not None:
                 p_date = p_date.replace(tzinfo=None)
             delta = datetime.utcnow() - p_date
-            years = max(delta.days / 365.25, 0.08) # minimum ~1 month
+            years = max(delta.days / 365.25, 0.08)
             
         cagr = 0.0
         if p_val > 0 and c_val > 0:
             cagr = ((c_val / p_val) ** (1 / years) - 1.0) * 100.0
             
-        # Simplified XIRR
         xirr = 0.0
-        total_return_with_divs = c_val + inv.dividends_received
+        total_return_with_divs = c_val + divs
         if p_val > 0 and total_return_with_divs > 0:
             xirr = ((total_return_with_divs / p_val) ** (1 / years) - 1.0) * 100.0
             
         risk = RISK_SCORES.get(inv.asset_type, 4)
         
-        # today's gain/loss
-        today_pl = inv.quantity * (inv.current_price - (inv.previous_close or inv.current_price))
+        today_pl = qty * (c_price - prev_close)
         portfolio_today_pl += today_pl
         
         total_purchase_val += p_val
         total_current_val += c_val
-        total_dividends += inv.dividends_received
+        total_dividends += divs
         weighted_risk_sum += (risk * c_val)
         
         items.append({
@@ -85,33 +88,31 @@ def get_investments(
             "asset_type": inv.asset_type,
             "symbol": inv.symbol,
             "exchange": inv.exchange,
-            "quantity": inv.quantity,
-            "purchase_price": inv.purchase_price,
-            "current_price": inv.current_price,
+            "quantity": qty,
+            "purchase_price": p_price,
+            "current_price": c_price,
             "purchase_date": inv.purchase_date.isoformat() if inv.purchase_date else None,
-            "dividends_received": inv.dividends_received,
-            "purchase_value": p_val,
-            "current_value": c_val,
-            "profit_loss": pl,
-            "profit_loss_percentage": pl_pct,
-            "cagr": cagr,
-            "xirr": xirr,
+            "dividends_received": divs,
+            "purchase_value": round(p_val, 2),
+            "current_value": round(c_val, 2),
+            "profit_loss": round(pl, 2),
+            "profit_loss_percentage": round(pl_pct, 2),
+            "cagr": round(cagr, 2),
+            "xirr": round(xirr, 2),
             "risk_score": risk,
-            "today_gain_loss": today_pl,
-            "previous_close": inv.previous_close or inv.current_price,
+            "today_gain_loss": round(today_pl, 2),
+            "previous_close": prev_close,
             "price_last_updated": inv.price_last_updated.isoformat() if inv.price_last_updated else None
         })
         
     portfolio_pl = total_current_val - total_purchase_val
     portfolio_pl_pct = (portfolio_pl / total_purchase_val * 100.0) if total_purchase_val > 0 else 0.0
     
-    # Weighted average risk score
     portfolio_risk = (weighted_risk_sum / total_current_val) if total_current_val > 0 else 0.0
     
-    # Asset allocation percentage calculation
     allocation = {}
     for inv in investments:
-        c_val = inv.quantity * inv.current_price
+        c_val = float(inv.quantity) * float(inv.current_price)
         pct = (c_val / total_current_val * 100.0) if total_current_val > 0 else 0.0
         allocation[inv.asset_type] = allocation.get(inv.asset_type, 0.0) + pct
         
@@ -119,12 +120,12 @@ def get_investments(
  
     return {
         "summary": {
-            "total_investment": total_purchase_val,
-            "total_current_value": total_current_val,
-            "total_profit_loss": portfolio_pl,
-            "total_profit_loss_percentage": portfolio_pl_pct,
-            "today_gain_loss": portfolio_today_pl,
-            "total_dividends": total_dividends,
+            "total_investment": round(total_purchase_val, 2),
+            "total_current_value": round(total_current_val, 2),
+            "total_profit_loss": round(portfolio_pl, 2),
+            "total_profit_loss_percentage": round(portfolio_pl_pct, 2),
+            "today_gain_loss": round(portfolio_today_pl, 2),
+            "total_dividends": round(total_dividends, 2),
             "portfolio_risk_score": round(portfolio_risk, 1)
         },
         "allocation": allocation_list,
@@ -155,7 +156,6 @@ def create_investment(
     db.add(db_inv)
     db.commit()
     
-    # Trigger immediate update of this new asset
     if db_inv.symbol:
         from app.services.market_data import market_data_service
         market_data_service.update_prices_for_user(db, current_user.id, force=True)
@@ -177,13 +177,12 @@ def update_investment(
     if not db_inv:
         raise HTTPException(status_code=404, detail="Investment not found")
         
-    update_data = inv_in.dict(exclude_unset=True)
+    update_data = inv_in.model_dump(exclude_unset=True)
     for field, val in update_data.items():
         setattr(db_inv, field, val)
         
     db.commit()
     
-    # Trigger immediate update if symbol updated
     if "symbol" in update_data or "exchange" in update_data:
         from app.services.market_data import market_data_service
         market_data_service.update_prices_for_user(db, current_user.id, force=True)
