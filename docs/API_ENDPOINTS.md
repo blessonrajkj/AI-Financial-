@@ -1,7 +1,7 @@
 # PARIVIEW — EXHAUSTIVE API ENDPOINTS REFERENCE
 
-**Generated Date:** 2026-09-29T16:56:54.809829+00:00  
-**Git Commit:** `cf84d44c53d78e24708e58b6bea5692d439a3d0a`  
+**Generated Date:** 2026-09-29T17:25:57.281065+00:00  
+**Git Commit:** `335aa4dfd9d0cb6e2f53769d60befad9e76e501c`  
 **Total Registered Endpoints:** `69` across `18` APIRouters  
 
 ## Registered Endpoints Inventory
