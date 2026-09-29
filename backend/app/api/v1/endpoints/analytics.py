@@ -111,8 +111,12 @@ def get_dashboard_summary(
     ).scalar() or 0.0)
 
     # Investment returns
-    from app.services.market_data import market_data_service
-    market_data_service.update_prices_for_user(db, current_user.id)
+    try:
+        from app.services.market_data import market_data_service
+        market_data_service.update_prices_for_user(db, current_user.id)
+    except Exception as e:
+        import logging
+        logging.getLogger("analytics").warning(f"Market price update skipped on summary load: {e}")
     
     investments_db = db.query(Investment).filter(Investment.user_id == current_user.id).all()
     total_investments_current = float(sum(i.quantity * i.current_price for i in investments_db))

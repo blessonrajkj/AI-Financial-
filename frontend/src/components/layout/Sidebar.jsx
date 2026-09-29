@@ -311,7 +311,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 alt="avatar"
                 style={{ width: 30, height: 30, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }}
               />
-              <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                 <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.full_name || 'User'}
                 </p>

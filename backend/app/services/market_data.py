@@ -59,22 +59,46 @@ class MarketDataService:
         if not investments:
             return False, True, datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
-        symbols_to_fetch = list(set([inv.symbol for inv in investments if inv.symbol]))
-        live_api_working = False
+        now = datetime.now(timezone.utc)
+        needs_update = False
+        for inv in investments:
+            if inv.symbol:
+                if not inv.price_last_updated or force:
+                    needs_update = True
+                    break
+                else:
+                    last_up = inv.price_last_updated
+                    if last_up.tzinfo is None:
+                        last_up = last_up.replace(tzinfo=timezone.utc)
+                    if (now - last_up).total_seconds() > 900:  # 15 minutes threshold
+                        needs_update = True
+                        break
 
+        if not needs_update:
+            return False, True, now.strftime("%Y-%m-%d %H:%M:%S")
+
+        live_api_working = False
         for inv in investments:
             if not inv.symbol:
                 continue
 
-            res = self.fetch_price_for_symbol(inv.symbol)
-            if res.get("success"):
-                live_api_working = True
-                inv.current_price = Decimal(str(res["price"]))
-                inv.previous_close = Decimal(str(res["previous_close"]))
-                inv.price_last_updated = datetime.now(timezone.utc)
+            try:
+                res = self.fetch_price_for_symbol(inv.symbol)
+                if res.get("success"):
+                    live_api_working = True
+                    inv.current_price = Decimal(str(res["price"]))
+                    inv.previous_close = Decimal(str(res["previous_close"]))
+                    inv.price_last_updated = now
+            except Exception as e:
+                logger.warning(f"Error fetching price for {inv.symbol}: {e}")
 
-        db.commit()
-        last_updated_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error committing price updates: {e}")
+
+        last_updated_str = now.strftime("%Y-%m-%d %H:%M:%S")
         return False, live_api_working, last_updated_str
 
 market_data_service = MarketDataService()
