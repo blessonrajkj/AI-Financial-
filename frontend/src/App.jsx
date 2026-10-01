@@ -25,6 +25,7 @@ import AIInsightsPage from './pages/AIInsightsPage';
 // Layout components
 import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
+import BottomNav from './components/layout/BottomNav';
 
 // Route guards
 const ProtectedRoute = () => {
@@ -54,11 +55,12 @@ const Layout = () => {
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
       {/* Content wrapper — offset by 260px sidebar width on desktop & navbar height */}
-      <div className="lg:ml-[260px] pt-[72px] min-h-screen transition-all duration-300">
-        <main className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-page-enter">
+      <div className="lg:ml-[260px] pt-[72px] pb-20 lg:pb-6 min-h-screen transition-all duration-300">
+        <main className="w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-6 animate-page-enter">
           <Outlet />
         </main>
       </div>
+      <BottomNav />
     </div>
   );
 };

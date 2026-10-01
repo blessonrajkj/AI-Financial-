@@ -741,26 +741,26 @@ const Transactions = () => {
       {/* Manual Logger / Edit Popup Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", duration: 0.4 }}
-              className="w-full max-w-lg bg-cardBg border border-borderColor rounded-3xl p-6 shadow-xl relative"
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 shadow-xl relative"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-textPrimary">{isEditMode ? 'Edit Transaction' : 'Log New Transaction'}</h3>
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h3 className="text-base sm:text-lg font-bold text-textPrimary">{isEditMode ? 'Edit Transaction' : 'Log New Transaction'}</h3>
                 <button 
                   onClick={() => { setShowAddModal(false); resetForm(); }}
-                  className="p-1 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
+                  className="p-1.5 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Flow Type</label>
                     <select 
