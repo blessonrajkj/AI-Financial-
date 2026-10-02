@@ -402,76 +402,111 @@ const InvestmentsPage = () => {
               <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : items.length > 0 ? (
-            <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-borderColor text-textSecondary font-bold">
-                    <th className="py-2.5 px-3">Asset</th>
-                    <th className="py-2.5 px-3">Type</th>
-                    <th className="py-2.5 px-3 text-right">Holdings</th>
-                    <th className="py-2.5 px-3 text-right">Current Value</th>
-                    <th className="py-2.5 px-3 text-right">Total Gain/Loss</th>
-                    <th className="py-2.5 px-3 text-right">CAGR</th>
-                    <th className="py-2.5 px-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => {
-                    const isPositive = item.profit_loss >= 0;
-                    return (
-                      <tr key={item.id} className="border-b border-borderColor/60 hover:bg-hoverBg/40 transition-colors">
-                        <td className="py-3 px-3">
-                          <div className="font-semibold text-textPrimary">{item.asset_name}</div>
-                          {item.symbol && (
-                            <div className="text-[10px] text-textMuted uppercase flex items-center space-x-1 mt-0.5">
-                              <span className="font-bold text-textSecondary">{item.symbol}</span>
-                              {item.exchange && (
-                                <>
-                                  <span>•</span>
-                                  <span>{item.exchange}</span>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-full bg-background border border-borderColor text-[10px] text-textSecondary">
-                            {item.asset_type}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-right text-textSecondary">
-                          {item.quantity} @ ₹{item.purchase_price.toLocaleString()}
-                        </td>
-                        <td className="py-3 px-3 text-right font-semibold text-textPrimary">
-                          ₹{item.current_value.toLocaleString(undefined, {maximumFractionDigits: 1})}
-                        </td>
-                        <td className={`py-3 px-3 text-right font-bold ${isPositive ? 'text-success' : 'text-danger'}`}>
-                          {isPositive ? '+' : ''}{item.profit_loss_percentage.toFixed(1)}%
-                        </td>
-                        <td className="py-3 px-3 text-right font-semibold text-textPrimary">
-                          {item.cagr.toFixed(1)}%
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <div className="flex justify-center space-x-1">
-                            <button 
-                              onClick={() => handleOpenEdit(item)}
-                              className="p-1.5 text-textSecondary hover:bg-hoverBg rounded transition-colors"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(item.id)}
-                              className="p-1.5 text-textMuted hover:text-danger hover:bg-danger/5 rounded transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+            <div className="space-y-3">
+              {/* Mobile Card List View (< md) */}
+              <div className="block md:hidden space-y-3">
+                {items.map((item) => {
+                  const isPositive = item.profit_loss >= 0;
+                  return (
+                    <div key={item.id} className="p-4 rounded-2xl border border-borderColor/70 bg-surface/60 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h5 className="font-bold text-textPrimary text-sm">{item.asset_name}</h5>
+                          <div className="text-[11px] text-textMuted font-medium flex items-center gap-1.5 mt-0.5">
+                            <span className="px-2 py-0.5 rounded-full bg-background border border-borderColor text-[10px] text-textSecondary">{item.asset_type}</span>
+                            {item.symbol && <span>• {item.symbol}</span>}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-black font-numeric text-textPrimary">₹{item.current_value.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+                          <span className={`text-xs font-bold block ${isPositive ? 'text-success' : 'text-danger'}`}>{isPositive ? '+' : ''}{item.profit_loss_percentage.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-borderColor/40 text-xs text-textSecondary font-medium">
+                        <span>Holdings: {item.quantity} @ ₹{item.purchase_price.toLocaleString()}</span>
+                        <span>CAGR: {item.cagr.toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1 border-t border-borderColor/30">
+                        <button onClick={() => handleOpenEdit(item)} className="px-3 py-1 bg-surface border border-borderColor rounded-xl text-xs font-bold text-primary">Edit</button>
+                        <button onClick={() => handleDelete(item.id)} className="px-3 py-1 bg-danger/10 text-danger rounded-xl text-xs font-bold">Delete</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table View (>= md) */}
+              <div className="hidden md:block overflow-x-auto max-h-[300px] overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-borderColor text-textSecondary font-bold">
+                      <th className="py-2.5 px-3">Asset</th>
+                      <th className="py-2.5 px-3">Type</th>
+                      <th className="py-2.5 px-3 text-right">Holdings</th>
+                      <th className="py-2.5 px-3 text-right">Current Value</th>
+                      <th className="py-2.5 px-3 text-right">Total Gain/Loss</th>
+                      <th className="py-2.5 px-3 text-right">CAGR</th>
+                      <th className="py-2.5 px-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => {
+                      const isPositive = item.profit_loss >= 0;
+                      return (
+                        <tr key={item.id} className="border-b border-borderColor/60 hover:bg-hoverBg/40 transition-colors">
+                          <td className="py-3 px-3">
+                            <div className="font-semibold text-textPrimary">{item.asset_name}</div>
+                            {item.symbol && (
+                              <div className="text-[10px] text-textMuted uppercase flex items-center space-x-1 mt-0.5">
+                                <span className="font-bold text-textSecondary">{item.symbol}</span>
+                                {item.exchange && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{item.exchange}</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 rounded-full bg-background border border-borderColor text-[10px] text-textSecondary">
+                              {item.asset_type}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right text-textSecondary">
+                            {item.quantity} @ ₹{item.purchase_price.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-3 text-right font-semibold text-textPrimary">
+                            ₹{item.current_value.toLocaleString(undefined, {maximumFractionDigits: 1})}
+                          </td>
+                          <td className={`py-3 px-3 text-right font-bold ${isPositive ? 'text-success' : 'text-danger'}`}>
+                            {isPositive ? '+' : ''}{item.profit_loss_percentage.toFixed(1)}%
+                          </td>
+                          <td className="py-3 px-3 text-right font-semibold text-textPrimary">
+                            {item.cagr.toFixed(1)}%
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex justify-center space-x-1">
+                              <button 
+                                onClick={() => handleOpenEdit(item)}
+                                className="p-1.5 text-textSecondary hover:bg-hoverBg rounded transition-colors"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(item.id)}
+                                className="p-1.5 text-textMuted hover:text-danger hover:bg-danger/5 rounded transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <div className="h-48 flex flex-col items-center justify-center text-textSecondary border border-dashed border-borderColor rounded-2xl bg-background/50">

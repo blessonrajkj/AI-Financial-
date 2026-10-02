@@ -143,7 +143,7 @@ const ReportsPage = () => {
         </div>
 
         {/* Report Archetype list */}
-        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
           {REPORT_TYPES.map((type) => {
             const isSelected = selectedType === type.id;
             return (
@@ -157,16 +157,16 @@ const ReportsPage = () => {
                     setPeriod(new Date().toISOString().slice(0, 7));
                   }
                 }}
-                className={`p-5 rounded-3xl border text-left flex flex-col justify-between h-36 transition-all duration-200 ${
+                className={`p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border text-left flex flex-col justify-between h-32 sm:h-36 transition-all duration-200 ${
                   isSelected 
                     ? 'bg-primary/5 border-primary shadow-sm text-primary' 
                     : 'bg-cardBg border-borderColor text-textSecondary hover:border-borderColor/80 hover:bg-hoverBg/30'
                 }`}
               >
-                <type.icon className={`w-5 h-5 ${isSelected ? 'text-primary' : 'text-textMuted'}`} />
+                <type.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? 'text-primary' : 'text-textMuted'}`} />
                 <div>
-                  <h4 className="text-sm font-bold text-textPrimary">{type.name}</h4>
-                  <p className="text-[10px] text-textSecondary mt-1 leading-relaxed">{type.desc}</p>
+                  <h4 className="text-xs sm:text-sm font-bold text-textPrimary">{type.name}</h4>
+                  <p className="text-[10px] text-textSecondary mt-0.5 sm:mt-1 leading-relaxed line-clamp-2">{type.desc}</p>
                 </div>
               </button>
             );
@@ -183,36 +183,36 @@ const ReportsPage = () => {
 
       {/* Compiled Document Render Panel */}
       {reportData && (
-        <div className="bg-cardBg border border-borderColor rounded-3xl p-6 md:p-8 shadow-sm print:border-none print:shadow-none print:p-0 animate-fade-in">
+        <div className="bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm print:border-none print:shadow-none print:p-0 animate-fade-in">
           {/* Actions toolbar (hidden on print) */}
-          <div className="flex justify-end space-x-3 mb-6 pb-6 border-b border-borderColor print:hidden">
+          <div className="flex flex-wrap items-center justify-end gap-2 mb-6 pb-6 border-b border-borderColor print:hidden">
             <button 
               onClick={handlePrint}
-              className="flex items-center space-x-2 px-4 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
+              className="flex items-center space-x-1.5 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-3.5 h-3.5" />
               <span>Print Sheet</span>
             </button>
             <button 
               onClick={() => handleDownload('csv')}
-              className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
+              className="flex items-center space-x-1.5 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
+              <span>CSV</span>
             </button>
             <button 
               onClick={() => handleDownload('excel')}
-              className="flex items-center space-x-2 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
+              className="flex items-center space-x-1.5 px-3 py-2 bg-background border border-borderColor rounded-xl text-textSecondary hover:text-textPrimary hover:border-borderColor/80 text-xs font-semibold transition-colors shadow-sm"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export Excel</span>
+              <span>Excel</span>
             </button>
             <button 
               onClick={() => handleDownload('pdf')}
-              className="flex items-center space-x-2 px-3 py-2 bg-primary/10 hover:bg-primary/15 text-primary rounded-xl text-xs font-semibold transition-colors animate-fade-in"
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-primary/10 hover:bg-primary/15 text-primary rounded-xl text-xs font-bold transition-colors animate-fade-in"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export PDF</span>
+              <span>PDF</span>
             </button>
           </div>
 

@@ -186,57 +186,57 @@ const SubscriptionsPage = () => {
       )}
 
       {/* Overview summaries */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="doppel-shell h-36">
-          <div className="doppel-core p-6 flex flex-col justify-between">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-6">
+        <div className="doppel-shell h-auto sm:h-36">
+          <div className="doppel-core p-4 sm:p-6 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
-              <span className="eyebrow-badge !px-2 !py-0.5">Active Contracts</span>
-              <span className="p-2 bg-primary/10 text-primary rounded-xl border border-primary/20"><CreditCard className="w-4 h-4" /></span>
+              <span className="eyebrow-badge !px-2 !py-0.5 text-[10px]">Active Contracts</span>
+              <span className="p-1.5 sm:p-2 bg-primary/10 text-primary rounded-xl border border-primary/20"><CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></span>
             </div>
-            <div>
-              <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">{summary.active_subscriptions_count || 0}</h3>
-              <p className="text-[11px] text-textMuted font-medium mt-1">Tracked recurring payment lines</p>
+            <div className="mt-2 sm:mt-0">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">{summary.active_subscriptions_count || 0}</h3>
+              <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-0.5 sm:mt-1">Tracked recurring lines</p>
             </div>
           </div>
         </div>
 
-        <div className="doppel-shell h-36">
-          <div className="doppel-core p-6 flex flex-col justify-between">
+        <div className="doppel-shell h-auto sm:h-36">
+          <div className="doppel-core p-4 sm:p-6 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
-              <span className="eyebrow-badge !px-2 !py-0.5">Monthly Overhead</span>
-              <span className="p-2 bg-danger/10 text-danger rounded-xl border border-danger/20"><TrendingUp className="w-4 h-4" /></span>
+              <span className="eyebrow-badge !px-2 !py-0.5 text-[10px]">Monthly Overhead</span>
+              <span className="p-1.5 sm:p-2 bg-danger/10 text-danger rounded-xl border border-danger/20"><TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></span>
             </div>
-            <div>
-              <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{(summary.monthly_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</h3>
-              <p className="text-[11px] text-textMuted font-medium mt-1">Total recurring cost per month</p>
+            <div className="mt-2 sm:mt-0">
+              <h3 className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{(summary.monthly_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</h3>
+              <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-0.5 sm:mt-1">Total cost per month</p>
             </div>
           </div>
         </div>
 
-        <div className="doppel-shell h-36">
-          <div className="doppel-core p-6 flex flex-col justify-between">
+        <div className="doppel-shell h-auto sm:h-36">
+          <div className="doppel-core p-4 sm:p-6 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
-              <span className="eyebrow-badge !px-2 !py-0.5">Annual Overhead</span>
-              <span className="p-2 bg-warning/10 text-warning rounded-xl border border-warning/20"><Activity className="w-4 h-4" /></span>
+              <span className="eyebrow-badge !px-2 !py-0.5 text-[10px]">Annual Overhead</span>
+              <span className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-xl border border-warning/20"><Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></span>
             </div>
-            <div>
-              <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{(summary.annual_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</h3>
-              <p className="text-[11px] text-textMuted font-medium mt-1">Projected yearly subscription cost</p>
+            <div className="mt-2 sm:mt-0">
+              <h3 className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{(summary.annual_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</h3>
+              <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-0.5 sm:mt-1">Projected yearly cost</p>
             </div>
           </div>
         </div>
 
-        <div className="doppel-shell h-36">
-          <div className="doppel-core p-6 flex flex-col justify-between">
+        <div className="doppel-shell h-auto sm:h-36">
+          <div className="doppel-core p-4 sm:p-6 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
-              <span className="eyebrow-badge !px-2 !py-0.5">Next AutoPay Date</span>
-              <span className="p-2 bg-success/10 text-success rounded-xl border border-success/20"><Calendar className="w-4 h-4" /></span>
+              <span className="eyebrow-badge !px-2 !py-0.5 text-[10px]">Next AutoPay</span>
+              <span className="p-1.5 sm:p-2 bg-success/10 text-success rounded-xl border border-success/20"><Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></span>
             </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-textPrimary tracking-tight">
-                {summary.next_autopay_date ? new Date(summary.next_autopay_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : 'No AutoPays Active'}
+            <div className="mt-2 sm:mt-0">
+              <h3 className="text-xs sm:text-sm font-extrabold text-textPrimary tracking-tight">
+                {summary.next_autopay_date ? new Date(summary.next_autopay_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : 'No AutoPays'}
               </h3>
-              <p className="text-[11px] text-textMuted font-medium mt-1">Closest upcoming autopay cycle</p>
+              <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-0.5 sm:mt-1">Upcoming autopay date</p>
             </div>
           </div>
         </div>
@@ -334,72 +334,108 @@ const SubscriptionsPage = () => {
               <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : items.length > 0 ? (
-            <div className="overflow-x-auto max-h-[380px] overflow-y-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-borderColor text-textSecondary font-bold">
-                    <th className="py-2.5 px-3">Service</th>
-                    <th className="py-2.5 px-3 text-right">Cost</th>
-                    <th className="py-2.5 px-3">Billing Cycle</th>
-                    <th className="py-2.5 px-3">Next Bill Date</th>
-                    <th className="py-2.5 px-3 text-center">AutoPay</th>
-                    <th className="py-2.5 px-3 text-center">Status</th>
-                    <th className="py-2.5 px-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((sub) => (
-                    <tr key={sub.id} className="border-b border-borderColor/60 hover:bg-hoverBg/40 transition-colors">
-                      <td className="py-3 px-3 font-semibold text-textPrimary">{sub.name}</td>
-                      <td className="py-3 px-3 text-right font-bold text-textPrimary">₹{sub.amount.toLocaleString()}</td>
-                      <td className="py-3 px-3 capitalize text-textSecondary">{sub.billing_cycle}</td>
-                      <td className="py-3 px-3 text-textSecondary">
-                        {new Date(sub.next_billing_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <button 
-                          onClick={() => handleToggleAutopay(sub)}
-                          className={`p-1.5 rounded-lg transition-colors inline-flex ${sub.is_autopay ? 'text-success hover:bg-success/5' : 'text-textMuted hover:bg-hoverBg'}`}
-                        >
-                          {sub.is_autopay ? (
-                            <ToggleRight className="w-6 h-6" />
-                          ) : (
-                            <ToggleLeft className="w-6 h-6" />
-                          )}
+            <div className="space-y-3">
+              {/* Mobile Card View (< md) */}
+              <div className="block md:hidden space-y-3">
+                {items.map((sub) => (
+                  <div key={sub.id} className="p-4 rounded-2xl border border-borderColor/70 bg-surface/60 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-bold text-textPrimary text-sm">{sub.name}</h5>
+                        <span className="text-[11px] text-textMuted capitalize font-medium">{sub.billing_cycle}</span>
+                      </div>
+                      <span className="text-sm font-black font-numeric text-textPrimary">₹{sub.amount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-borderColor/40 text-xs">
+                      <span className="text-textMuted text-[11px]">
+                        Next: {new Date(sub.next_billing_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleToggleAutopay(sub)} className="text-xs font-bold flex items-center gap-1 text-primary">
+                          {sub.is_autopay ? <ToggleRight className="w-5 h-5 text-success" /> : <ToggleLeft className="w-5 h-5 text-textMuted" />}
+                          <span className="text-[10px]">{sub.is_autopay ? 'AutoPay' : 'Manual'}</span>
                         </button>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <button 
-                          onClick={() => handleToggleActive(sub)}
-                          className={`px-2 py-0.5 rounded-full font-bold text-[10px] transition-colors inline-block ${
-                            sub.is_active 
-                              ? 'bg-success/10 text-success hover:bg-success/20' 
-                              : 'bg-textMuted/15 text-textMuted hover:bg-textMuted/25'
-                          }`}
-                        >
+                        <button onClick={() => handleToggleActive(sub)} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sub.is_active ? 'bg-success/10 text-success' : 'bg-textMuted/15 text-textMuted'}`}>
                           {sub.is_active ? 'Active' : 'Paused'}
                         </button>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <div className="flex justify-center space-x-1">
-                          <button 
-                            onClick={() => handleOpenEdit(sub)}
-                            className="p-1.5 text-textSecondary hover:bg-hoverBg rounded transition-colors"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(sub.id)}
-                            className="p-1.5 text-textMuted hover:text-danger hover:bg-danger/5 rounded transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1 border-t border-borderColor/30">
+                      <button onClick={() => handleOpenEdit(sub)} className="px-3 py-1 bg-surface border border-borderColor rounded-xl text-xs font-bold text-primary">Edit</button>
+                      <button onClick={() => handleDelete(sub.id)} className="px-3 py-1 bg-danger/10 text-danger rounded-xl text-xs font-bold">Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View (>= md) */}
+              <div className="hidden md:block overflow-x-auto max-h-[380px] overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-borderColor text-textSecondary font-bold">
+                      <th className="py-2.5 px-3">Service</th>
+                      <th className="py-2.5 px-3 text-right">Cost</th>
+                      <th className="py-2.5 px-3">Billing Cycle</th>
+                      <th className="py-2.5 px-3">Next Bill Date</th>
+                      <th className="py-2.5 px-3 text-center">AutoPay</th>
+                      <th className="py-2.5 px-3 text-center">Status</th>
+                      <th className="py-2.5 px-3 text-center">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((sub) => (
+                      <tr key={sub.id} className="border-b border-borderColor/60 hover:bg-hoverBg/40 transition-colors">
+                        <td className="py-3 px-3 font-semibold text-textPrimary">{sub.name}</td>
+                        <td className="py-3 px-3 text-right font-bold text-textPrimary">₹{sub.amount.toLocaleString()}</td>
+                        <td className="py-3 px-3 capitalize text-textSecondary">{sub.billing_cycle}</td>
+                        <td className="py-3 px-3 text-textSecondary">
+                          {new Date(sub.next_billing_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <button 
+                            onClick={() => handleToggleAutopay(sub)}
+                            className={`p-1.5 rounded-lg transition-colors inline-flex ${sub.is_autopay ? 'text-success hover:bg-success/5' : 'text-textMuted hover:bg-hoverBg'}`}
+                          >
+                            {sub.is_autopay ? (
+                              <ToggleRight className="w-6 h-6" />
+                            ) : (
+                              <ToggleLeft className="w-6 h-6" />
+                            )}
+                          </button>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <button 
+                            onClick={() => handleToggleActive(sub)}
+                            className={`px-2 py-0.5 rounded-full font-bold text-[10px] transition-colors inline-block ${
+                              sub.is_active 
+                                ? 'bg-success/10 text-success hover:bg-success/20' 
+                                : 'bg-textMuted/15 text-textMuted hover:bg-textMuted/25'
+                            }`}
+                          >
+                            {sub.is_active ? 'Active' : 'Paused'}
+                          </button>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <div className="flex justify-center space-x-1">
+                            <button 
+                              onClick={() => handleOpenEdit(sub)}
+                              className="p-1.5 text-textSecondary hover:bg-hoverBg rounded transition-colors"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(sub.id)}
+                              className="p-1.5 text-textMuted hover:text-danger hover:bg-danger/5 rounded transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <div className="h-64 flex flex-col items-center justify-center text-textSecondary border border-dashed border-borderColor rounded-2xl bg-background/50">

@@ -95,7 +95,7 @@ const ChatbotPage = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col bg-cardBg border border-borderColor rounded-3xl overflow-hidden shadow-sm">
+    <div className="h-[calc(100vh-160px)] sm:h-[calc(100vh-140px)] flex flex-col bg-cardBg border border-borderColor rounded-3xl overflow-hidden shadow-sm">
       {/* Bot Header */}
       <div className="px-6 py-4 bg-background border-b border-borderColor flex items-center justify-between">
         <div className="flex items-center space-x-3">

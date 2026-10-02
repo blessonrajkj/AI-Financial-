@@ -492,19 +492,19 @@ const Transactions = () => {
 
       {/* Filters Toolbar */}
       <div className="doppel-shell">
-        <div className="doppel-core p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="doppel-core p-3 sm:p-4 flex flex-col md:flex-row items-center justify-between gap-3">
           <div className="relative w-full md:max-w-xs">
-            <Search className="w-4 h-4 text-textMuted absolute left-4 top-3.5" />
+            <Search className="w-4 h-4 text-textMuted absolute left-3.5 top-3.5" />
             <input 
               type="text" 
               placeholder="Search transactions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-11 pl-11 pr-4 bg-background border border-borderColor rounded-xl text-sm text-textPrimary placeholder-textMuted focus:outline-none focus:border-primary transition-all font-medium"
+              className="w-full h-11 pl-10 pr-4 bg-background border border-borderColor rounded-xl text-sm text-textPrimary placeholder-textMuted focus:outline-none focus:border-primary transition-all font-medium"
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="hidden sm:flex flex-row items-center gap-3 w-full md:w-auto">
             <div className="flex items-center space-x-2 w-full sm:w-auto">
               <span className="text-xs font-bold text-textMuted uppercase tracking-wider hidden sm:inline">Type:</span>
               <select 
@@ -535,6 +535,20 @@ const Transactions = () => {
               </select>
             </div>
           </div>
+
+          {/* Mobile Filter Sheet Button (< sm) */}
+          <button
+            onClick={() => setShowFilterSheet(true)}
+            className="sm:hidden w-full h-11 bg-surface hover:bg-hoverBg border border-borderColor rounded-xl px-4 text-xs font-bold text-textPrimary flex items-center justify-between transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-primary" />
+              <span>Filter Transactions</span>
+            </div>
+            {(filterType !== 'All' || filterCategory !== 'All') && (
+              <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+            )}
+          </button>
         </div>
       </div>
 
@@ -890,6 +904,112 @@ const Transactions = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Filter Bottom Sheet Modal */}
+      <AnimatePresence>
+        {showFilterSheet && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg max-h-[85vh] overflow-y-auto bg-cardBg border-t sm:border border-borderColor rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between pb-4 border-b border-borderColor">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-primary" />
+                    <h3 className="text-base font-bold text-textPrimary">Filter Transactions</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowFilterSheet(false)}
+                    className="p-1.5 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="py-4 space-y-5">
+                  {/* Transaction Type Filter */}
+                  <div>
+                    <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-2.5">
+                      Transaction Type
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'All', label: 'All Types' },
+                        { id: 'income', label: 'Income' },
+                        { id: 'expense', label: 'Expense' }
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setFilterType(t.id)}
+                          className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
+                            filterType === t.id
+                              ? 'bg-primary/10 border-primary text-primary shadow-xs'
+                              : 'bg-background border-borderColor text-textSecondary hover:bg-hoverBg'
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div>
+                    <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-2.5">
+                      Category
+                    </label>
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                      {['All', ...(categoriesList.length > 0 
+                        ? Array.from(new Set(categoriesList.map(c => c.name)))
+                        : ['Food & Dining', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Salary']
+                      )].map(catName => (
+                        <button
+                          key={catName}
+                          type="button"
+                          onClick={() => setFilterCategory(catName)}
+                          className={`w-full text-left py-2.5 px-3.5 rounded-xl text-xs font-semibold border transition-all flex items-center justify-between ${
+                            filterCategory === catName
+                              ? 'bg-primary/10 border-primary text-primary font-bold'
+                              : 'bg-background border-borderColor text-textPrimary hover:bg-hoverBg'
+                          }`}
+                        >
+                          <span>{catName === 'All' ? 'All Categories' : catName}</span>
+                          {filterCategory === catName && (
+                            <Check className="w-4 h-4 text-primary" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Sticky Action Footer */}
+              <div className="pt-4 border-t border-borderColor flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setFilterType('All'); setFilterCategory('All'); }}
+                  className="w-1/3 py-2.5 bg-hoverBg hover:bg-borderColor text-textSecondary font-bold text-xs rounded-xl border border-borderColor transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFilterSheet(false)}
+                  className="w-2/3 py-2.5 bg-primary hover:bg-primaryHover text-white font-bold text-xs rounded-xl shadow-md transition-all"
+                >
+                  Apply Filters
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
