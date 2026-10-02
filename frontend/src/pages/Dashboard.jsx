@@ -386,36 +386,36 @@ const Dashboard = () => {
 
       {/* ── KPI row ── */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {[1,2,3,4].map(i => (
             <div key={i} className="h-36 rounded-[24px] skeleton" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {/* Primary Hero Balance Card */}
-          <div className="doppel-shell sm:col-span-2 lg:col-span-1 border-primary/30 shadow-[0_4px_20px_rgba(99,102,241,0.08)]">
-            <div className="doppel-core p-5 flex flex-col justify-between gap-4 bg-gradient-to-br from-primary/10 via-cardBg to-cardBg h-full">
+          <div className="doppel-shell col-span-2 sm:col-span-2 lg:col-span-1 border-primary/30 shadow-[0_4px_20px_rgba(99,102,241,0.08)]">
+            <div className="doppel-core p-4 sm:p-5 flex flex-col justify-between gap-3 bg-gradient-to-br from-primary/10 via-cardBg to-cardBg h-full">
               <div className="flex items-center justify-between">
-                <span className="eyebrow-badge !px-2.5 !py-0.5 !bg-primary/15 !text-primary !border-primary/30 font-bold">
+                <span className="eyebrow-badge !px-2.5 !py-0.5 !bg-primary/15 !text-primary !border-primary/30 font-bold text-[11px]">
                   Total Balance
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center text-primary shadow-sm">
-                  <Wallet className="w-4 h-4" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary/15 flex items-center justify-center text-primary shadow-sm">
+                  <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
               <div className="flex items-end justify-between gap-2 mt-1">
                 <div>
-                  <p className="text-3xl font-black text-textPrimary font-numeric tracking-tight privacy-mask">
+                  <p className="text-2xl sm:text-3xl font-black text-textPrimary font-numeric tracking-tight privacy-mask">
                     {fmt(summary?.current_balance)}
                   </p>
-                  <p className="text-[10px] text-success font-bold mt-1.5 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-success animate-ping" />
+                  <p className="text-[10px] text-success font-bold mt-1 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success animate-ping" />
                     <span>Linked accounts active</span>
                   </p>
                 </div>
                 {trends.length > 0 && (
-                  <div className="h-11 w-24 flex-shrink-0">
+                  <div className="h-9 sm:h-11 w-20 sm:w-24 flex-shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                         <Area type="monotone" dataKey="savings" stroke="#6366F1" fill="#6366F1" fillOpacity={0.12} strokeWidth={2} dot={false} />
@@ -428,83 +428,65 @@ const Dashboard = () => {
           </div>
 
           {/* Income (Secondary) */}
-          <div className="doppel-shell">
-            <div className="doppel-core p-5 flex flex-col justify-between gap-4 h-full">
+          <div className="doppel-shell col-span-1">
+            <div className="doppel-core p-3.5 sm:p-5 flex flex-col justify-between gap-3 h-full">
               <div className="flex items-center justify-between">
-                <span className="eyebrow-badge !px-2 !py-0.5 !text-success !border-success/20 !bg-success/10 font-bold">Income</span>
-                <div className="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center text-success">
-                  <TrendingUp className="w-4 h-4" />
+                <span className="eyebrow-badge !px-2 !py-0.5 !text-success !border-success/20 !bg-success/10 font-bold text-[10px]">Income</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-success/10 flex items-center justify-center text-success">
+                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="flex items-end justify-between gap-2 mt-1">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1.5 mt-1">
                 <div>
-                  <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                  <p className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
                     {fmt(summary?.monthly_income)}
                   </p>
-                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-1 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
-                    {incomeDiff >= 0 ? <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" /> : <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />}
+                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-0.5 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {incomeDiff >= 0 ? <ArrowUpRight className="w-3 h-3 stroke-[2.5]" /> : <ArrowDownRight className="w-3 h-3 stroke-[2.5]" />}
                     {fmtPct(incomeDiff)} vs last mo
                   </div>
                 </div>
-                {trends.length > 0 && (
-                  <div className="h-10 w-20 flex-shrink-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
-                        <Area type="monotone" dataKey="income" stroke="#10B981" fill="#10B981" fillOpacity={0.08} strokeWidth={1.5} dot={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
           {/* Spending (Secondary) */}
-          <div className="doppel-shell">
-            <div className="doppel-core p-5 flex flex-col justify-between gap-4 h-full">
+          <div className="doppel-shell col-span-1">
+            <div className="doppel-core p-3.5 sm:p-5 flex flex-col justify-between gap-3 h-full">
               <div className="flex items-center justify-between">
-                <span className="eyebrow-badge !px-2 !py-0.5 !text-danger !border-danger/20 !bg-danger/10 font-bold">Spending</span>
-                <div className="w-8 h-8 rounded-xl bg-danger/10 flex items-center justify-center text-danger">
-                  <TrendingDown className="w-4 h-4" />
+                <span className="eyebrow-badge !px-2 !py-0.5 !text-danger !border-danger/20 !bg-danger/10 font-bold text-[10px]">Spending</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-danger/10 flex items-center justify-center text-danger">
+                  <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="flex items-end justify-between gap-2 mt-1">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1.5 mt-1">
                 <div>
-                  <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                  <p className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
                     {fmt(summary?.monthly_spending)}
                   </p>
-                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-1 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
-                    {expenseDiff <= 0 ? <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" /> : <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />}
+                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-0.5 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
+                    {expenseDiff <= 0 ? <ArrowDownRight className="w-3 h-3 stroke-[2.5]" /> : <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />}
                     {fmtPct(expenseDiff)} vs last mo
                   </div>
                 </div>
-                {trends.length > 0 && (
-                  <div className="h-10 w-20 flex-shrink-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
-                        <Area type="monotone" dataKey="expense" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.08} strokeWidth={1.5} dot={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
           {/* Budget (Secondary) */}
-          <div className="doppel-shell">
-            <div className="doppel-core p-5 flex flex-col justify-between gap-4 h-full">
+          <div className="doppel-shell col-span-2 sm:col-span-2 lg:col-span-1">
+            <div className="doppel-core p-3.5 sm:p-5 flex flex-col justify-between gap-3 h-full">
               <div className="flex items-center justify-between">
-                <span className="eyebrow-badge !px-2 !py-0.5 font-bold">Budget</span>
+                <span className="eyebrow-badge !px-2 !py-0.5 font-bold text-[10px]">Budget</span>
                 <span className="text-[10px] font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor privacy-mask">
                   {budgetUsedPct.toFixed(0)}%
                 </span>
               </div>
               <div>
-                <p className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                <p className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
                   {fmt(summary?.budget_remaining)}
                 </p>
-                <div className="mt-2 h-1.5 bg-borderColor/60 rounded-full overflow-hidden p-[1px]">
+                <div className="mt-1.5 h-1.5 bg-borderColor/60 rounded-full overflow-hidden p-[1px]">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${
                       budgetUsedPct >= 90 ? 'bg-danger shadow-danger-glow' : budgetUsedPct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
@@ -512,7 +494,7 @@ const Dashboard = () => {
                     style={{ width: `${budgetUsedPct}%` }}
                   />
                 </div>
-                <p className="text-[11px] text-textMuted font-medium mt-1.5">
+                <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-1">
                   of <span className="privacy-mask">{fmt(summary?.total_budget_limit)}</span> limit remaining
                 </p>
               </div>

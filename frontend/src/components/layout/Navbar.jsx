@@ -151,17 +151,15 @@ const Navbar = ({ toggleSidebar }) => {
           top: 0,
           right: 0,
           zIndex: 50,
-          height: '72px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 1.5rem',
           background: 'var(--navbar-bg)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           borderBottom: '1px solid var(--border)',
         }}
-        className="left-0 lg:left-[260px]"
+        className="left-0 lg:left-[260px] h-16 lg:h-[72px] px-4 lg:px-6"
       >
         {/* ─── Left: Brand / Mobile Hamburger ─── */}
         <div className="flex items-center gap-3">
@@ -173,7 +171,7 @@ const Navbar = ({ toggleSidebar }) => {
             <MenuIcon />
           </button>
 
-          <Link to="/" className="lg:hidden flex items-center gap-2.5 group">
+          <Link to="/" className="lg:hidden flex items-center gap-2 group max-w-[135px]">
             <PariViewLogo size="md" />
           </Link>
         </div>
@@ -245,13 +243,13 @@ const Navbar = ({ toggleSidebar }) => {
           <button
             onClick={() => navigate('/chat')}
             title="AI Assistant"
+            className="hidden sm:flex"
             style={{
               width: 36,
               height: 36,
               borderRadius: 10,
               background: 'var(--surface)',
               border: '1px solid var(--border)',
-              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--text-secondary)',
@@ -370,13 +368,13 @@ const Navbar = ({ toggleSidebar }) => {
           <button
             onClick={toggleTheme}
             title={darkMode ? 'Switch to light' : 'Switch to dark'}
+            className="hidden sm:flex"
             style={{
               width: 36,
               height: 36,
               borderRadius: 10,
               background: 'var(--surface)',
               border: '1px solid var(--border)',
-              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--text-secondary)',
@@ -469,6 +467,32 @@ const Navbar = ({ toggleSidebar }) => {
                     </Link>
                   ))}
 
+                  {/* Theme Switcher in Dropdown for Mobile */}
+                  <button
+                    onClick={() => { toggleTheme(); setDropdownOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      padding: '10px 16px',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      color: 'var(--text-secondary)',
+                      background: 'none',
+                      border: 'none',
+                      borderTop: '1px solid var(--border)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    {darkMode ? <SunIcon /> : <MoonIcon />}
+                    {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                  </button>
+
                   <button
                     onClick={() => { setDropdownOpen(false); logout(); }}
                     style={{
@@ -483,7 +507,6 @@ const Navbar = ({ toggleSidebar }) => {
                       background: 'none',
                       border: 'none',
                       borderTop: '1px solid var(--border)',
-                      marginTop: 4,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'background 0.15s ease',
