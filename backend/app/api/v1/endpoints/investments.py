@@ -9,6 +9,7 @@ from app.api import deps
 from app.core.database import get_db
 from app.models.user import User
 from app.models.investment import Investment
+from app.models.india_post_investment import IndiaPostInvestment
 from app.schemas.investment import InvestmentCreate, InvestmentUpdate, InvestmentOut
 
 router = APIRouter()
@@ -117,7 +118,32 @@ def get_investments(
         allocation[inv.asset_type] = allocation.get(inv.asset_type, 0.0) + pct
         
     allocation_list = [{"name": k, "value": round(v, 1)} for k, v in allocation.items()]
- 
+    # Include India Post summary for complete wealth engine integration
+    india_post_items = db.query(IndiaPostInvestment).filter(
+        IndiaPostInvestment.user_id == current_user.id
+    ).all()
+    
+    active_ip = [ip for ip in india_post_items if ip.status == "Active"]
+    total_india_post_val = sum(float(ip.amount) for ip in active_ip)
+    
+    # Categorize India Post schemes into asset allocation if present
+    for ip in active_ip:
+        scheme_name = ip.scheme_name or "Post Office"
+        amt = float(ip.amount)
+        if total_current_val > 0:
+            pct = (amt / (total_current_val + total_india_post_val)) * 100.0
+        else:
+            pct = 100.0 / max(len(active_ip), 1)
+        # Add post office allocation cleanly
+        found = False
+        for alloc_item in allocation_list:
+            if alloc_item["name"] == "Post Office":
+                alloc_item["value"] = round(alloc_item["value"] + pct, 1)
+                found = True
+                break
+        if not found and amt > 0:
+            allocation_list.append({"name": "Post Office", "value": round(pct, 1)})
+
     return {
         "summary": {
             "total_investment": round(total_purchase_val, 2),
@@ -126,7 +152,9 @@ def get_investments(
             "total_profit_loss_percentage": round(portfolio_pl_pct, 2),
             "today_gain_loss": round(portfolio_today_pl, 2),
             "total_dividends": round(total_dividends, 2),
-            "portfolio_risk_score": round(portfolio_risk, 1)
+            "portfolio_risk_score": round(portfolio_risk, 1),
+            "total_india_post_value": round(total_india_post_val, 2),
+            "grand_total_wealth": round(total_current_val + total_india_post_val, 2)
         },
         "allocation": allocation_list,
         "items": items,
@@ -135,12 +163,78 @@ def get_investments(
         "last_updated_time": last_updated_time
     }
 
+@router.get("/activity", response_model=List[dict])
+def get_investment_activity(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
+):
+    from app.models.investment_transaction import InvestmentTransaction
+    txs = db.query(InvestmentTransaction).filter(
+        InvestmentTransaction.user_id == current_user.id
+    ).order_by(InvestmentTransaction.transaction_date.desc()).all()
+    
+    activity = []
+    for tx in txs:
+        inv = db.query(Investment).filter(Investment.id == tx.investment_id).first()
+        activity.append({
+            "id": tx.id,
+            "investment_id": tx.investment_id,
+            "asset_name": inv.asset_name if inv else "Asset",
+            "symbol": inv.symbol if inv else "",
+            "transaction_type": tx.transaction_type,
+            "units": float(tx.units),
+            "price_per_unit": float(tx.price_per_unit),
+            "total_amount": float(tx.total_amount),
+            "transaction_date": tx.transaction_date.isoformat() if tx.transaction_date else None,
+            "notes": tx.notes
+        })
+        
+    # If no explicit transactions exist, generate activity list from user's investment holdings
+    if not activity:
+        investments = db.query(Investment).filter(Investment.user_id == current_user.id).all()
+        for inv in investments:
+            qty = float(inv.quantity)
+            p_price = float(inv.purchase_price)
+            divs = float(inv.dividends_received or 0.0)
+            
+            activity.append({
+                "id": f"buy-{inv.id}",
+                "investment_id": inv.id,
+                "asset_name": inv.asset_name,
+                "symbol": inv.symbol or "",
+                "transaction_type": "BUY",
+                "units": qty,
+                "price_per_unit": p_price,
+                "total_amount": round(qty * p_price, 2),
+                "transaction_date": inv.purchase_date.isoformat() if inv.purchase_date else datetime.utcnow().isoformat(),
+                "notes": f"Initial purchase of {inv.asset_name}"
+            })
+            
+            if divs > 0:
+                activity.append({
+                    "id": f"div-{inv.id}",
+                    "investment_id": inv.id,
+                    "asset_name": inv.asset_name,
+                    "symbol": inv.symbol or "",
+                    "transaction_type": "DIVIDEND",
+                    "units": 0,
+                    "price_per_unit": 0,
+                    "total_amount": round(divs, 2),
+                    "transaction_date": inv.purchase_date.isoformat() if inv.purchase_date else datetime.utcnow().isoformat(),
+                    "notes": f"Dividend received for {inv.asset_name}"
+                })
+                
+        activity.sort(key=lambda x: x["transaction_date"] or "", reverse=True)
+
+    return activity
+
 @router.post("", response_model=InvestmentOut, status_code=status.HTTP_201_CREATED)
 def create_investment(
     inv_in: InvestmentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
+    from app.models.investment_transaction import InvestmentTransaction
     db_inv = Investment(
         user_id=current_user.id,
         asset_name=inv_in.asset_name,
@@ -154,6 +248,36 @@ def create_investment(
         dividends_received=inv_in.dividends_received
     )
     db.add(db_inv)
+    db.commit()
+    db.refresh(db_inv)
+    
+    # Log corresponding InvestmentTransaction
+    total_cost = float(inv_in.quantity) * float(inv_in.purchase_price)
+    inv_tx = InvestmentTransaction(
+        investment_id=db_inv.id,
+        user_id=current_user.id,
+        transaction_type="BUY",
+        units=inv_in.quantity,
+        price_per_unit=inv_in.purchase_price,
+        total_amount=total_cost,
+        transaction_date=db_inv.purchase_date,
+        notes=f"Purchased {db_inv.asset_name}"
+    )
+    db.add(inv_tx)
+    
+    if inv_in.dividends_received and float(inv_in.dividends_received) > 0:
+        div_tx = InvestmentTransaction(
+            investment_id=db_inv.id,
+            user_id=current_user.id,
+            transaction_type="DIVIDEND",
+            units=0,
+            price_per_unit=0,
+            total_amount=inv_in.dividends_received,
+            transaction_date=db_inv.purchase_date,
+            notes=f"Dividend payout from {db_inv.asset_name}"
+        )
+        db.add(div_tx)
+        
     db.commit()
     
     if db_inv.symbol:
