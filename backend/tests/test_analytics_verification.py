@@ -225,7 +225,7 @@ def test_transaction_updates_investment(client):
     # New quantity = 10 + 5 = 15
     # New average purchase price = (1500 + 850) / 15 = 2350 / 15 = 156.67
     assert float(apple_inv["quantity"]) == 15.0
-    assert float(apple_inv["purchase_price"]) == 156.67
+    assert round(float(apple_inv["purchase_price"]), 2) == 156.67
 
 
 def test_dashboard_ai_summary_edge_cases(client):

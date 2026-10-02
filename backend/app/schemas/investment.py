@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 class InvestmentBase(BaseModel):
@@ -33,5 +33,23 @@ class InvestmentOut(InvestmentBase):
     previous_close: float | None = 0.0
     price_last_updated: datetime | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+class InvestmentLotCreate(BaseModel):
+    units: float
+    price_per_unit: float
+    transaction_date: datetime | None = None
+    notes: str | None = None
+
+class InvestmentTransactionOut(BaseModel):
+    id: int | str
+    investment_id: int
+    user_id: int
+    transaction_type: str  # BUY, SELL, DIVIDEND
+    units: float
+    price_per_unit: float
+    total_amount: float
+    transaction_date: datetime | None = None
+    notes: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)

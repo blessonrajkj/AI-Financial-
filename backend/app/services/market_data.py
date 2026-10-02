@@ -160,14 +160,17 @@ def check_and_update_investments_from_transaction(db: Session, tx):
     if qty <= 0:
         qty = 1.0
 
-    old_qty = float(matched_inv.quantity)
-    old_price = float(matched_inv.purchase_price)
-    tx_amt = float(tx.amount)
+    tx_amt = Decimal(str(tx.amount))
+    unit_price = tx_amt / Decimal(str(qty)) if qty > 0 else Decimal(str(matched_inv.purchase_price))
 
-    new_qty = old_qty + qty
-    if new_qty > 0:
-        new_avg_price = round(((old_qty * old_price) + tx_amt) / new_qty, 2)
-        matched_inv.purchase_price = Decimal(str(new_avg_price))
-        matched_inv.quantity = Decimal(str(round(new_qty, 4)))
+    from app.services.investment_service import add_buy_transaction
+    add_buy_transaction(
+        db=db,
+        user_id=tx.user_id,
+        investment=matched_inv,
+        units=Decimal(str(qty)),
+        price_per_unit=unit_price,
+        transaction_date=tx.date,
+        notes=f"Auto-logged from transaction: {tx.description or ''}"
+    )
 
-    db.commit()
