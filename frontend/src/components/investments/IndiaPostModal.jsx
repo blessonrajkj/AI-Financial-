@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
+import Modal from '../ui/Modal';
 import { 
   X, 
   Search, 
@@ -493,9 +495,9 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
   const alloc = summary.portfolio_allocation || [];
   const upcoming = summary.upcoming_maturities || [];
 
-  return (
-    <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-cardBg border border-borderColor rounded-3xl w-full max-w-6xl h-[90vh] shadow-2xl flex flex-col overflow-hidden relative animate-scale-up">
+  return createPortal(
+    <div className="fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-cardBg border-t sm:border border-borderColor rounded-t-3xl sm:rounded-3xl w-full max-w-6xl max-h-[92dvh] sm:h-[90vh] shadow-2xl flex flex-col overflow-hidden relative animate-scale-up">
         
         {/* Header toolbar */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-borderColor bg-background/30">
@@ -916,164 +918,155 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
       </div>
 
       {/* Nested Save/Edit Investment Modal */}
-      {showInvestModal && selectedScheme && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 shadow-xl relative animate-scale-up">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-md font-bold text-textPrimary">
-                {editingId ? 'Edit India Post Holding' : `Invest in ${selectedScheme.name}`}
-              </h3>
-              <button 
-                onClick={() => setShowInvestModal(false)}
-                className="p-1 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      <Modal
+        isOpen={showInvestModal && !!selectedScheme}
+        onClose={() => setShowInvestModal(false)}
+        title={editingId ? 'Edit India Post Holding' : `Invest in ${selectedScheme?.name || 'Scheme'}`}
+        subtitle="Record your small savings holding parameters"
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Investment Amount (₹)</label>
+              <input 
+                type="number" 
+                required
+                placeholder="e.g. 50000"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Investment Amount (₹)</label>
-                  <input 
-                    type="number" 
-                    required
-                    placeholder="e.g. 50000"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Interest Rate (%)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    required
-                    value={interestRate}
-                    onChange={(e) => setInterestRate(e.target.value)}
-                    className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Investment Date</label>
-                  <input 
-                    type="date" 
-                    required
-                    value={investmentDate}
-                    onChange={(e) => setInvestmentDate(e.target.value)}
-                    className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Maturity Date</label>
-                  <input 
-                    type="date" 
-                    required
-                    value={maturityDate}
-                    onChange={(e) => setMaturityDate(e.target.value)}
-                    className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Frequency</label>
-                  <select 
-                    value={frequency}
-                    onChange={(e) => setFrequency(e.target.value)}
-                    className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                  >
-                    <option value="One Time">One Time</option>
-                    <option value="Monthly">Monthly</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Account Number (Opt)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 10245089"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                    className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Nominee Name</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Spouse, Child"
-                    value={nominee}
-                    onChange={(e) => setNominee(e.target.value)}
-                    className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Branch Post Office</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. GPO New Delhi"
-                    value={branchName}
-                    onChange={(e) => setBranchName(e.target.value)}
-                    className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Nominee / Scheme Status</label>
-                <select 
-                  value={invStatus}
-                  onChange={(e) => setInvStatus(e.target.value)}
-                  className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Matured">Matured</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Notes</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Document folder 1"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-4 border-t border-borderColor">
-                <button 
-                  type="button"
-                  onClick={() => setShowInvestModal(false)}
-                  className="w-1/2 h-10 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor text-xs transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="w-1/2 h-10 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md text-xs transition-colors"
-                >
-                  Save Investment
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Interest Rate (%)</label>
+              <input 
+                type="number" 
+                step="0.01"
+                required
+                value={interestRate}
+                onChange={(e) => setInterestRate(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Investment Date</label>
+              <input 
+                type="date" 
+                required
+                value={investmentDate}
+                onChange={(e) => setInvestmentDate(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Maturity Date</label>
+              <input 
+                type="date" 
+                required
+                value={maturityDate}
+                onChange={(e) => setMaturityDate(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Frequency</label>
+              <select 
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              >
+                <option value="One Time">One Time</option>
+                <option value="Monthly">Monthly</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Account Number (Opt)</label>
+              <input 
+                type="text" 
+                placeholder="e.g. 10245089"
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Nominee Name</label>
+              <input 
+                type="text" 
+                placeholder="e.g. Spouse, Child"
+                value={nominee}
+                onChange={(e) => setNominee(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Branch Post Office</label>
+              <input 
+                type="text" 
+                placeholder="e.g. GPO New Delhi"
+                value={branchName}
+                onChange={(e) => setBranchName(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Nominee / Scheme Status</label>
+            <select 
+              value={invStatus}
+              onChange={(e) => setInvStatus(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+            >
+              <option value="Active">Active</option>
+              <option value="Matured">Matured</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Notes</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Document folder 1"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 pt-4 border-t border-borderColor shrink-0">
+            <button 
+              type="button"
+              onClick={() => setShowInvestModal(false)}
+              className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor text-sm transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              className="w-2/3 min-h-[48px] bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md text-sm transition-colors"
+            >
+              Save Investment
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>,
+    document.body
   );
 };
 

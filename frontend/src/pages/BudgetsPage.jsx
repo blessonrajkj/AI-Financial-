@@ -5,6 +5,7 @@ import { Plus, Wallet, AlertTriangle, Check, AlertCircle, Pencil, Trash2, X, Tre
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 import CategorySelect from '../components/ui/CategorySelect';
 import { EXPENSE_TAXONOMY } from '../utils/taxonomy';
+import Modal from '../components/ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -327,127 +328,111 @@ const BudgetsPage = () => {
       )}
 
       {/* Add / Edit Budget Modal */}
-      {showModal && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 shadow-xl relative animate-scale-up">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="text-lg font-bold text-textPrimary">
-                {editingBudget ? 'Edit Budget Limit' : 'Set Category Budget'}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-1.5 text-textMuted hover:text-textPrimary hover:bg-hoverBg rounded-lg transition-colors"
-              >
-                <X className="w-4.5 h-4.5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Category</label>
-                <CategorySelect
-                  value={category}
-                  onChange={(newCat) => setCategory(newCat)}
-                  options={Object.keys(EXPENSE_TAXONOMY)}
-                  size="md"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Budget Limit (₹)</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  step="any"
-                  placeholder="5000"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Month</label>
-                <input
-                  type="month"
-                  required
-                  value={month}
-                  onChange={(e) => setMonth(e.target.value)}
-                  className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              {error && (
-                <p className="text-xs text-danger font-semibold bg-danger/10 border border-danger/20 p-3 rounded-xl">{error}</p>
-              )}
-
-              <div className="flex space-x-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="w-1/2 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-1/2 h-11 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 text-sm"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
-                  ) : (
-                    <span>{editingBudget ? 'Save Changes' : 'Set Budget'}</span>
-                  )}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingBudget ? 'Edit Budget Limit' : 'Set Category Budget'}
+        subtitle={editingBudget ? 'Update budget threshold' : 'Configure budget spend limit for a category'}
+        icon={Wallet}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Category</label>
+            <CategorySelect
+              value={category}
+              onChange={(newCat) => setCategory(newCat)}
+              options={Object.keys(EXPENSE_TAXONOMY)}
+              size="md"
+            />
           </div>
-        </div>,
-        document.body
-      )}
+
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Budget Limit (₹)</label>
+            <input
+              type="number"
+              required
+              min="1"
+              step="any"
+              placeholder="5000"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Month</label>
+            <input
+              type="month"
+              required
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          {error && (
+            <p className="text-xs text-danger font-semibold bg-danger/10 border border-danger/20 p-3 rounded-xl">{error}</p>
+          )}
+
+          <div className="flex items-center gap-3 pt-4 border-t border-borderColor shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-2/3 min-h-[48px] bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 text-sm flex items-center justify-center"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span>{editingBudget ? 'Save Changes' : 'Set Budget'}</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-cardBg border border-borderColor rounded-3xl p-6 shadow-xl animate-scale-up">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-danger/10 flex items-center justify-center">
-                <Trash2 className="w-5 h-5 text-danger" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-textPrimary">Delete Budget</h3>
-                <p className="text-xs text-textSecondary mt-0.5">This action cannot be undone</p>
-              </div>
-            </div>
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete Budget"
+        subtitle="This action cannot be undone"
+        icon={Trash2}
+        maxWidth="max-w-sm"
+      >
+        <p className="text-sm text-textSecondary mb-6">
+          Are you sure you want to delete the budget for{' '}
+          <span className="font-bold text-textPrimary">
+            {typeof deleteConfirm?.category === 'object' ? deleteConfirm.category.name : deleteConfirm?.category}
+          </span>
+          {' '}({deleteConfirm?.month_label || `${deleteConfirm?.month}/${deleteConfirm?.year}`})?
+        </p>
 
-            <p className="text-sm text-textSecondary mb-6">
-              Are you sure you want to delete the budget for{' '}
-              <span className="font-bold text-textPrimary">
-                {typeof deleteConfirm.category === 'object' ? deleteConfirm.category.name : deleteConfirm.category}
-              </span>
-              {' '}({deleteConfirm.month_label || `${deleteConfirm.month}/${deleteConfirm.year}`})?
-            </p>
-
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="w-1/2 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="w-1/2 h-11 bg-danger hover:bg-red-600 text-white font-bold rounded-xl shadow-md transition-colors text-sm"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setDeleteConfirm(null)}
+            className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDelete(deleteConfirm)}
+            className="w-2/3 min-h-[48px] bg-danger hover:bg-red-600 text-white font-bold rounded-xl shadow-md transition-all text-sm flex items-center justify-center"
+          >
+            Delete
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -22,6 +22,7 @@ import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 import TransactionToast from '../components/ui/TransactionToast';
 import CategorySelect, { SubcategorySelect } from '../components/ui/CategorySelect';
 import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../utils/taxonomy';
+import Modal from '../components/ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -768,289 +769,236 @@ const Transactions = () => {
       )}
 
       {/* Manual Logger / Edit Popup Modal */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {showAddModal && (
-            <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
-              <motion.div 
-                initial={{ y: "100%", opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: "100%", opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="w-full max-w-lg max-h-[90dvh] bg-cardBg border-t sm:border border-borderColor rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative"
-              >
-                {/* Modal Header */}
-                <div className="px-5 sm:px-6 pt-5 pb-3 border-b border-borderColor flex justify-between items-center bg-cardBg shrink-0">
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-extrabold text-textPrimary tracking-tight">
-                      {isEditMode ? 'Edit Transaction' : 'Log New Transaction'}
-                    </h3>
-                    <p className="text-xs text-textSecondary font-medium mt-0.5">
-                      {isEditMode ? 'Update transaction details' : 'Record an inflow or outflow record'}
-                    </p>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => { setShowAddModal(false); resetForm(); }}
-                    className="p-2 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => { setShowAddModal(false); resetForm(); }}
+        title={isEditMode ? 'Edit Transaction' : 'Log New Transaction'}
+        subtitle={isEditMode ? 'Update transaction details' : 'Record an inflow or outflow record'}
+        maxWidth="max-w-lg"
+      >
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          {/* 1. Flow Type */}
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Flow Type</label>
+            <select 
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+            >
+              <option value="expense">Expense (Outflow)</option>
+              <option value="income">Income (Inflow)</option>
+              <option value="transfer">Transfer (Internal)</option>
+            </select>
+          </div>
 
-                <form onSubmit={handleFormSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
-                  
-                  {/* 1. Flow Type */}
-                  <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Flow Type</label>
-                    <select 
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                      className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
-                    >
-                      <option value="expense">Expense (Outflow)</option>
-                      <option value="income">Income (Inflow)</option>
-                      <option value="transfer">Transfer (Internal)</option>
-                    </select>
-                  </div>
-
-                  {/* 2. Amount Field (Visually Prominent) */}
-                  <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Amount</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-3.5 text-primary text-lg font-black">₹</span>
-                      <input 
-                        type="number" 
-                        required
-                        step="any"
-                        placeholder="0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="w-full h-12 pl-9 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary text-lg font-bold font-numeric focus:outline-none focus:border-primary transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 3. Category & Subcategory */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Main Category</label>
-                      <CategorySelect 
-                        value={category}
-                        onChange={handleCategoryChange}
-                        options={type === 'income' ? ['Income'] : type === 'transfer' ? ['Cash & Transfers'] : Object.keys(EXPENSE_TAXONOMY)}
-                        size="md"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Subcategory</label>
-                      <SubcategorySelect
-                        category={category}
-                        value={subcategory}
-                        onChange={(newSub) => setSubcategory(newSub)}
-                        subcategories={
-                          type === 'income'
-                            ? INCOME_CATEGORIES
-                            : type === 'transfer'
-                            ? TRANSFER_CATEGORIES
-                            : (EXPENSE_TAXONOMY[category] || ['Uncategorized'])
-                        }
-                        size="md"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 4. Date & Mode of Payment */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Transaction Date</label>
-                      <input 
-                        type="date" 
-                        required
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-medium focus:outline-none focus:border-primary transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Mode of Transaction</label>
-                      <select 
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-medium focus:outline-none focus:border-primary transition-all"
-                      >
-                        <option value="Cash">Cash</option>
-                        <option value="Card">Card / Card Payment</option>
-                        <option value="UPI">UPI (Google Pay, PhonePe, Paytm)</option>
-                        <option value="Net Banking">Net Banking / Bank Transfer</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* 5. Merchant Name */}
-                  <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Merchant Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Amazon, Starbucks, Swiggy (Optional)"
-                      value={merchant}
-                      onChange={(e) => setMerchant(e.target.value)}
-                      className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                    />
-                  </div>
-
-                  {/* 6. Description */}
-                  <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Description</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Monthly cloud server subscription (Optional)"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                    />
-                  </div>
-
-                  {/* Action Footer */}
-                  <div className="flex items-center gap-3 pt-4 border-t border-borderColor shrink-0">
-                    <button 
-                      type="button"
-                      onClick={() => { setShowAddModal(false); resetForm(); }}
-                      className="w-1/3 h-12 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit"
-                      disabled={loading}
-                      className="w-2/3 h-12 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 text-sm flex items-center justify-center"
-                    >
-                      {loading ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <span>{isEditMode ? 'Update Transaction' : 'Add Transaction'}</span>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
+          {/* 2. Amount Field (Visually Prominent) */}
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Amount</label>
+            <div className="relative">
+              <span className="absolute left-4 top-3.5 text-primary text-lg font-black">₹</span>
+              <input 
+                type="number" 
+                required
+                step="any"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full h-12 pl-9 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary text-lg font-bold font-numeric focus:outline-none focus:border-primary transition-all"
+              />
             </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+          </div>
+
+          {/* 3. Category & Subcategory */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Main Category</label>
+              <CategorySelect 
+                value={category}
+                onChange={handleCategoryChange}
+                options={type === 'income' ? ['Income'] : type === 'transfer' ? ['Cash & Transfers'] : Object.keys(EXPENSE_TAXONOMY)}
+                size="md"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Subcategory</label>
+              <SubcategorySelect
+                category={category}
+                value={subcategory}
+                onChange={(newSub) => setSubcategory(newSub)}
+                subcategories={
+                  type === 'income'
+                    ? INCOME_CATEGORIES
+                    : type === 'transfer'
+                    ? TRANSFER_CATEGORIES
+                    : (EXPENSE_TAXONOMY[category] || ['Uncategorized'])
+                }
+                size="md"
+              />
+            </div>
+          </div>
+
+          {/* 4. Date & Mode of Payment */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Transaction Date</label>
+              <input 
+                type="date" 
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-medium focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Mode of Transaction</label>
+              <select 
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-medium focus:outline-none focus:border-primary transition-all"
+              >
+                <option value="Cash">Cash</option>
+                <option value="Card">Card / Card Payment</option>
+                <option value="UPI">UPI (Google Pay, PhonePe, Paytm)</option>
+                <option value="Net Banking">Net Banking / Bank Transfer</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 5. Merchant Name */}
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Merchant Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Amazon, Starbucks, Swiggy (Optional)"
+              value={merchant}
+              onChange={(e) => setMerchant(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          {/* 6. Description */}
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Description</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Monthly cloud server subscription (Optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          {/* Action Footer */}
+          <div className="flex items-center gap-3 pt-4 border-t border-borderColor shrink-0">
+            <button 
+              type="button"
+              onClick={() => { setShowAddModal(false); resetForm(); }}
+              className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-2/3 min-h-[48px] bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 text-sm flex items-center justify-center"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span>{isEditMode ? 'Update Transaction' : 'Add Transaction'}</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Mobile Filter Bottom Sheet Modal */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {showFilterSheet && (
-            <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
-              <motion.div
-                initial={{ y: "100%", opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: "100%", opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="w-full max-w-lg max-h-[85dvh] bg-cardBg border-t sm:border border-borderColor rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl flex flex-col justify-between overflow-hidden"
-              >
-                <div className="flex flex-col flex-1 overflow-hidden">
-                  <div className="flex items-center justify-between pb-4 border-b border-borderColor shrink-0">
-                    <div className="flex items-center gap-2">
-                      <SlidersHorizontal className="w-4 h-4 text-primary" />
-                      <h3 className="text-base font-bold text-textPrimary">Filter Transactions</h3>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilterSheet(false)}
-                      className="p-1.5 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="py-4 space-y-5 overflow-y-auto flex-1">
-                    {/* Transaction Type Filter */}
-                    <div>
-                      <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-2.5">
-                        Transaction Type
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { id: 'All', label: 'All Types' },
-                          { id: 'income', label: 'Income' },
-                          { id: 'expense', label: 'Expense' }
-                        ].map(t => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => setFilterType(t.id)}
-                            className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
-                              filterType === t.id
-                                ? 'bg-primary/10 border-primary text-primary shadow-xs'
-                                : 'bg-background border-borderColor text-textSecondary hover:bg-hoverBg'
-                            }`}
-                          >
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Category Filter */}
-                    <div>
-                      <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-2.5">
-                        Category
-                      </label>
-                      <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-                        {['All', ...(categoriesList.length > 0 
-                          ? Array.from(new Set(categoriesList.map(c => c.name)))
-                          : ['Food & Dining', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Salary']
-                        )].map(catName => (
-                          <button
-                            key={catName}
-                            type="button"
-                            onClick={() => setFilterCategory(catName)}
-                            className={`w-full text-left py-2.5 px-3.5 rounded-xl text-xs font-semibold border transition-all flex items-center justify-between ${
-                              filterCategory === catName
-                                ? 'bg-primary/10 border-primary text-primary font-bold'
-                                : 'bg-background border-borderColor text-textPrimary hover:bg-hoverBg'
-                            }`}
-                          >
-                            <span>{catName === 'All' ? 'All Categories' : catName}</span>
-                            {filterCategory === catName && (
-                              <Check className="w-4 h-4 text-primary" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Sticky Action Footer */}
-                <div className="pt-4 border-t border-borderColor flex items-center gap-3 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => { setFilterType('All'); setFilterCategory('All'); }}
-                    className="w-1/3 py-2.5 bg-hoverBg hover:bg-borderColor text-textSecondary font-bold text-xs rounded-xl border border-borderColor transition-colors"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowFilterSheet(false)}
-                    className="w-2/3 py-2.5 bg-primary hover:bg-primaryHover text-white font-bold text-xs rounded-xl shadow-md transition-all"
-                  >
-                    Apply Filters
-                  </button>
-                </div>
-              </motion.div>
+      <Modal
+        isOpen={showFilterSheet}
+        onClose={() => setShowFilterSheet(false)}
+        title="Filter Transactions"
+        subtitle="Narrow down ledger records"
+        icon={SlidersHorizontal}
+        maxWidth="max-w-lg"
+      >
+        <div className="space-y-5">
+          {/* Transaction Type Filter */}
+          <div>
+            <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-2.5">
+              Transaction Type
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'All', label: 'All Types' },
+                { id: 'income', label: 'Income' },
+                { id: 'expense', label: 'Expense' }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setFilterType(t.id)}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
+                    filterType === t.id
+                      ? 'bg-primary/10 border-primary text-primary shadow-xs'
+                      : 'bg-background border-borderColor text-textSecondary hover:bg-hoverBg'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+          </div>
+
+          {/* Category Filter */}
+          <div>
+            <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-2.5">
+              Category
+            </label>
+            <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+              {['All', ...(categoriesList.length > 0 
+                ? Array.from(new Set(categoriesList.map(c => c.name)))
+                : ['Food & Dining', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Salary']
+              )].map(catName => (
+                <button
+                  key={catName}
+                  type="button"
+                  onClick={() => setFilterCategory(catName)}
+                  className={`w-full text-left py-2.5 px-3.5 rounded-xl text-xs font-semibold border transition-all flex items-center justify-between ${
+                    filterCategory === catName
+                      ? 'bg-primary/10 border-primary text-primary font-bold'
+                      : 'bg-background border-borderColor text-textPrimary hover:bg-hoverBg'
+                  }`}
+                >
+                  <span>{catName === 'All' ? 'All Categories' : catName}</span>
+                  {filterCategory === catName && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sticky Action Footer */}
+        <div className="pt-4 mt-2 border-t border-borderColor flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => { setFilterType('All'); setFilterCategory('All'); }}
+            className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textSecondary font-bold text-xs rounded-xl border border-borderColor transition-colors"
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFilterSheet(false)}
+            className="w-2/3 min-h-[48px] bg-primary hover:bg-primaryHover text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </Modal>
 
       {/* Transaction Success Toast */}
       <TransactionToast

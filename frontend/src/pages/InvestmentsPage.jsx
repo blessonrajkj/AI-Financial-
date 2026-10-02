@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import IndiaPostModal from '../components/investments/IndiaPostModal';
+import Modal from '../components/ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -667,128 +668,125 @@ const InvestmentsPage = () => {
         </div>
       </div>
 
-      {/* Floating Form Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 shadow-xl relative animate-scale-up">
-            <h3 className="text-lg font-bold text-textPrimary mb-4">
-              {editingId ? 'Edit Asset Holding' : 'Log New Investment'}
-            </h3>
-            
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Asset Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="e.g. Reliance, BTC, SGB"
-                    value={assetName}
-                    onChange={(e) => setAssetName(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
+      {/* Log / Edit Investment Modal using Shared Responsive Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingId ? 'Edit Asset Holding' : 'Log New Investment'}
+        subtitle={editingId ? 'Update asset holding parameters' : 'Record a new asset holding in your portfolio'}
+        icon={TrendingUp}
+        maxWidth="max-w-lg"
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Asset Name</label>
+              <input 
+                type="text" 
+                required
+                placeholder="e.g. Reliance, BTC, SGB"
+                value={assetName}
+                onChange={(e) => setAssetName(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Asset Type</label>
-                  <select 
-                    value={assetType}
-                    onChange={(e) => setAssetType(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  >
-                    {ASSET_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Symbol</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="e.g. AAPL, RELIANCE.NS"
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Exchange</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="e.g. NASDAQ, NSE, BSE, Crypto"
-                    value={exchange}
-                    onChange={(e) => setExchange(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Quantity</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    required
-                    placeholder="10"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Avg Buy Price (₹)</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    required
-                    placeholder="1200"
-                    value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Purchase Date</label>
-                  <input 
-                    type="date" 
-                    required
-                    value={purchaseDate}
-                    onChange={(e) => setPurchaseDate(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="flex space-x-3 pt-4 border-t border-borderColor">
-                <button 
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="w-1/2 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="w-1/2 h-11 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-colors text-sm"
-                >
-                  Save Asset
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Asset Type</label>
+              <select 
+                value={assetType}
+                onChange={(e) => setAssetType(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              >
+                {ASSET_TYPES.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Symbol</label>
+              <input 
+                type="text" 
+                required
+                placeholder="e.g. AAPL, RELIANCE.NS"
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Exchange</label>
+              <input 
+                type="text" 
+                required
+                placeholder="e.g. NASDAQ, NSE, BSE, Crypto"
+                value={exchange}
+                onChange={(e) => setExchange(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Quantity</label>
+              <input 
+                type="number" 
+                step="any"
+                required
+                placeholder="10"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Avg Buy Price (₹)</label>
+              <input 
+                type="number" 
+                step="any"
+                required
+                placeholder="1200"
+                value={purchasePrice}
+                onChange={(e) => setPurchasePrice(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Purchase Date</label>
+            <input 
+              type="date" 
+              required
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 pt-4 border-t border-borderColor shrink-0">
+            <button 
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              className="w-2/3 min-h-[48px] bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all text-sm flex items-center justify-center"
+            >
+              Save Asset
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* India Post Investment Center Modal */}
       <IndiaPostModal 

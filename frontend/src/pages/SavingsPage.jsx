@@ -16,6 +16,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Modal from '../components/ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -357,127 +358,129 @@ const SavingsPage = () => {
         </div>
       )}
 
-      {/* Set Goal Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 shadow-xl relative animate-scale-up">
-            <h3 className="text-lg font-bold text-textPrimary mb-4">
-              {editingGoalId ? 'Edit Savings Goal' : 'Create Savings Goal'}
-            </h3>
-            
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Goal Name</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. New Electric Car Fund, Down Payment"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Target Amount (₹)</label>
-                  <input 
-                    type="number" 
-                    required
-                    placeholder="100000"
-                    value={targetAmount}
-                    onChange={(e) => setTargetAmount(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Current Saved (₹)</label>
-                  <input 
-                    type="number" 
-                    required
-                    placeholder="0"
-                    value={currentAmount}
-                    onChange={(e) => setCurrentAmount(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Target Achievement Date</label>
-                <input 
-                  type="date" 
-                  required
-                  value={targetDate}
-                  onChange={(e) => setTargetDate(e.target.value)}
-                  className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-4 border-t border-borderColor">
-                <button 
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="w-1/2 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="w-1/2 h-11 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-colors text-sm"
-                >
-                  Save Goal
-                </button>
-              </div>
-            </form>
+      {/* Set / Edit Goal Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingGoalId ? 'Edit Savings Goal' : 'Create Savings Goal'}
+        subtitle={editingGoalId ? 'Update target details' : 'Set up a new target to track savings progress'}
+        icon={Target}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Goal Name</label>
+            <input 
+              type="text" 
+              required
+              placeholder="e.g. New Electric Car Fund, Down Payment"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+            />
           </div>
-        </div>
-      )}
 
-      {/* Contribution Quick Modal */}
-      {showContribModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-cardBg border border-borderColor rounded-3xl p-6 shadow-xl relative animate-scale-up">
-            <h3 className="text-lg font-bold text-textPrimary mb-2">Make Deposit</h3>
-            <p className="text-xs text-textSecondary mb-4">Adding savings contribution to **{contribGoal?.name}**</p>
-            
-            <form onSubmit={handleAddContribSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Deposit Amount (₹)</label>
-                <input 
-                  type="number" 
-                  required
-                  autoFocus
-                  placeholder="5000"
-                  value={contribAmount}
-                  onChange={(e) => setContribAmount(e.target.value)}
-                  className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Target Amount (₹)</label>
+              <input 
+                type="number" 
+                required
+                placeholder="100000"
+                value={targetAmount}
+                onChange={(e) => setTargetAmount(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
 
-              <div className="flex space-x-3 pt-4 border-t border-borderColor">
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setShowContribModal(false);
-                    setContribGoal(null);
-                  }}
-                  className="w-1/2 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="w-1/2 h-11 bg-success hover:bg-success/90 text-white font-bold rounded-xl shadow-md transition-colors text-sm"
-                >
-                  Confirm Deposit
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Current Saved (₹)</label>
+              <input 
+                type="number" 
+                required
+                placeholder="0"
+                value={currentAmount}
+                onChange={(e) => setCurrentAmount(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Target Achievement Date</label>
+            <input 
+              type="date" 
+              required
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 pt-4 border-t border-borderColor shrink-0">
+            <button 
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              className="w-2/3 min-h-[48px] bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all text-sm flex items-center justify-center"
+            >
+              Save Goal
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Contribution Quick Deposit Modal */}
+      <Modal
+        isOpen={showContribModal}
+        onClose={() => {
+          setShowContribModal(false);
+          setContribGoal(null);
+        }}
+        title="Make Deposit"
+        subtitle={contribGoal ? `Adding savings contribution to ${contribGoal.name}` : 'Add savings contribution'}
+        icon={Coins}
+        maxWidth="max-w-sm"
+      >
+        <form onSubmit={handleAddContribSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Deposit Amount (₹)</label>
+            <input 
+              type="number" 
+              required
+              autoFocus
+              placeholder="5000"
+              value={contribAmount}
+              onChange={(e) => setContribAmount(e.target.value)}
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-bold focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 pt-4 border-t border-borderColor shrink-0">
+            <button 
+              type="button"
+              onClick={() => {
+                setShowContribModal(false);
+                setContribGoal(null);
+              }}
+              className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              className="w-2/3 min-h-[48px] bg-success hover:bg-success/90 text-white font-bold rounded-xl shadow-md transition-all text-sm flex items-center justify-center"
+            >
+              Confirm Deposit
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

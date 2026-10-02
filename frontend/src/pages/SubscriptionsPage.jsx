@@ -17,6 +17,7 @@ import {
   Heart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Modal from '../components/ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -447,107 +448,106 @@ const SubscriptionsPage = () => {
         </div>
       </div>
 
-      {/* Floating Add/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 shadow-xl relative animate-scale-up">
-            <h3 className="text-lg font-bold text-textPrimary mb-4">
-              {editingId ? 'Edit Subscription' : 'Add Subscription'}
-            </h3>
-            
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Service Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="e.g. Netflix, Spotify, AWS"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
+      {/* Add / Edit Subscription Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingId ? 'Edit Subscription' : 'Add Subscription'}
+        subtitle={editingId ? 'Update recurring contract details' : 'Register a new recurring payment contract'}
+        icon={CreditCard}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Service Name</label>
+              <input 
+                type="text" 
+                required
+                placeholder="e.g. Netflix, Spotify, AWS"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Billing Cost (₹)</label>
-                  <input 
-                    type="number" 
-                    required
-                    placeholder="299"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Billing Cycle</label>
-                  <select 
-                    value={billingCycle}
-                    onChange={(e) => setBillingCycle(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Next Billing Date</label>
-                  <input 
-                    type="date" 
-                    required
-                    value={nextBillingDate}
-                    onChange={(e) => setNextBillingDate(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-6 pt-2">
-                <label className="flex items-center space-x-2.5 cursor-pointer">
-                  <input 
-                    type="checkbox"
-                    checked={isActive}
-                    onChange={(e) => setIsActive(e.target.checked)}
-                    className="w-4.5 h-4.5 accent-primary border border-borderColor rounded focus:outline-none"
-                  />
-                  <span className="text-xs font-bold text-textSecondary">Active Membership</span>
-                </label>
-
-                <label className="flex items-center space-x-2.5 cursor-pointer">
-                  <input 
-                    type="checkbox"
-                    checked={isAutopay}
-                    onChange={(e) => setIsAutopay(e.target.checked)}
-                    className="w-4.5 h-4.5 accent-primary border border-borderColor rounded focus:outline-none"
-                  />
-                  <span className="text-xs font-bold text-textSecondary">AutoPay Enabled</span>
-                </label>
-              </div>
-
-              <div className="flex space-x-3 pt-4 border-t border-borderColor">
-                <button 
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="w-1/2 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="w-1/2 h-11 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-colors text-sm"
-                >
-                  Save Contract
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Billing Cost (₹)</label>
+              <input 
+                type="number" 
+                required
+                placeholder="299"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Billing Cycle</label>
+              <select 
+                value={billingCycle}
+                onChange={(e) => setBillingCycle(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Next Billing Date</label>
+              <input 
+                type="date" 
+                required
+                value={nextBillingDate}
+                onChange={(e) => setNextBillingDate(e.target.value)}
+                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-6 pt-2">
+            <label className="flex items-center space-x-2.5 cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="w-4.5 h-4.5 accent-primary border border-borderColor rounded focus:outline-none"
+              />
+              <span className="text-xs font-bold text-textSecondary">Active Membership</span>
+            </label>
+
+            <label className="flex items-center space-x-2.5 cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={isAutopay}
+                onChange={(e) => setIsAutopay(e.target.checked)}
+                className="w-4.5 h-4.5 accent-primary border border-borderColor rounded focus:outline-none"
+              />
+              <span className="text-xs font-bold text-textSecondary">AutoPay Enabled</span>
+            </label>
+          </div>
+
+          <div className="flex items-center gap-3 pt-4 border-t border-borderColor shrink-0">
+            <button 
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="w-1/3 min-h-[48px] bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              className="w-2/3 min-h-[48px] bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all text-sm flex items-center justify-center"
+            >
+              Save Contract
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
