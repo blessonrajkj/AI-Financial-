@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Plus, Wallet, AlertTriangle, Check, AlertCircle, Pencil, Trash2, X, TrendingUp } from 'lucide-react';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
@@ -326,8 +327,8 @@ const BudgetsPage = () => {
       )}
 
       {/* Add / Edit Budget Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      {showModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 shadow-xl relative animate-scale-up">
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-lg font-bold text-textPrimary">
@@ -403,12 +404,13 @@ const BudgetsPage = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm">
+      {deleteConfirm && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-cardBg border border-borderColor rounded-3xl p-6 shadow-xl animate-scale-up">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-danger/10 flex items-center justify-center">
@@ -443,7 +445,8 @@ const BudgetsPage = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
