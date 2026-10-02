@@ -756,41 +756,69 @@ const Transactions = () => {
       {/* Manual Logger / Edit Popup Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
             <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.4 }}
-              className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-cardBg border border-borderColor rounded-3xl p-4 sm:p-6 shadow-xl relative"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-cardBg border-t sm:border border-borderColor rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl relative"
             >
-              <div className="flex justify-between items-center mb-4 sm:mb-6">
-                <h3 className="text-base sm:text-lg font-bold text-textPrimary">{isEditMode ? 'Edit Transaction' : 'Log New Transaction'}</h3>
+              {/* Modal Header */}
+              <div className="flex justify-between items-center mb-4 sm:mb-6 pb-3 border-b border-borderColor">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-extrabold text-textPrimary tracking-tight">
+                    {isEditMode ? 'Edit Transaction' : 'Log New Transaction'}
+                  </h3>
+                  <p className="text-xs text-textSecondary font-medium mt-0.5">
+                    {isEditMode ? 'Update transaction details' : 'Record an inflow or outflow record'}
+                  </p>
+                </div>
                 <button 
                   onClick={() => { setShowAddModal(false); resetForm(); }}
-                  className="p-1.5 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
+                  className="p-2 rounded-full text-textSecondary hover:bg-hoverBg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Flow Type</label>
-                    <select 
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                      className="w-full h-11 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs font-semibold focus:outline-none focus:border-primary transition-all"
-                    >
-                      <option value="expense">Expense (Outflow)</option>
-                      <option value="income">Income (Inflow)</option>
-                      <option value="transfer">Transfer (Internal)</option>
-                    </select>
-                  </div>
+                
+                {/* 1. Flow Type */}
+                <div>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Flow Type</label>
+                  <select 
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+                  >
+                    <option value="expense">Expense (Outflow)</option>
+                    <option value="income">Income (Inflow)</option>
+                    <option value="transfer">Transfer (Internal)</option>
+                  </select>
+                </div>
 
+                {/* 2. Amount Field (Visually Prominent) */}
+                <div>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-3.5 text-primary text-lg font-black">₹</span>
+                    <input 
+                      type="number" 
+                      required
+                      step="any"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full h-12 pl-9 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary text-lg font-bold font-numeric focus:outline-none focus:border-primary transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Category & Subcategory */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Main Category</label>
+                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Main Category</label>
                     <CategorySelect 
                       value={category}
                       onChange={handleCategoryChange}
@@ -800,7 +828,7 @@ const Transactions = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Subcategory</label>
+                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Subcategory</label>
                     <SubcategorySelect
                       category={category}
                       value={subcategory}
@@ -817,53 +845,25 @@ const Transactions = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* 4. Date & Mode of Payment */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Amount</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-3 text-textSecondary text-sm font-bold">₹</span>
-                      <input 
-                        type="number" 
-                        required
-                        step="any"
-                        placeholder="0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="w-full h-11 pl-8 pr-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Merchant Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Amazon, Starbucks (Optional)"
-                      value={merchant}
-                      onChange={(e) => setMerchant(e.target.value)}
-                      className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                    />
-                  </div>
-                </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Transaction Date</label>
+                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Transaction Date</label>
                     <input 
                       type="date" 
                       required
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                      className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-medium focus:outline-none focus:border-primary transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Mode of Transaction</label>
+                    <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Mode of Transaction</label>
                     <select 
                       value={paymentMethod}
                       onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                      className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-medium focus:outline-none focus:border-primary transition-all"
                     >
                       <option value="Cash">Cash</option>
                       <option value="Card">Card / Card Payment</option>
@@ -873,34 +873,48 @@ const Transactions = () => {
                   </div>
                 </div>
 
+                {/* 5. Merchant Name */}
                 <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Description</label>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Merchant Name</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. Monthly cloud server costs"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                    placeholder="e.g. Amazon, Starbucks, Swiggy (Optional)"
+                    value={merchant}
+                    onChange={(e) => setMerchant(e.target.value)}
+                    className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
                   />
                 </div>
 
-                <div className="flex space-x-3 pt-4 border-t border-borderColor">
+                {/* 6. Description */}
+                <div>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Description</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Monthly cloud server subscription (Optional)"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                  />
+                </div>
+
+                {/* Action Footer */}
+                <div className="flex items-center gap-3 pt-4 border-t border-borderColor">
                   <button 
                     type="button"
                     onClick={() => { setShowAddModal(false); resetForm(); }}
-                    className="w-1/2 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
+                    className="w-1/3 h-12 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors text-sm"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="w-1/2 h-11 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 text-sm"
+                    className="w-2/3 h-12 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 text-sm flex items-center justify-center"
                   >
                     {loading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <span>{isEditMode ? 'Update Transaction' : 'Log Transaction'}</span>
+                      <span>{isEditMode ? 'Update Transaction' : 'Add Transaction'}</span>
                     )}
                   </button>
                 </div>
