@@ -19,6 +19,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
 
       - name: Install Linters & Verify Python Syntax
         run: |
@@ -56,11 +57,12 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
 
       - name: Install System Dependencies for OCR & PDF Parsing
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx tesseract-ocr
+          sudo apt-get install -y libgl1 tesseract-ocr
 
       - name: Install Python Dependencies
         run: |
@@ -135,11 +137,12 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
 
       - name: Install System & Python Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx tesseract-ocr
+          sudo apt-get install -y libgl1 tesseract-ocr
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt uvicorn
 
@@ -212,7 +215,7 @@ jobs:
       - name: Scan for Unencrypted Secrets & Committed Credentials
         run: |
           echo "Scanning for exposed secrets, unencrypted .env files and private keys..."
-          ! grep -rE "(AWS_SECRET_ACCESS_KEY|PRIVATE_KEY|BEGIN RSA PRIVATE KEY|ghp_[A-Za-z0-9]{36})" --exclude-dir={.git,node_modules,dist,.pytest_cache,__pycache__} .
+          ! grep -rE "(AWS_SECRET_ACCESS_KEY|PRIVATE_KEY|BEGIN RSA PRIVATE KEY|ghp_[A-Za-z0-9]{36})" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.pytest_cache --exclude-dir=__pycache__ .
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
