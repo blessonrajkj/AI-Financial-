@@ -76,7 +76,6 @@ jobs:
           SECRET_KEY: ci_test_secret_key_1234567890
         run: |
           cd backend
-          python -c "from app.core.database import Base, engine; Base.metadata.create_all(bind=engine)"
           alembic upgrade head
 
       - name: Run Pytest Backend Test Suite (Includes Real Session Persistence)
@@ -162,7 +161,6 @@ jobs:
           SECRET_KEY: e2e_test_secret_key_1234567890
         run: |
           cd backend
-          python -c "from app.core.database import Base, engine; Base.metadata.create_all(bind=engine)"
           alembic upgrade head
 
       - name: Start FastAPI Backend Server
