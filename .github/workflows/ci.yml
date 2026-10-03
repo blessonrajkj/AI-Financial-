@@ -67,7 +67,8 @@ jobs:
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
+          pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install --no-cache-dir -r backend/requirements.txt
 
       - name: Run Alembic Database Migrations Against PostgreSQL
         env:
@@ -145,7 +146,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgl1 tesseract-ocr
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt uvicorn
+          pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install --no-cache-dir -r backend/requirements.txt uvicorn
 
       - name: Run Sanitized Fixture Generator
         run: |
