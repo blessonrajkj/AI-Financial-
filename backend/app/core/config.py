@@ -52,7 +52,9 @@ class Settings(BaseSettings):
         env_db_url = os.environ.get("DATABASE_URL") or self.DATABASE_URL
         if env_db_url:
             if env_db_url.startswith("postgres://"):
-                env_db_url = env_db_url.replace("postgres://", "postgresql://", 1)
+                env_db_url = env_db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif env_db_url.startswith("postgresql://"):
+                env_db_url = env_db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
             return env_db_url
 
         # If POSTGRES_SERVER is set, construct PostgreSQL URL
@@ -62,8 +64,8 @@ class Settings(BaseSettings):
             password = os.environ.get("POSTGRES_PASSWORD") or self.POSTGRES_PASSWORD
             db = os.environ.get("POSTGRES_DB") or self.POSTGRES_DB
             port = os.environ.get("POSTGRES_PORT") or self.POSTGRES_PORT
-            return f"postgresql://{user}:{password}@{pg_server}:{port}/{db}"
-        return "postgresql://postgres:kjbb2320@localhost:5432/pariview"
+            return f"postgresql+psycopg2://{user}:{password}@{pg_server}:{port}/{db}"
+        return "postgresql+psycopg2://postgres:kjbb2320@localhost:5432/pariview"
 
 settings = Settings()
 # Ensure uploads directory exists
