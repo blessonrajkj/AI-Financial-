@@ -71,7 +71,7 @@ jobs:
 
       - name: Run Alembic Database Migrations Against PostgreSQL
         env:
-          DATABASE_URL: postgresql://pariview:pariviewpassword@localhost:5432/pariview_test
+          DATABASE_URL: postgresql://pariview:pariviewpassword@127.0.0.1:5432/pariview_test
           SECRET_KEY: ci_test_secret_key_1234567890
         run: |
           cd backend
@@ -79,7 +79,7 @@ jobs:
 
       - name: Run Pytest Backend Test Suite (Includes Real Session Persistence)
         env:
-          DATABASE_URL: postgresql://pariview:pariviewpassword@localhost:5432/pariview_test
+          DATABASE_URL: postgresql://pariview:pariviewpassword@127.0.0.1:5432/pariview_test
           SECRET_KEY: ci_test_secret_key_1234567890
         run: |
           cd backend
@@ -155,7 +155,7 @@ jobs:
 
       - name: Run Alembic Migrations for E2E Test DB
         env:
-          DATABASE_URL: postgresql://pariview:pariviewpassword@localhost:5432/pariview_e2e
+          DATABASE_URL: postgresql://pariview:pariviewpassword@127.0.0.1:5432/pariview_e2e
           SECRET_KEY: e2e_test_secret_key_1234567890
         run: |
           cd backend
@@ -163,7 +163,7 @@ jobs:
 
       - name: Start FastAPI Backend Server
         env:
-          DATABASE_URL: postgresql://pariview:pariviewpassword@localhost:5432/pariview_e2e
+          DATABASE_URL: postgresql://pariview:pariviewpassword@127.0.0.1:5432/pariview_e2e
           SECRET_KEY: e2e_test_secret_key_1234567890
         run: |
           cd backend
@@ -215,7 +215,7 @@ jobs:
       - name: Scan for Unencrypted Secrets & Committed Credentials
         run: |
           echo "Scanning for exposed secrets, unencrypted .env files and private keys..."
-          ! grep -rE "(AWS_SECRET_ACCESS_KEY|PRIVATE_KEY|BEGIN RSA PRIVATE KEY|ghp_[A-Za-z0-9]{36})" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.pytest_cache --exclude-dir=__pycache__ .
+          ! grep -rE "(AWS_SECRET_ACCESS_KEY|PRIVATE_KEY|BEGIN RSA PRIVATE KEY|ghp_[A-Za-z0-9]{36})" --exclude-dir=.git --exclude-dir=.github --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.pytest_cache --exclude-dir=__pycache__ .
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
