@@ -233,84 +233,99 @@ const BudgetsPage = () => {
             const displayPct = Math.min(pct, 100); // cap visual bar at 100%
 
             return (
-              <div key={b.id} className="doppel-shell relative overflow-hidden group">
-                <div className="doppel-core p-6 flex flex-col justify-between">
-                  {/* Header row */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                        <Wallet className="w-5 h-5" />
+              <div key={b.id} className="doppel-shell relative overflow-hidden group h-full">
+                <div className="doppel-core p-5 sm:p-6 flex flex-col h-full justify-between space-y-4">
+                  {/* Top Section: Header & Progress */}
+                  <div className="space-y-4">
+                    {/* Header row */}
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
+                          <Wallet className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-base font-bold text-textPrimary tracking-tight truncate">{catName}</h4>
+                          <p className="text-xs text-textMuted font-medium mt-0.5">{b.month_label || `${b.month}/${b.year}`}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-base font-bold text-textPrimary tracking-tight">{catName}</h4>
-                        <p className="text-xs text-textMuted font-medium mt-0.5">{b.month_label || `${b.month}/${b.year}`}</p>
+
+                      <div className="flex flex-col items-end space-y-1.5 shrink-0">
+                        <span className={`flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.cls}`}>
+                          {isExceeded && <AlertTriangle className="w-3.5 h-3.5" />}
+                          <span>{badge.label}</span>
+                        </span>
+
+                        {/* Edit / Delete action buttons */}
+                        <div className="flex items-center space-x-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => openEditModal(b)}
+                            title="Edit Budget"
+                            className="p-1.5 rounded-lg text-textSecondary hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(b)}
+                            title="Delete Budget"
+                            className="p-1.5 rounded-lg text-textSecondary hover:text-danger hover:bg-danger/10 transition-all border border-transparent hover:border-danger/20"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end space-y-1.5">
-                      <span className={`flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.cls}`}>
-                        {isExceeded && <AlertTriangle className="w-3.5 h-3.5" />}
-                        <span>{badge.label}</span>
-                      </span>
+                    {/* Spent vs Limit */}
+                    <div className="space-y-2.5">
+                      <div className="flex justify-between text-sm text-textSecondary font-medium">
+                        <span>Spent: <span className="font-bold text-textPrimary">₹{spent.toLocaleString()}</span></span>
+                        <span>Limit: <span className="font-bold text-textPrimary">₹{limit.toLocaleString()}</span></span>
+                      </div>
 
-                      {/* Edit / Delete action buttons */}
-                      <div className="flex items-center space-x-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => openEditModal(b)}
-                          title="Edit Budget"
-                          className="p-1.5 rounded-lg text-textSecondary hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(b)}
-                          title="Delete Budget"
-                          className="p-1.5 rounded-lg text-textSecondary hover:text-danger hover:bg-danger/10 transition-all border border-transparent hover:border-danger/20"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      {/* Progress bar */}
+                      <div className="w-full h-2.5 bg-borderColor/60 rounded-full overflow-hidden p-0.5">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${
+                            pct > 100 ? 'bg-red-700' : pct >= 90 ? 'bg-danger shadow-danger-glow' : pct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
+                          }`}
+                          style={{ width: `${displayPct}%` }}
+                        />
+                      </div>
+
+                      {/* Bottom info */}
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-textMuted font-medium">{pct.toFixed(1)}% consumed</span>
+                        <span className={`font-semibold ${isExceeded ? 'text-danger' : 'text-textSecondary'}`}>
+                          {isExceeded
+                            ? `⚠ Over by ₹${exceeded.toLocaleString()}`
+                            : `₹${remaining.toLocaleString()} remaining`
+                          }
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Spent vs Limit */}
-                  <div className="space-y-3 pt-1">
-                    <div className="flex justify-between text-sm text-textSecondary font-medium">
-                      <span>Spent: <span className="font-semibold text-textPrimary">₹{spent.toLocaleString()}</span></span>
-                      <span>Limit: <span className="font-semibold text-textPrimary">₹{limit.toLocaleString()}</span></span>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="w-full h-2.5 bg-borderColor/60 rounded-full overflow-hidden p-0.5">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${
-                          pct > 100 ? 'bg-red-700' : pct >= 90 ? 'bg-danger shadow-danger-glow' : pct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
-                        }`}
-                        style={{ width: `${displayPct}%` }}
-                      />
-                    </div>
-
-                    {/* Bottom info */}
-                    <div className="flex justify-between items-center text-xs pt-0.5">
-                      <span className="text-textMuted font-medium">{pct.toFixed(1)}% consumed</span>
-                      <span className={`font-semibold ${isExceeded ? 'text-danger' : 'text-textSecondary'}`}>
-                        {isExceeded
-                          ? `⚠ Over by ₹${exceeded.toLocaleString()}`
-                          : `₹${remaining.toLocaleString()} remaining`
-                        }
-                      </span>
-                    </div>
-
-                    {/* Subcategories Breakdown */}
-                    {b.subcategories_breakdown && b.subcategories_breakdown.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-borderColor/60 space-y-1.5">
-                        <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-1.5">Subcategory Breakdown</p>
-                        {b.subcategories_breakdown.map((sub) => (
-                          <div key={sub.subcategory} className="flex justify-between items-center text-xs">
-                            <span className="text-textSecondary font-medium">{sub.subcategory}</span>
-                            <span className="text-textPrimary font-semibold">₹{sub.amount.toLocaleString()}</span>
-                          </div>
-                        ))}
+                  {/* Bottom Section: Subcategories Breakdown */}
+                  <div className="pt-3 border-t border-borderColor/50 mt-auto">
+                    {b.subcategories_breakdown && b.subcategories_breakdown.length > 0 ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-textMuted uppercase tracking-wider">Subcategory Breakdown</span>
+                          <span className="text-[11px] text-textMuted font-medium">{b.subcategories_breakdown.length} items</span>
+                        </div>
+                        <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                          {b.subcategories_breakdown.map((sub) => (
+                            <div key={sub.subcategory} className="flex justify-between items-center text-xs py-0.5">
+                              <span className="text-textSecondary font-medium truncate max-w-[160px]">{sub.subcategory}</span>
+                              <span className="text-textPrimary font-semibold shrink-0">₹{sub.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between text-xs text-textMuted font-medium py-0.5">
+                        <span className="text-[11px] font-bold text-textMuted uppercase tracking-wider">Subcategory Breakdown</span>
+                        <span className="italic text-[11px] text-textMuted/70">No activity yet</span>
                       </div>
                     )}
                   </div>
