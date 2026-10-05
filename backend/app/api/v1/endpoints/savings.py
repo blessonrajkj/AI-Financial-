@@ -26,13 +26,13 @@ def get_savings_goals(
     
     income_30 = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
-        Transaction.type == "income",
+        func.lower(Transaction.type) == "income",
         Transaction.date >= last_30_days
     ).scalar() or 0.0)
     
     expense_30 = float(db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == current_user.id,
-        Transaction.type == "expense",
+        func.lower(Transaction.type) == "expense",
         Transaction.date >= last_30_days
     ).scalar() or 0.0)
     
@@ -55,12 +55,12 @@ def get_savings_goals(
             
         total_income = float(db.query(func.sum(Transaction.amount)).filter(
             Transaction.user_id == current_user.id,
-            Transaction.type == "income"
+            func.lower(Transaction.type) == "income"
         ).scalar() or 0.0)
         
         total_expense = float(db.query(func.sum(Transaction.amount)).filter(
             Transaction.user_id == current_user.id,
-            Transaction.type == "expense"
+            func.lower(Transaction.type) == "expense"
         ).scalar() or 0.0)
         
         net_savings_all = total_income - total_expense
@@ -73,46 +73,40 @@ def get_savings_goals(
         remaining = max(target_amt - current_amt, 0.0)
         progress_percentage = min((current_amt / target_amt * 100.0), 100.0) if target_amt > 0 else 0.0
 
-        g_created = g.created_at or datetime.now(timezone.utc)
-        if g_created.tzinfo is not None:
-            g_created = g_created.replace(tzinfo=None)
-        now_naive = now.replace(tzinfo=None)
-
-        days_elapsed = max((now_naive - g_created).days, 1)
-        months_elapsed = max(days_elapsed / 30.0, 1.0)
-        implied_goal_rate = (current_amt / months_elapsed) if current_amt > 0 else 0.0
-
-        effective_rate = max(monthly_savings_rate, implied_goal_rate)
+        effective_rate = max(monthly_savings_rate, 0.0)
 
         if remaining <= 0:
-            ai_prediction = "Goal achieved! Congratulations!"
+            ai_prediction = "🎉 Goal achieved! Target completed."
         else:
             g_target = g.target_date
-            if g_target.tzinfo is not None:
+            if g_target and g_target.tzinfo is not None:
                 g_target = g_target.replace(tzinfo=None)
+            now_naive = now.replace(tzinfo=None)
                 
-            days_left = max((g_target - now_naive).days, 1)
+            days_left = max((g_target - now_naive).days, 1) if g_target else 30
             time_left_months = max((days_left / 30.0), 0.1)
             required_rate = remaining / time_left_months
             
+            target_str = g_target.strftime('%b %Y') if g_target else "Target"
+            
             if effective_rate <= 0:
-                ai_prediction = f"⚠️ Target: {g_target.strftime('%b %Y')}. Save ₹{required_rate:,.2f}/mo to hit target on time."
+                ai_prediction = f"⚠️ Target: {target_str}. Save ₹{required_rate:,.2f}/mo to reach target on time (Current velocity: ₹0.00/mo)."
             else:
                 months_needed = remaining / effective_rate
                 
                 if months_needed > 1200:
-                    ai_prediction = f"⚠️ Behind Target. Save ₹{required_rate:,.2f}/mo to reach target by {g_target.strftime('%b %Y')}."
+                    ai_prediction = f"⚠️ Behind Target. Target: {target_str}. Save ₹{required_rate:,.2f}/mo to reach target on time."
                 else:
                     try:
                         projected_date = now_naive + timedelta(days=int(months_needed * 30.0))
                         
-                        if projected_date <= g_target or effective_rate >= required_rate:
-                            ai_prediction = f"✅ On Track! Expected: {projected_date.strftime('%B %Y')} (Monthly velocity: ₹{effective_rate:,.2f})"
+                        if (g_target and projected_date <= g_target) or effective_rate >= required_rate:
+                            ai_prediction = f"✅ On Track! Expected: {projected_date.strftime('%B %Y')} (Monthly velocity: ₹{effective_rate:,.2f}/mo)"
                         else:
                             needed_extra = max(required_rate - effective_rate, 0.0)
-                            ai_prediction = f"⚠️ Behind Target. Expected: {projected_date.strftime('%B %Y')}. Increase savings by ₹{needed_extra:,.2f}/mo."
+                            ai_prediction = f"⚠️ Behind Target. Target: {target_str} (Est: {projected_date.strftime('%b %Y')}). Save ₹{required_rate:,.2f}/mo (Increase by ₹{needed_extra:,.2f}/mo)."
                     except OverflowError:
-                        ai_prediction = f"⚠️ Behind Target. Save ₹{required_rate:,.2f}/mo to reach target by {g_target.strftime('%b %Y')}."
+                        ai_prediction = f"⚠️ Behind Target. Target: {target_str}. Save ₹{required_rate:,.2f}/mo to reach target on time."
 
         result.append({
             "id": g.id,
