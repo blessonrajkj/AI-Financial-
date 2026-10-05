@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from datetime import datetime
 from typing import List, Dict
 
@@ -14,6 +14,8 @@ from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetOut
 
 router = APIRouter()
 
+from app.services.category_taxonomy import map_legacy_category
+
 def _compute_budget_with_spent(budget: Budget, db: Session, user_id: int) -> dict:
     """Compute the real spent amount for a budget from the transactions table."""
     m = budget.month
@@ -24,34 +26,69 @@ def _compute_budget_with_spent(budget: Budget, db: Session, user_id: int) -> dic
     else:
         month_end = datetime(y, m + 1, 1)
 
-    total_spent = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == user_id,
-        Transaction.category_id == budget.category_id,
-        Transaction.type == "expense",
-        Transaction.date >= month_start,
-        Transaction.date < month_end
-    ).scalar() or 0.0
+    cat_name = budget.category.name if budget.category else ""
+    main_cat, _ = map_legacy_category(cat_name)
 
-    subcat_rows = db.query(
-        Transaction.subcategory,
-        func.sum(Transaction.amount).label("total")
-    ).filter(
+    all_cats = db.query(Category).all()
+    matching_cat_ids = set()
+    if budget.category_id:
+        matching_cat_ids.add(budget.category_id)
+
+    for c in all_cats:
+        c_main, _ = map_legacy_category(c.name)
+        if (
+            c.id == budget.category_id
+            or (cat_name and c.name.lower() == cat_name.lower())
+            or (main_cat and c_main.lower() == main_cat.lower())
+            or (cat_name and c_main.lower() == cat_name.lower())
+            or (main_cat and c.name.lower() == main_cat.lower())
+        ):
+            matching_cat_ids.add(c.id)
+
+    query_filter = [
         Transaction.user_id == user_id,
-        Transaction.category_id == budget.category_id,
-        Transaction.type == "expense",
+        func.lower(Transaction.type) == "expense",
         Transaction.date >= month_start,
-        Transaction.date < month_end
-    ).group_by(Transaction.subcategory).all()
+        Transaction.date < month_end,
+    ]
+
+    cat_conditions = []
+    if matching_cat_ids:
+        cat_conditions.append(Transaction.category_id.in_(list(matching_cat_ids)))
+    if cat_name:
+        cat_conditions.append(Transaction.subcategory.ilike(f"%{cat_name}%"))
+    if main_cat and main_cat.lower() != cat_name.lower():
+        cat_conditions.append(Transaction.subcategory.ilike(f"%{main_cat}%"))
+
+    if cat_conditions:
+        query_filter.append(or_(*cat_conditions))
+
+    raw_total = (
+        db.query(func.sum(Transaction.amount))
+        .filter(*query_filter)
+        .scalar()
+    )
+    total_spent = float(raw_total or 0.0)
+
+    subcat_rows = (
+        db.query(
+            Transaction.subcategory,
+            func.sum(Transaction.amount).label("total"),
+        )
+        .filter(*query_filter)
+        .group_by(Transaction.subcategory)
+        .all()
+    )
 
     subcategories_breakdown = [
-        {"subcategory": sub or "Uncategorized", "amount": round(total, 2)}
+        {"subcategory": sub or "Uncategorized", "amount": round(float(total), 2)}
         for sub, total in subcat_rows
     ]
 
     b_amt = float(budget.amount)
     limit = b_amt if b_amt > 0 else 1.0
     progress = (total_spent / limit) * 100
-    remaining = b_amt - total_spent
+    remaining = max(0.0, b_amt - total_spent)
     exceeded = max(0.0, total_spent - b_amt)
 
     category_name = budget.category.name if budget.category else "Unknown"
@@ -73,7 +110,7 @@ def _compute_budget_with_spent(budget: Budget, db: Session, user_id: int) -> dic
         "id": budget.id,
         "category_id": budget.category_id,
         "category": {"id": budget.category_id, "name": category_name, "type": "expense"},
-        "amount": budget.amount,
+        "amount": b_amt,
         "month": budget.month,
         "year": budget.year,
         "created_at": budget.created_at.isoformat() if budget.created_at else None,
@@ -116,7 +153,11 @@ def create_budget(
         Budget.year == budget_in.year
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Budget limit already defined for this category/period")
+        existing.amount = budget_in.amount
+        db.add(existing)
+        db.commit()
+        db.refresh(existing)
+        return _compute_budget_with_spent(existing, db, current_user.id)
         
     db_budget = Budget(
         user_id=current_user.id,
