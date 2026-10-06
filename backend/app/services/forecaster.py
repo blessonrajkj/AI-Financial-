@@ -5,6 +5,8 @@ from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.models.transaction import Transaction
 
+from sqlalchemy import func
+
 def detect_anomalies_mad(transactions: List[Transaction]) -> List[Dict[str, Any]]:
     """
     Detects expenditure anomalies using Median Absolute Deviation (MAD).
@@ -15,7 +17,7 @@ def detect_anomalies_mad(transactions: List[Transaction]) -> List[Dict[str, Any]
     if not transactions or len(transactions) < 3:
         return []
     
-    amounts = np.array([float(t.amount) for t in transactions if t.type == "expense"])
+    amounts = np.array([float(t.amount) for t in transactions if (t.type or "").lower() == "expense"])
     if len(amounts) < 3:
         return []
 
@@ -26,7 +28,7 @@ def detect_anomalies_mad(transactions: List[Transaction]) -> List[Dict[str, Any]
 
     anomalies = []
     for t in transactions:
-        if t.type != "expense":
+        if (t.type or "").lower() != "expense":
             continue
         amt = float(t.amount)
         score = 0.6745 * abs(amt - med) / mad
@@ -55,7 +57,7 @@ class Forecaster:
         # Fetch expense transactions, strictly excluding internal transfers
         transactions = db.query(Transaction).filter(
             Transaction.user_id == user_id,
-            Transaction.type == "expense"
+            func.lower(Transaction.type) == "expense"
         ).order_by(Transaction.date.asc()).all()
 
         anomalies = detect_anomalies_mad(transactions)
@@ -157,10 +159,27 @@ class Forecaster:
         last_month = datetime.now() - timedelta(days=30)
         income_transactions = db.query(Transaction).filter(
             Transaction.user_id == user_id,
-            Transaction.type == "income",
+            func.lower(Transaction.type) == "income",
             Transaction.date >= last_month
         ).all()
-        monthly_income = sum(float(t.amount) for t in income_transactions) or 50000.0
+        monthly_income = sum(float(t.amount) for t in income_transactions)
+
+        if monthly_income <= 0:
+            # Fallback to all-time average monthly income from real transactions
+            all_income_sum = float(db.query(func.sum(Transaction.amount)).filter(
+                Transaction.user_id == user_id,
+                func.lower(Transaction.type) == "income"
+            ).scalar() or 0.0)
+            first_income_tx = db.query(Transaction).filter(
+                Transaction.user_id == user_id,
+                func.lower(Transaction.type) == "income"
+            ).order_by(Transaction.date.asc()).first()
+            if first_income_tx and all_income_sum > 0:
+                f_date = first_income_tx.date.replace(tzinfo=None) if first_income_tx.date.tzinfo else first_income_tx.date
+                days_span = max((datetime.now() - f_date).days, 15)
+                monthly_income = (all_income_sum / days_span) * 30.0
+            else:
+                monthly_income = 0.0
 
         daily_std = float(np.std(df["y"])) if len(df["y"]) > 1 else 0.0
         monthly_std = daily_std * np.sqrt(30)
@@ -169,7 +188,7 @@ class Forecaster:
         expected_savings = max(0.0, monthly_income - next_month_est)
         optimistic_savings = max(0.0, monthly_income - max(0.0, next_month_est - 1.645 * monthly_std))
 
-        recommended_budget = max(500.0, next_month_est * 0.9)
+        recommended_budget = max(0.0, next_month_est * 0.9) if next_month_est > 0 else 0.0
 
         result["metrics"] = {
             "tomorrow": round(tomorrow_est, 2),
