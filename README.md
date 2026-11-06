@@ -1,6 +1,6 @@
 <div align="center">
 
-# AI Financial Assistant
+# AI Financial 
 
 ### Intelligent Personal Finance Management Powered by Artificial Intelligence
 
