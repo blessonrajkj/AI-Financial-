@@ -24,7 +24,13 @@ const Login = () => {
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Incorrect email or password. Please verify your credentials.');
+      if (!err.response) {
+        setError('Cannot connect to server. Please ensure the backend is running.');
+      } else if (err.response.status >= 500) {
+        setError(err.response.data?.detail || 'Server error occurred. Please try again.');
+      } else {
+        setError(err.response.data?.detail || 'Incorrect email or password. Please verify your credentials.');
+      }
     } finally {
       setLoading(false);
     }
