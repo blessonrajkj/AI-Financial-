@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 from pydantic import BaseModel
 import io
@@ -261,7 +261,7 @@ def parse_excel_csv_backend(file_path: str, filename: str) -> tuple:
     transactions = []
     invalid_rows = []
     
-    from app.services.pdf_parser import pdf_parser
+    from app.services.tabular_parser import tabular_parser
     
     if filename.endswith('.csv'):
         try:
@@ -269,30 +269,18 @@ def parse_excel_csv_backend(file_path: str, filename: str) -> tuple:
                 reader = csv.reader(f)
                 rows = list(reader)
                 if len(rows) > 0:
-                    formatted_rows = []
-                    for row in rows:
-                        if any(row):
-                            row_cells = [{"text": str(cell) if cell is not None else "", "color": None} for cell in row]
-                            formatted_rows.append(row_cells)
-                            
-                    txs, bad = pdf_parser.parse_table_rows(formatted_rows, "Generic CSV")
+                    txs, bad = tabular_parser.parse_tabular_data(rows, "Generic CSV")
                     transactions.extend(txs)
                     invalid_rows.extend(bad)
         except Exception as e:
             invalid_rows.append({"rowNum": 1, "reasons": [f"CSV parsing error: {str(e)}"]})
-    else:  # Excel
+    else:  # Excel (.xlsx, .xls)
         try:
             wb = load_workbook(filename=file_path, data_only=True)
             ws = wb.active
             rows = list(ws.iter_rows(values_only=True))
             if len(rows) > 0:
-                formatted_rows = []
-                for row in rows:
-                    if any(row):
-                        row_cells = [{"text": str(cell) if cell is not None else "", "color": None} for cell in row]
-                        formatted_rows.append(row_cells)
-                        
-                txs, bad = pdf_parser.parse_table_rows(formatted_rows, "Generic Excel")
+                txs, bad = tabular_parser.parse_tabular_data(rows, "Generic Excel")
                 transactions.extend(txs)
                 invalid_rows.extend(bad)
         except Exception as e:
@@ -387,6 +375,140 @@ def import_transactions(
 
 from app.services.storage import storage_service, generate_object_key, temp_file_for_processing
 
+def batch_detect_duplicates(
+    db: Session,
+    user_id: int,
+    items: list,
+    is_sqlite: bool = False
+) -> list[tuple[bool, int | None]]:
+    """
+    High-performance batch duplicate detector.
+    Pre-indexes candidate transaction IDs, reference numbers, and date ranges,
+    executing a single indexed query followed by O(1) in-memory hash matching.
+    """
+    if not items:
+        return []
+
+    cand_tx_ids = set()
+    cand_ref_nums = set()
+    cand_dates = []
+
+    def get_val(obj, key, default=None):
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
+
+    for item in items:
+        tx_id = get_val(item, "transaction_id")
+        if tx_id and str(tx_id).strip():
+            cand_tx_ids.add(str(tx_id).strip())
+
+        ref_num = get_val(item, "reference_number")
+        if ref_num and str(ref_num).strip():
+            cand_ref_nums.add(str(ref_num).strip())
+
+        raw_date = get_val(item, "date")
+        if raw_date:
+            try:
+                if isinstance(raw_date, datetime):
+                    cand_dates.append(raw_date.date())
+                elif isinstance(raw_date, str):
+                    d_clean = raw_date.replace("Z", "+00:00").split("T")[0]
+                    cand_dates.append(datetime.strptime(d_clean[:10], "%Y-%m-%d").date())
+            except Exception:
+                pass
+
+    or_clauses = []
+    if cand_tx_ids:
+        or_clauses.append(Transaction.transaction_id.in_(cand_tx_ids))
+    if cand_ref_nums:
+        or_clauses.append(Transaction.reference_number.in_(cand_ref_nums))
+    if cand_dates:
+        min_d = min(cand_dates) - timedelta(days=1)
+        max_d = max(cand_dates) + timedelta(days=1)
+        min_dt = datetime.combine(min_d, datetime.min.time())
+        max_dt = datetime.combine(max_d, datetime.max.time())
+        or_clauses.append(and_(Transaction.date >= min_dt, Transaction.date <= max_dt))
+
+    db_tx_ids = {}
+    db_ref_nums = {}
+    db_date_amt_merchant = {}
+    db_date_amt_desc = {}
+
+    if or_clauses:
+        existing_matches = db.query(
+            Transaction.id,
+            Transaction.transaction_id,
+            Transaction.reference_number,
+            Transaction.date,
+            Transaction.amount,
+            Transaction.type,
+            Transaction.description,
+            Merchant.name.label("merchant_name")
+        ).outerjoin(Merchant, Transaction.merchant_id == Merchant.id).filter(
+            Transaction.user_id == user_id,
+            or_(*or_clauses)
+        ).all()
+
+        for r in existing_matches:
+            if r.transaction_id:
+                db_tx_ids[str(r.transaction_id).strip()] = r.id
+            if r.reference_number:
+                db_ref_nums[str(r.reference_number).strip()] = r.id
+
+            d_str = r.date.strftime("%Y-%m-%d") if r.date else ""
+            amt_key = f"{float(r.amount):.2f}"
+            t_type = (r.type or "").lower().strip()
+
+            if r.merchant_name:
+                m_key = (d_str, amt_key, t_type, r.merchant_name.lower().strip())
+                db_date_amt_merchant[m_key] = r.id
+
+            if r.description:
+                desc_key = (d_str, amt_key, t_type, r.description.lower().strip())
+                db_date_amt_desc[desc_key] = r.id
+
+    results = []
+    for item in items:
+        tx_id = str(get_val(item, "transaction_id") or "").strip()
+        ref_num = str(get_val(item, "reference_number") or "").strip()
+        amt = get_val(item, "amount")
+        amt_key = f"{float(amt):.2f}" if amt is not None else "0.00"
+        t_type = str(get_val(item, "type") or "").lower().strip()
+        merchant = str(get_val(item, "merchant") or "").lower().strip()
+        desc = str(get_val(item, "description") or "").lower().strip()
+
+        raw_date = get_val(item, "date")
+        d_str = ""
+        if raw_date:
+            try:
+                if isinstance(raw_date, datetime):
+                    d_str = raw_date.strftime("%Y-%m-%d")
+                elif isinstance(raw_date, str):
+                    d_str = raw_date.replace("Z", "+00:00").split("T")[0][:10]
+            except Exception:
+                d_str = ""
+
+        is_dup = False
+        dup_id = None
+
+        if tx_id and tx_id in db_tx_ids:
+            is_dup = True
+            dup_id = db_tx_ids[tx_id]
+        elif ref_num and ref_num in db_ref_nums:
+            is_dup = True
+            dup_id = db_ref_nums[ref_num]
+        elif merchant and (d_str, amt_key, t_type, merchant) in db_date_amt_merchant:
+            is_dup = True
+            dup_id = db_date_amt_merchant[(d_str, amt_key, t_type, merchant)]
+        elif desc and (d_str, amt_key, t_type, desc) in db_date_amt_desc:
+            is_dup = True
+            dup_id = db_date_amt_desc[(d_str, amt_key, t_type, desc)]
+
+        results.append((is_dup, dup_id))
+
+    return results
+
 @router.post("/upload-parse")
 def upload_and_parse_statement(
     file: UploadFile = File(...),
@@ -434,78 +556,24 @@ def upload_and_parse_statement(
         detected_accounts = set()
         
         is_sqlite = db.bind.dialect.name == "sqlite"
+        dup_results = batch_detect_duplicates(db, current_user.id, transactions, is_sqlite)
         
-        for t in transactions:
-            is_duplicate = False
+        for idx, t in enumerate(transactions):
+            is_duplicate, _ = dup_results[idx]
             if t.get("needs_review"):
                 needs_review_count += 1
-
-            # Multi-tier Duplicate Detection (Priority: 1. transaction_id, 2. reference_number, 3. date+amount+merchant, 4. date+amount+description)
-            if t.get("transaction_id"):
-                dup = db.query(Transaction).filter(
-                    Transaction.user_id == current_user.id,
-                    Transaction.transaction_id == t["transaction_id"]
-                ).first()
-                if dup:
-                    is_duplicate = True
-            
-            if not is_duplicate and t.get("reference_number"):
-                dup = db.query(Transaction).filter(
-                    Transaction.user_id == current_user.id,
-                    Transaction.reference_number == t["reference_number"]
-                ).first()
-                if dup:
-                    is_duplicate = True
-            
-            if not is_duplicate:
-                try:
-                    date_parsed = datetime.fromisoformat(t["date"])
-                except Exception:
-                    date_parsed = datetime.now()
-                    
-                # Priority 3: date + amount + merchant
-                if t.get("merchant"):
-                    dup_query = db.query(Transaction).filter(
-                        Transaction.user_id == current_user.id,
-                        Transaction.amount == t["amount"],
-                        Transaction.type == t["type"]
-                    )
-                    if is_sqlite:
-                        dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
-                    else:
-                        dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
-                    dup_query = dup_query.join(Merchant, Transaction.merchant_id == Merchant.id).filter(
-                        Merchant.name.ilike(t["merchant"].strip())
-                    )
-                    if dup_query.first():
-                        is_duplicate = True
-
-                # Priority 4: date + amount + description
-                if not is_duplicate and t.get("description"):
-                    dup_query = db.query(Transaction).filter(
-                        Transaction.user_id == current_user.id,
-                        Transaction.amount == t["amount"],
-                        Transaction.type == t["type"],
-                        Transaction.description.ilike(t["description"].strip())
-                    )
-                    if is_sqlite:
-                        dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
-                    else:
-                        dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
-                    if dup_query.first():
-                        is_duplicate = True
-                    
             if is_duplicate:
                 duplicate_count += 1
                 
             t["is_duplicate"] = is_duplicate
             enriched_transactions.append(t)
             
-            if t["type"] == "income":
-                income_total += t["amount"]
+            amt = float(t.get("amount", 0.0))
+            if t.get("type") == "income":
+                income_total += amt
                 income_count += 1
             else:
-                expense_total += t["amount"]
+                expense_total += amt
                 expense_count += 1
                 
             if t.get("category"):
@@ -568,11 +636,11 @@ def bulk_validate_transactions(
     }
     
     is_sqlite = db.bind.dialect.name == "sqlite"
+    dup_results = batch_detect_duplicates(db, current_user.id, req.transactions, is_sqlite)
     
     for idx, t in enumerate(req.transactions):
         is_valid = True
         error_msg = None
-        is_duplicate = False
         
         # 1. Date parse check
         try:
@@ -588,7 +656,7 @@ def bulk_validate_transactions(
                     "index": idx,
                     "is_valid": is_valid,
                     "error_msg": error_msg,
-                    "is_duplicate": is_duplicate
+                    "is_duplicate": False
                 })
                 continue
                 
@@ -601,47 +669,12 @@ def bulk_validate_transactions(
                 "index": idx,
                 "is_valid": is_valid,
                 "error_msg": error_msg,
-                "is_duplicate": is_duplicate
+                "is_duplicate": False
             })
             continue
             
         # 3. Duplicate check
-        if t.transaction_id and t.transaction_id.strip():
-            dup_by_id = db.query(Transaction).filter(
-                Transaction.user_id == current_user.id,
-                Transaction.transaction_id == t.transaction_id.strip()
-            ).first()
-            if dup_by_id:
-                is_duplicate = True
-                
-        if not is_duplicate and t.reference_number and t.reference_number.strip():
-            dup_by_ref = db.query(Transaction).filter(
-                Transaction.user_id == current_user.id,
-                Transaction.reference_number == t.reference_number.strip()
-            ).first()
-            if dup_by_ref:
-                is_duplicate = True
-                
-        if not is_duplicate:
-            dup_query = db.query(Transaction).filter(
-                Transaction.user_id == current_user.id,
-                Transaction.amount == t.amount,
-                Transaction.type == t.type
-            )
-            
-            if is_sqlite:
-                dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
-            else:
-                dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
-                
-            if t.merchant and t.merchant.strip():
-                dup_query = dup_query.join(Merchant, Transaction.merchant_id == Merchant.id).filter(
-                    Merchant.name.ilike(t.merchant.strip())
-                )
-                
-            if dup_query.first():
-                is_duplicate = True
-                
+        is_duplicate, _ = dup_results[idx]
         if is_duplicate:
             summary["duplicates"] += 1
             
@@ -671,6 +704,23 @@ def bulk_import_transactions(
     
     is_sqlite = db.bind.dialect.name == "sqlite"
     
+    # 1. Batch duplicate detection
+    dup_results = batch_detect_duplicates(db, current_user.id, req.transactions, is_sqlite)
+    
+    # If duplicate strategy is 'replace', batch delete existing duplicate records
+    if req.duplicate_strategy == "replace":
+        dup_ids_to_delete = [dup_id for (is_dup, dup_id) in dup_results if is_dup and dup_id is not None]
+        if dup_ids_to_delete:
+            try:
+                db.query(Transaction).filter(
+                    Transaction.user_id == current_user.id,
+                    Transaction.id.in_(dup_ids_to_delete)
+                ).delete(synchronize_session=False)
+                db.flush()
+            except Exception:
+                db.rollback()
+
+    # 2. Pre-fetch and cache categories and merchants
     all_categories = db.query(Category).filter(
         or_(Category.user_id == None, Category.user_id == current_user.id)
     ).all()
@@ -679,6 +729,49 @@ def bulk_import_transactions(
     all_merchants = db.query(Merchant).all()
     merchant_cache = {m.name.lower().strip(): m.id for m in all_merchants if m.name}
     
+    # Pre-create any missing categories in batch
+    new_cats_to_create = {}
+    for t in req.transactions:
+        if t.category and t.category.strip():
+            c_clean = t.category.strip()
+            c_key = c_clean.lower()
+            if c_key not in category_cache and c_key not in new_cats_to_create:
+                new_cats_to_create[c_key] = (c_clean, t.type)
+                
+    if new_cats_to_create:
+        for c_key, (c_name, c_type) in new_cats_to_create.items():
+            db.add(Category(name=c_name, type=c_type, user_id=current_user.id))
+        try:
+            db.flush()
+            refreshed_cats = db.query(Category).filter(
+                or_(Category.user_id == None, Category.user_id == current_user.id)
+            ).all()
+            category_cache = {c.name.lower().strip(): c.id for c in refreshed_cats if c.name}
+        except Exception:
+            db.rollback()
+
+    # Pre-create any missing merchants in batch
+    new_merchs_to_create = {}
+    for t in req.transactions:
+        if t.merchant and t.merchant.strip():
+            m_clean = t.merchant.strip()
+            m_key = m_clean.lower()
+            if m_key not in merchant_cache and m_key not in new_merchs_to_create:
+                cat_id = None
+                if t.category and t.category.strip():
+                    cat_id = category_cache.get(t.category.strip().lower())
+                new_merchs_to_create[m_key] = (m_clean, cat_id)
+
+    if new_merchs_to_create:
+        for m_key, (m_name, c_id) in new_merchs_to_create.items():
+            db.add(Merchant(name=m_name, user_id=current_user.id, default_category_id=c_id))
+        try:
+            db.flush()
+            refreshed_merchs = db.query(Merchant).all()
+            merchant_cache = {m.name.lower().strip(): m.id for m in refreshed_merchs if m.name}
+        except Exception:
+            db.rollback()
+
     def parse_item_date(date_str: str) -> datetime | None:
         if not date_str:
             return None
@@ -695,7 +788,9 @@ def bulk_import_transactions(
                 pass
         return None
 
-    for t in req.transactions:
+    records_to_insert = []
+
+    for idx, t in enumerate(req.transactions):
         try:
             date_parsed = parse_item_date(t.date)
             if not date_parsed:
@@ -706,150 +801,53 @@ def bulk_import_transactions(
                 errors += 1
                 continue
                 
-            is_duplicate = False
-            existing_dup = None
-            
-            if t.transaction_id and t.transaction_id.strip():
-                existing_dup = db.query(Transaction).filter(
-                    Transaction.user_id == current_user.id,
-                    Transaction.transaction_id == t.transaction_id.strip()
-                ).first()
-                if existing_dup:
-                    is_duplicate = True
-                    
-            if not is_duplicate and t.reference_number and t.reference_number.strip():
-                existing_dup = db.query(Transaction).filter(
-                    Transaction.user_id == current_user.id,
-                    Transaction.reference_number == t.reference_number.strip()
-                ).first()
-                if existing_dup:
-                    is_duplicate = True
-                    
-            if not is_duplicate:
-                dup_query = db.query(Transaction).filter(
-                    Transaction.user_id == current_user.id,
-                    Transaction.amount == t.amount,
-                    Transaction.type == t.type
-                )
-                
-                if is_sqlite:
-                    dup_query = dup_query.filter(func.strftime('%Y-%m-%d', Transaction.date) == date_parsed.strftime('%Y-%m-%d'))
-                else:
-                    dup_query = dup_query.filter(func.date(Transaction.date) == date_parsed.date())
-                    
-                if t.merchant and t.merchant.strip():
-                    dup_query_with_merch = dup_query.join(Merchant, Transaction.merchant_id == Merchant.id).filter(
-                        Merchant.name.ilike(t.merchant.strip())
-                    )
-                    existing_dup = dup_query_with_merch.first()
-                    
-                if existing_dup:
-                    is_duplicate = True
-                    
+            is_duplicate, dup_id = dup_results[idx]
             if is_duplicate:
                 duplicates += 1
                 if req.duplicate_strategy == "skip":
                     skipped += 1
                     continue
-                elif req.duplicate_strategy == "replace" and existing_dup:
-                    try:
-                        db.delete(existing_dup)
-                        db.commit()
-                    except Exception:
-                        db.rollback()
                     
             cat_id = None
             if t.category and t.category.strip():
-                cat_clean = t.category.strip()
-                cat_key = cat_clean.lower()
-                if cat_key in category_cache:
-                    cat_id = category_cache[cat_key]
-                else:
-                    existing_c = db.query(Category).filter(
-                        func.lower(Category.name) == cat_key,
-                        or_(Category.user_id == None, Category.user_id == current_user.id)
-                    ).first()
-                    if existing_c:
-                        cat_id = existing_c.id
-                        category_cache[cat_key] = cat_id
-                    else:
-                        try:
-                            new_cat = Category(name=cat_clean, type=t.type, user_id=current_user.id)
-                            db.add(new_cat)
-                            db.commit()
-                            db.refresh(new_cat)
-                            cat_id = new_cat.id
-                            category_cache[cat_key] = cat_id
-                        except Exception:
-                            db.rollback()
-                            existing_c = db.query(Category).filter(
-                                func.lower(Category.name) == cat_key
-                            ).first()
-                            if existing_c:
-                                cat_id = existing_c.id
-                                category_cache[cat_key] = cat_id
-                    
+                cat_id = category_cache.get(t.category.strip().lower())
+                
             merch_id = None
             if t.merchant and t.merchant.strip():
-                merch_clean = t.merchant.strip()
-                merch_key = merch_clean.lower()
-                if merch_key in merchant_cache:
-                    merch_id = merchant_cache[merch_key]
-                else:
-                    existing_m = db.query(Merchant).filter(func.lower(Merchant.name) == merch_key).first()
-                    if existing_m:
-                        merch_id = existing_m.id
-                        merchant_cache[merch_key] = merch_id
-                    else:
-                        try:
-                            new_merch = Merchant(name=merch_clean, user_id=current_user.id, default_category_id=cat_id)
-                            db.add(new_merch)
-                            db.commit()
-                            db.refresh(new_merch)
-                            merch_id = new_merch.id
-                            merchant_cache[merch_key] = merch_id
-                        except Exception:
-                            db.rollback()
-                            existing_m = db.query(Merchant).filter(func.lower(Merchant.name) == merch_key).first()
-                            if existing_m:
-                                merch_id = existing_m.id
-                                merchant_cache[merch_key] = merch_id
-                    
-            db_trans = Transaction(
-                user_id=current_user.id,
-                amount=t.amount,
-                date=date_parsed,
-                description=t.description or "",
-                category_id=cat_id,
-                subcategory=t.subcategory or "Uncategorized",
-                merchant_id=merch_id,
-                payment_method=t.payment_method or "Cash",
-                type=t.type,
-                is_recurring=False,
-                transaction_id=t.transaction_id,
-                reference_number=t.reference_number,
-                bank=t.bank,
-                balance=t.balance,
-                debit_amount=t.debit_amount,
-                credit_amount=t.credit_amount,
-                post_date=t.post_date,
-                time=t.time
-            )
-            db.add(db_trans)
-            try:
-                check_and_update_investments_from_transaction(db, db_trans)
-            except Exception:
-                pass
+                merch_id = merchant_cache.get(t.merchant.strip().lower())
+
+            records_to_insert.append({
+                "user_id": current_user.id,
+                "amount": t.amount,
+                "date": date_parsed,
+                "description": t.description or "",
+                "category_id": cat_id,
+                "subcategory": t.subcategory or "Uncategorized",
+                "merchant_id": merch_id,
+                "payment_method": t.payment_method or "Cash",
+                "type": t.type,
+                "is_recurring": False,
+                "transaction_id": t.transaction_id,
+                "reference_number": t.reference_number,
+                "bank": t.bank,
+                "balance": t.balance,
+                "debit_amount": t.debit_amount,
+                "credit_amount": t.credit_amount,
+                "post_date": t.post_date,
+                "time": t.time
+            })
             imported += 1
-        except Exception as ex:
-            db.rollback()
+        except Exception:
             errors += 1
 
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        
+    if records_to_insert:
+        try:
+            db.bulk_insert_mappings(Transaction, records_to_insert)
+            db.commit()
+        except Exception as ex:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Database batch insertion failed: {str(ex)}")
+
     return {
         "imported": imported,
         "skipped": skipped,
