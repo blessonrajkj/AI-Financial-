@@ -17,6 +17,7 @@ from app.models.chat_history import ChatHistory
 from app.models.voice_log import VoiceLog
 from app.models.notification import Notification
 from app.models.import_batch import ImportBatch
+from app.models.import_log import ImportLog
 from app.models.audit_log import AuditLog
 from app.models.category_feedback import CategoryFeedback
 
@@ -43,6 +44,7 @@ __all__ = [
     "VoiceLog",
     "Notification",
     "ImportBatch",
+    "ImportLog",
     "AuditLog",
     "CategoryFeedback",
 ]

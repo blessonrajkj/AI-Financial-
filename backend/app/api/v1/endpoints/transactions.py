@@ -269,12 +269,8 @@ def parse_excel_csv_backend(file_path: str, filename: str) -> tuple:
                 reader = csv.reader(f)
                 rows = list(reader)
                 if len(rows) > 0:
-                    headers = [str(h).lower().strip() if h else "" for h in rows[0]]
-                    cells_headers = [{"text": h, "color": None} for h in headers]
-                    header_map = pdf_parser.find_headers(cells_headers)
-                    
                     formatted_rows = []
-                    for r_idx, row in enumerate(rows[1:]):
+                    for row in rows:
                         if any(row):
                             row_cells = [{"text": str(cell) if cell is not None else "", "color": None} for cell in row]
                             formatted_rows.append(row_cells)
@@ -290,12 +286,8 @@ def parse_excel_csv_backend(file_path: str, filename: str) -> tuple:
             ws = wb.active
             rows = list(ws.iter_rows(values_only=True))
             if len(rows) > 0:
-                headers = [str(cell).lower().strip() if cell is not None else "" for cell in rows[0]]
-                cells_headers = [{"text": h, "color": None} for h in headers]
-                header_map = pdf_parser.find_headers(cells_headers)
-                
                 formatted_rows = []
-                for row in rows[1:]:
+                for row in rows:
                     if any(row):
                         row_cells = [{"text": str(cell) if cell is not None else "", "color": None} for cell in row]
                         formatted_rows.append(row_cells)
@@ -526,6 +518,7 @@ def upload_and_parse_statement(
             
         return {
             "transactions": enriched_transactions,
+            "preview": enriched_transactions,
             "invalid_rows": invalid_rows,
             "summary": {
                 "total": len(enriched_transactions),
@@ -539,9 +532,19 @@ def upload_and_parse_statement(
                 "detected_categories": list(detected_categories),
                 "detected_accounts": list(detected_accounts)
             },
+            "total_extracted": len(enriched_transactions),
+            "total_income": income_total,
+            "total_expenses": expense_total,
+            "income_count": income_count,
+            "expense_count": expense_count,
+            "duplicates_count": duplicate_count,
+            "needs_review_count": needs_review_count,
             "bank": bank_name,
+            "bank_name": bank_name,
             "is_sbi": is_sbi,
+            "is_sbi_statement": is_sbi,
             "is_scanned": is_scanned,
+            "is_scanned_pdf": is_scanned,
             "confidence_score": confidence_score
         }
         

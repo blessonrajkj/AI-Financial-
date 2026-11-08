@@ -6,13 +6,16 @@ class UserBase(BaseModel):
     full_name: str | None = None
     role: str = "user"
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    email: EmailStr
     password: str
+    full_name: str | None = None
 
 class UserUpdate(BaseModel):
     full_name: str | None = None
     email: EmailStr | None = None
     password: str | None = None
+    current_password: str | None = None
 
 class UserOut(UserBase):
     id: int

@@ -22,10 +22,12 @@ import {
 } from 'lucide-react';
 import CategorySelect, { SubcategorySelect } from '../components/ui/CategorySelect';
 import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../utils/taxonomy';
+import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const ImportPage = () => {
+  const { invalidateCache } = useThemeAndRefresh();
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -113,7 +115,7 @@ const ImportPage = () => {
 
     try {
       setProgress(50);
-      const res = await axios.post(`${API_URL}/transactions/import/parse`, formData, {
+      const res = await axios.post(`${API_URL}/transactions/upload-parse`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (evt) => {
           if (evt.total) {
@@ -125,10 +127,16 @@ const ImportPage = () => {
 
       setProgress(90);
       const data = res.data;
-      setBatchId(data.batch_id);
+      setBatchId(data.batch_id || null);
       
-      const parsedItems = data.preview || [];
+      const parsedItems = data.transactions || data.preview || [];
+      const summary = data.summary || {};
+      const dupCount = summary.duplicate_count ?? data.duplicates_count ?? 0;
+      const invalid = data.invalid_rows || [];
+
       setPreviewData(parsedItems);
+      setDuplicatesCount(dupCount);
+      setInvalidRows(invalid);
 
       // Default select all non-duplicate & valid rows
       const validSet = new Set();
@@ -138,26 +146,41 @@ const ImportPage = () => {
         }
       });
       setSelectedIndices(validSet);
-      setDuplicatesCount(data.duplicates_count || 0);
-      setInvalidRows(data.invalid_rows || []);
       
       setPreviewMetrics({
-        total: data.total_extracted || parsedItems.length,
-        total_income: data.total_income || 0,
-        total_expenses: data.total_expenses || 0,
-        income_count: data.income_count || 0,
-        expense_count: data.expense_count || 0,
-        bank: data.bank_name || 'Bank Statement',
-        is_sbi: data.is_sbi_statement || false,
+        total: summary.total || data.total_extracted || parsedItems.length,
+        total_income: summary.income_total ?? data.total_income ?? 0,
+        total_expenses: summary.expense_total ?? data.total_expenses ?? 0,
+        income_count: summary.income_count ?? data.income_count ?? 0,
+        expense_count: summary.expense_count ?? data.expense_count ?? 0,
+        bank: data.bank || data.bank_name || 'Bank Statement',
+        is_sbi: data.is_sbi ?? data.is_sbi_statement ?? false,
         confidence_score: data.confidence_score || 98,
-        is_scanned: data.is_scanned_pdf || false,
-        needs_review_count: data.needs_review_count || 0
+        is_scanned: data.is_scanned ?? data.is_scanned_pdf ?? false,
+        needs_review_count: summary.needs_review_count ?? data.needs_review_count ?? 0
       });
 
       setProgress(100);
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.detail || 'Failed to parse statement. Please verify file format and try again.');
+      console.error("Statement parse error:", err);
+      let msg = 'Failed to parse statement. Please verify file format and try again.';
+      if (err.response?.status === 404) {
+        msg = 'Statement parsing endpoint not found on server (404). Please verify backend connection.';
+      } else if (err.response?.status === 413) {
+        msg = 'The uploaded file exceeds the maximum allowed size. Please upload a smaller file.';
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        msg = 'Session expired. Please log in again to import statements.';
+      } else if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (typeof detail === 'string') {
+          msg = detail === 'Not Found' ? 'Statement parse endpoint not found on server.' : detail;
+        } else if (Array.isArray(detail)) {
+          msg = detail.map(d => typeof d === 'string' ? d : (d.msg || JSON.stringify(d))).join(' | ');
+        } else if (typeof detail === 'object') {
+          msg = JSON.stringify(detail);
+        }
+      }
+      setError(msg);
       setFile(null);
     } finally {
       setLoading(false);
@@ -213,31 +236,44 @@ const ImportPage = () => {
     const transactionsToCommit = previewData
       .filter((_, idx) => selectedIndices.has(idx))
       .map(t => ({
-        date: t.date,
+        ...t,
+        amount: parseFloat(t.amount) || 0,
         merchant: t.merchant || 'Uncategorized',
         description: t.description || t.merchant || 'Statement Entry',
-        amount: parseFloat(t.amount) || 0,
         type: t.type || 'expense',
         category: t.category || 'Food & Dining',
         subcategory: t.subcategory || 'Uncategorized',
         reference_number: t.reference_number || t.transaction_id || '',
-        balance: t.balance || null
+        balance: t.balance != null ? parseFloat(t.balance) : null
       }));
 
     try {
       const payload = {
-        batch_id: batchId,
-        duplicate_strategy: dupStrategy,
-        transactions: transactionsToCommit
+        transactions: transactionsToCommit,
+        duplicate_strategy: dupStrategy
       };
 
-      const res = await axios.post(`${API_URL}/transactions/import/commit`, payload);
+      const res = await axios.post(`${API_URL}/transactions/bulk-import`, payload);
       setSuccessSummary(res.data);
       setPreviewData([]);
       setSelectedIndices(new Set());
+      invalidateCache();
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.detail || 'Failed to import transactions to database.');
+      console.error("Bulk import error:", err);
+      let msg = 'Failed to import transactions to database.';
+      if (err.response?.status === 404) {
+        msg = 'Transaction import endpoint not found on server (404). Please verify backend connection.';
+      } else if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (typeof detail === 'string') {
+          msg = detail === 'Not Found' ? 'Transaction bulk-import endpoint not found on server.' : detail;
+        } else if (Array.isArray(detail)) {
+          msg = detail.map(d => typeof d === 'string' ? d : (d.msg || JSON.stringify(d))).join(' | ');
+        } else if (typeof detail === 'object') {
+          msg = JSON.stringify(detail);
+        }
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }

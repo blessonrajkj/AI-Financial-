@@ -16,11 +16,13 @@ from app.api.v1.endpoints import (
     transfers,
     liabilities,
     user_privacy,
+    uploads,
 )
 
 api_router = APIRouter()
 
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(uploads.router, prefix="/uploads", tags=["uploads"])
 api_router.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
 api_router.include_router(transfers.router, prefix="/transfers", tags=["transfers"])
 api_router.include_router(liabilities.router, prefix="/liabilities", tags=["liabilities"])

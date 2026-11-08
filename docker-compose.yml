@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kjbb2320}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_pass}
       POSTGRES_DB: ${POSTGRES_DB:-pariview}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -26,14 +26,39 @@ services:
     container_name: pariview_backend
     restart: always
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-kjbb2320}@postgres:5432/${POSTGRES_DB:-pariview}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_secure_pass}@postgres:5432/${POSTGRES_DB:-pariview}
       POSTGRES_SERVER: postgres
-      SECRET_KEY: ${SECRET_KEY:-supersecretkeychangeinproduction1234567890}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SECRET_KEY: ${SECRET_KEY:-dev-insecure-secret-key-change-in-production-min-32-chars}
+      PORT: "8000"
     ports:
-      - "8001:8001"
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8000/health\")'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: pariview_redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   frontend:
     build:
@@ -52,7 +77,7 @@ services:
     restart: always
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-pariviewadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-pariviewsecret123}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-pariview_minio_secret_key}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -63,3 +88,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  redis_data:

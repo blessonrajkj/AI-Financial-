@@ -4,11 +4,11 @@ def test_bulk_delete_transactions(client):
     # 1. Register & Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "bulkdelete@example.com", "password": "testpassword", "full_name": "Bulk User"}
+        json={"email": "bulkdelete@example.com", "password": "TestPassword@123", "full_name": "Bulk User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "bulkdelete@example.com", "password": "testpassword"}
+        data={"username": "bulkdelete@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

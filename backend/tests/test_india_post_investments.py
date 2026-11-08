@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 def test_india_post_investments_crud(client):
     client.post(
         "/api/v1/auth/register",
-        json={"email": "indiapost@example.com", "password": "testpassword", "full_name": "Post Office User"}
+        json={"email": "indiapost@example.com", "password": "TestPassword@123", "full_name": "Post Office User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "indiapost@example.com", "password": "testpassword"}
+        data={"username": "indiapost@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

@@ -32,8 +32,9 @@ os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 os.makedirs(os.path.join(settings.UPLOAD_DIR, "avatars"), exist_ok=True)
 os.makedirs(os.path.join(settings.UPLOAD_DIR, "receipts"), exist_ok=True)
 
-# Mount static files folder
-app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+# Secure file serving router (authenticated and user-scoped, preventing directory traversal and public leakage)
+from app.api.v1.endpoints.uploads import router as uploads_router
+app.include_router(uploads_router, prefix="/uploads", tags=["secure-uploads"])
 
 # Dynamic DB bootstrap on startup
 @app.on_event("startup")
@@ -79,4 +80,5 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

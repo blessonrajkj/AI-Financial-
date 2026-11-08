@@ -164,7 +164,7 @@ const Register = () => {
               Password
             </label>
             <div className="relative mb-2">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-3.5 pointer-events-none" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input 
                 type={showPassword ? 'text' : 'password'}
                 required
@@ -176,7 +176,7 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors focus:outline-none"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors focus:outline-none cursor-pointer z-10"
                 title={showPassword ? 'Hide password' : 'Show password'}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >

@@ -24,11 +24,11 @@ def test_api_scan_upi_error(client):
     # Register & Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "upiscan@example.com", "password": "testpassword", "full_name": "UPI User"}
+        json={"email": "upiscan@example.com", "password": "TestPassword@123", "full_name": "UPI User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "upiscan@example.com", "password": "testpassword"}
+        data={"username": "upiscan@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

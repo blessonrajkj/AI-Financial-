@@ -6,6 +6,9 @@ const AuthContext = createContext(null);
 // Configure backend API endpoint base url
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
+// Configure default sensible timeout (10 seconds) to avoid indefinite hangs
+axios.defaults.timeout = 10000;
+
 // Synchronously configure Authorization header on module load if token exists
 const initialToken = localStorage.getItem('token');
 if (initialToken) {

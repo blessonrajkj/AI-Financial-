@@ -137,11 +137,11 @@ def test_duplicate_holding_prevention_api(client):
     # Register & login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "lots@example.com", "password": "testpassword", "full_name": "Lot User"}
+        json={"email": "lots@example.com", "password": "TestPassword@123", "full_name": "Lot User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "lots@example.com", "password": "testpassword"}
+        data={"username": "lots@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

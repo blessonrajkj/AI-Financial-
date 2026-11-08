@@ -106,7 +106,7 @@ const Login = () => {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
                 placeholder="name@example.com"
                 className="w-full h-11 pl-11 pr-4 bg-[#EFF5FF] border border-[#D5E3FF] rounded-xl text-slate-900 text-xs font-semibold placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
               />
@@ -128,19 +128,19 @@ const Login = () => {
               </a>
             </div>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-3.5 pointer-events-none" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input 
                 type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
                 placeholder="••••••••"
                 className="w-full h-11 pl-11 pr-11 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors focus:outline-none"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors focus:outline-none cursor-pointer z-10"
                 title={showPassword ? 'Hide password' : 'Show password'}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >

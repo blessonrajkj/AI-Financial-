@@ -2,11 +2,11 @@ def test_subscriptions_api(client):
     # Register & Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "subuser@example.com", "password": "testpassword", "full_name": "Sub User"}
+        json={"email": "subuser@example.com", "password": "TestPassword@123", "full_name": "Sub User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "subuser@example.com", "password": "testpassword"}
+        data={"username": "subuser@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

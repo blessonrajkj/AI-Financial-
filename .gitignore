@@ -25,6 +25,8 @@ __pycache__/
 backend/finance.db
 backend/uploads/
 uploads/
+backups/
+*.dump
 
 # Production build outputs
 dist/

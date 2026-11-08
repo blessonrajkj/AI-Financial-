@@ -4,6 +4,7 @@ import { useThemeAndRefresh } from '../../context/ThemeAndRefreshContext';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PariViewLogo from '../common/PariViewLogo';
+import { cachedGet } from '../../services/apiCache';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -79,7 +80,9 @@ const Navbar = ({ toggleSidebar }) => {
 
   const fetchSummary = async () => {
     try {
-      const res = await axios.get(`${API_URL}/analytics/summary`);
+      const res = await cachedGet(`${API_URL}/analytics/summary`);
+      setSummaryData(res);
+      return;
       setSummaryData(res.data);
     } catch (err) {
       console.error('Failed to fetch navbar summary:', err);

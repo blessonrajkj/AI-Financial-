@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
+import { cachedGet } from '../services/apiCache';
 import {
   TrendingUp,
   TrendingDown,
@@ -21,6 +22,7 @@ import {
   VolumeX,
   Eye,
   EyeOff,
+  RefreshCw,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -177,10 +179,19 @@ const Dashboard = () => {
   const [showIncome, setShowIncome]   = useState(true);
   const [showExpense, setShowExpense] = useState(true);
   const [showSavings, setShowSavings] = useState(true);
-  const [loading, setLoading]     = useState(true);
-  const [aiInsights, setAiInsights]   = useState([]);
-  const [aiLoading, setAiLoading]     = useState(true);
-  const [isSpeaking, setIsSpeaking]   = useState(false);
+
+  // Independent loading & error states per widget (Phase 2 & 4 Optimization)
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError]     = useState(null);
+
+  const [trendsLoading, setTrendsLoading]   = useState(true);
+  const [trendsError, setTrendsError]       = useState(null);
+
+  const [aiInsights, setAiInsights]         = useState([]);
+  const [aiLoading, setAiLoading]           = useState(true);
+  const [aiError, setAiError]               = useState(null);
+
+  const [isSpeaking, setIsSpeaking]         = useState(false);
   const navigate = useNavigate();
 
   const toggleSpeak = () => {
@@ -204,46 +215,68 @@ const Dashboard = () => {
     };
   }, []);
 
-  const fetchDashboardData = async () => {
+  // 1. Fetch Summary (KPIs, Recent Activity, Monthly comparisons)
+  const fetchSummary = async () => {
+    setSummaryLoading(true);
+    setSummaryError(null);
     try {
-      const [summaryRes, trendsRes] = await Promise.all([
-        axios.get(`${API_URL}/analytics/summary?t=${Date.now()}`),
-        axios.get(`${API_URL}/analytics/trends?days=${chartDays}&t=${Date.now()}`)
-      ]);
-      setSummary(summaryRes.data);
-      setTrends(trendsRes.data?.daily_spending || []);
+      const data = await cachedGet(`${API_URL}/analytics/summary`);
+      setSummary(data);
     } catch (err) {
-      console.error('Failed to fetch dashboard metrics', err);
+      console.error('Failed to fetch dashboard summary', err);
+      setSummaryError(err.response?.data?.detail || 'Unable to connect to financial metrics server');
     } finally {
-      setLoading(false);
+      setSummaryLoading(false);
     }
   };
 
+  // 2. Fetch Trends (Cash Flow Chart)
+  const fetchTrends = async (days = chartDays) => {
+    setTrendsLoading(true);
+    setTrendsError(null);
+    try {
+      const data = await cachedGet(`${API_URL}/analytics/trends?days=${days}`);
+      setTrends(data?.daily_spending || []);
+    } catch (err) {
+      console.error('Failed to fetch cashflow trends', err);
+      setTrendsError(err.response?.data?.detail || 'Unable to load cash flow trends');
+    } finally {
+      setTrendsLoading(false);
+    }
+  };
+
+  // 3. Fetch AI Summary (Copilot Recommendations)
   const fetchAiSummary = async () => {
     setAiLoading(true);
+    setAiError(null);
     try {
-      const res = await axios.get(`${API_URL}/analytics/dashboard/ai-summary?t=${Date.now()}`);
-      setAiInsights(res.data?.insights || []);
+      const data = await cachedGet(`${API_URL}/analytics/dashboard/ai-summary`);
+      setAiInsights(data?.insights || []);
     } catch (err) {
       console.error('Failed to fetch AI summary:', err);
+      setAiError(err.response?.data?.detail || 'AI insights temporarily unavailable');
     } finally {
       setAiLoading(false);
     }
   };
 
+  // Concurrent widget loading on mount or cache invalidation
   useEffect(() => {
-    fetchDashboardData();
-    fetchAiSummary();
+    Promise.allSettled([
+      fetchSummary(),
+      fetchTrends(chartDays),
+      fetchAiSummary()
+    ]);
   }, [refreshTrigger]);
 
+  // Handle timeframe change without firing duplicate request on initial mount
+  const initialTrendsMount = useRef(true);
   useEffect(() => {
-    const fetchOnlyTrends = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/analytics/trends?days=${chartDays}&t=${Date.now()}`);
-        setTrends(res.data?.daily_spending || []);
-      } catch (err) { console.error(err); }
-    };
-    fetchOnlyTrends();
+    if (initialTrendsMount.current) {
+      initialTrendsMount.current = false;
+      return;
+    }
+    fetchTrends(chartDays);
   }, [chartDays]);
 
   const handleInsightAction = (insight, index) => {
@@ -385,11 +418,28 @@ const Dashboard = () => {
       </div>
 
       {/* ── KPI row ── */}
-      {loading ? (
+      {summaryLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {[1,2,3,4].map(i => (
             <div key={i} className="h-36 rounded-[24px] skeleton" />
           ))}
+        </div>
+      ) : summaryError ? (
+        <div className="doppel-shell p-4 border-danger/30 bg-danger/5 rounded-2xl flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-textPrimary">Unable to load KPI summary</p>
+              <p className="text-xs text-textSecondary">{summaryError}</p>
+            </div>
+          </div>
+          <button
+            onClick={fetchSummary}
+            className="px-3.5 py-1.5 bg-primary hover:bg-primaryHover text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 flex-shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry</span>
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -584,7 +634,29 @@ const Dashboard = () => {
 
             {/* Area Chart Canvas */}
             <div className="h-[330px] w-full relative">
-              {trendsWithSavings.length > 0 && trendsWithSavings.some(t => (t.income || 0) > 0 || (t.expense || 0) > 0) ? (
+              {trendsLoading ? (
+                <div className="h-full w-full flex flex-col justify-center space-y-4 p-4">
+                  <div className="h-4 w-48 skeleton rounded-lg" />
+                  <div className="h-56 w-full skeleton rounded-2xl" />
+                </div>
+              ) : trendsError ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-3 py-10 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-danger/10 text-danger flex items-center justify-center shadow-sm">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-textPrimary">Failed to load cash flow trends</h4>
+                    <p className="text-xs text-textSecondary mt-0.5">{trendsError}</p>
+                  </div>
+                  <button
+                    onClick={() => fetchTrends(chartDays)}
+                    className="px-3.5 py-1.5 bg-primary hover:bg-primaryHover text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Retry Cashflow</span>
+                  </button>
+                </div>
+              ) : trendsWithSavings.length > 0 && trendsWithSavings.some(t => (t.income || 0) > 0 || (t.expense || 0) > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trendsWithSavings} margin={{ top: 16, right: 16, left: -10, bottom: 4 }}>
                     <defs>
@@ -714,7 +786,24 @@ const Dashboard = () => {
               </Link>
             </div>
 
-            {summary?.recent_transactions?.length > 0 ? (
+            {summaryLoading ? (
+              <div className="space-y-2.5 flex-1 pr-1">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-12 rounded-xl skeleton" />
+                ))}
+              </div>
+            ) : summaryError ? (
+              <div className="flex-1 flex flex-col items-center justify-center space-y-2 text-center p-4">
+                <AlertTriangle className="w-5 h-5 text-warning" />
+                <p className="text-xs text-textSecondary font-medium">Failed to load recent activity</p>
+                <button
+                  onClick={fetchSummary}
+                  className="px-3 py-1 text-xs font-bold bg-hoverBg hover:bg-surface border border-borderColor rounded-lg text-primary flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" /> Retry
+                </button>
+              </div>
+            ) : summary?.recent_transactions?.length > 0 ? (
               <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
                 {summary.recent_transactions.map(t => {
                   const isIncome = t.type?.toLowerCase() === 'income';
@@ -773,6 +862,17 @@ const Dashboard = () => {
                 {[1, 2, 3].map(i => (
                   <div key={i} className="h-16 rounded-xl skeleton" />
                 ))}
+              </div>
+            ) : aiError ? (
+              <div className="py-8 text-center space-y-2">
+                <AlertTriangle className="w-5 h-5 text-warning mx-auto" />
+                <p className="text-xs text-textSecondary font-medium">AI insights temporarily unavailable</p>
+                <button
+                  onClick={fetchAiSummary}
+                  className="px-3 py-1.5 text-xs font-bold bg-hoverBg hover:bg-surface border border-borderColor rounded-lg text-primary inline-flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" /> Retry Insights
+                </button>
               </div>
             ) : aiInsights.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">

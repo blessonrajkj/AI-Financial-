@@ -30,12 +30,20 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
                 detail="The user with this email already exists in the system.",
             )
         
+        # Enforce strict password strength requirements
+        is_valid_pwd, pwd_error = security.validate_password_strength(user_in.password)
+        if not is_valid_pwd:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=pwd_error
+            )
+        
         hashed_password = security.get_password_hash(user_in.password)
         db_user = User(
             email=clean_email,
             hashed_password=hashed_password,
             full_name=user_in.full_name,
-            role=user_in.role,
+            role="user",  # Strict server-side assignment; never trust client-supplied role
             is_active=True,
             is_verified=False
         )
@@ -43,6 +51,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_user)
         return db_user
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -98,6 +108,34 @@ def update_user_me(
         current_user.full_name = user_in.full_name
     
     if user_in.password is not None:
+        if not user_in.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Current password is required to change password."
+            )
+        if not security.verify_password(user_in.current_password, current_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect current password."
+            )
+        if security.verify_password(user_in.password, current_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password cannot be the same as the current password."
+            )
+        is_valid_pwd, pwd_error = security.validate_password_strength(user_in.password)
+        if not is_valid_pwd:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=pwd_error
+            )
+        try:
+            security.revoke_user_sessions(current_user.id)
+        except security.RevocationStoreUnavailableError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Password update failed: Session security store is unreachable. Password change aborted for account security."
+            )
         current_user.hashed_password = security.get_password_hash(user_in.password)
 
     db.add(current_user)

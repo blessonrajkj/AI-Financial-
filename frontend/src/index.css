@@ -121,6 +121,15 @@ html.dark {
     background-color: rgba(79, 70, 229, 0.15);
     color: var(--text-primary);
   }
+
+  /* Disable duplicate browser-native password reveal & clear controls (Microsoft Edge, IE, WebKit) */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+  }
 }
 
 /* ─────────────────────────────────────────

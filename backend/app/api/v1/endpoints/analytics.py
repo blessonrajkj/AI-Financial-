@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse, FileResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, case
 from datetime import datetime, timedelta
 import csv
 import io
@@ -61,35 +61,31 @@ def get_dashboard_summary(
             prev_month_start = datetime(now.year, now.month - 1, 1)
             prev_month_end = datetime(now.year, now.month, 1) - timedelta(seconds=1)
 
-    # 1. Total spent and income calculations for current month (Task 7 & 8)
-    current_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
+    # 1. Total spent and income calculations for current month (Task 7 & 8) - Consolidated
+    current_month_aggs = db.query(
+        func.sum(case((Transaction.type == "expense", Transaction.amount), else_=0)).label("expense"),
+        func.sum(case((Transaction.type == "income", Transaction.amount), else_=0)).label("income")
+    ).filter(
         Transaction.user_id == current_user.id,
-        Transaction.type == "expense",
         Transaction.date >= month_start,
         Transaction.date < next_month_start
-    ).scalar() or 0.0)
+    ).first()
 
-    current_month_income = float(db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "income",
-        Transaction.date >= month_start,
-        Transaction.date < next_month_start
-    ).scalar() or 0.0)
+    current_month_expense = float(current_month_aggs.expense or 0.0)
+    current_month_income = float(current_month_aggs.income or 0.0)
 
-    # 2. Previous Month Comparisons (Task 7 & 8)
-    prev_month_expense = float(db.query(func.sum(Transaction.amount)).filter(
+    # 2. Previous Month Comparisons (Task 7 & 8) - Consolidated
+    prev_month_aggs = db.query(
+        func.sum(case((Transaction.type == "expense", Transaction.amount), else_=0)).label("expense"),
+        func.sum(case((Transaction.type == "income", Transaction.amount), else_=0)).label("income")
+    ).filter(
         Transaction.user_id == current_user.id,
-        Transaction.type == "expense",
         Transaction.date >= prev_month_start,
         Transaction.date <= prev_month_end
-    ).scalar() or 0.0)
+    ).first()
 
-    prev_month_income = float(db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "income",
-        Transaction.date >= prev_month_start,
-        Transaction.date <= prev_month_end
-    ).scalar() or 0.0)
+    prev_month_expense = float(prev_month_aggs.expense or 0.0)
+    prev_month_income = float(prev_month_aggs.income or 0.0)
 
     expense_diff_pct = 0.0
     if prev_month_expense > 0:
@@ -99,25 +95,18 @@ def get_dashboard_summary(
     if prev_month_income > 0:
         income_diff_pct = round(((current_month_income - prev_month_income) / prev_month_income) * 100, 1)
 
-    # 3. Balance parameters: Total Income - Total Expense + Investment Returns (Task 6)
-    total_income = float(db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "income"
-    ).scalar() or 0.0)
+    # 3. Balance parameters: Total Income - Total Expense + Investment Returns (Task 6) - Consolidated
+    total_aggs = db.query(
+        func.sum(case((Transaction.type == "income", Transaction.amount), else_=0)).label("income"),
+        func.sum(case((Transaction.type == "expense", Transaction.amount), else_=0)).label("expense")
+    ).filter(
+        Transaction.user_id == current_user.id
+    ).first()
 
-    total_expense = float(db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "expense"
-    ).scalar() or 0.0)
+    total_income = float(total_aggs.income or 0.0)
+    total_expense = float(total_aggs.expense or 0.0)
 
-    # Investment returns
-    try:
-        from app.services.market_data import market_data_service
-        market_data_service.update_prices_for_user(db, current_user.id)
-    except Exception as e:
-        import logging
-        logging.getLogger("analytics").warning(f"Market price update skipped on summary load: {e}")
-    
+    # Investment returns (uses current stored prices; price updating is asynchronous/on-demand)
     investments_db = db.query(Investment).filter(Investment.user_id == current_user.id).all()
     total_investments_current = float(sum(i.quantity * i.current_price for i in investments_db))
     total_investments_cost = float(sum(i.quantity * i.purchase_price for i in investments_db))
@@ -193,10 +182,7 @@ def get_dashboard_summary(
         Notification.user_id == current_user.id
     ).order_by(Notification.created_at.desc()).limit(15).all()
 
-    unread_notifications_count = db.query(Notification).filter(
-        Notification.user_id == current_user.id,
-        Notification.is_read == False
-    ).count()
+    unread_notifications_count = sum(1 for n in notifications if not n.is_read)
 
     # 8. Upcoming Subscriptions / Bills
     upcoming_subscriptions = db.query(Subscription).filter(
@@ -205,8 +191,11 @@ def get_dashboard_summary(
     ).all()
     upcoming_bills_cost = sum(s.amount for s in upcoming_subscriptions)
 
-    # 9. Recent Activities (last 10 transactions) (Task 11)
-    recent_transactions_db = db.query(Transaction).filter(
+    # 9. Recent Activities (last 10 transactions) - Eagerly loaded to prevent N+1 queries
+    recent_transactions_db = db.query(Transaction).options(
+        joinedload(Transaction.merchant),
+        joinedload(Transaction.category)
+    ).filter(
         Transaction.user_id == current_user.id
     ).order_by(Transaction.date.desc()).limit(10).all()
 
@@ -1317,27 +1306,38 @@ def get_dashboard_ai_summary(
                 "action": "View Transaction"
             })
 
-        # 4. Budget Check (Section 2)
-        budgets = db.query(Budget).filter(
+        # 4. Budget Check (Section 2) - Eager load category and batch spending to prevent N+1
+        budgets = db.query(Budget).options(joinedload(Budget.category)).filter(
             Budget.user_id == current_user.id, 
             Budget.month == now.month, 
             Budget.year == now.year
         ).all()
+        
+        cat_spending = {}
+        if budgets:
+            cat_ids = [b.category_id for b in budgets if b.category_id]
+            if cat_ids:
+                spending_rows = db.query(
+                    Transaction.category_id,
+                    func.sum(Transaction.amount)
+                ).filter(
+                    Transaction.user_id == current_user.id,
+                    Transaction.category_id.in_(cat_ids),
+                    Transaction.type == "expense",
+                    Transaction.date >= month_start,
+                    Transaction.date < next_month_start
+                ).group_by(Transaction.category_id).all()
+                cat_spending = {row[0]: float(row[1] or 0.0) for row in spending_rows}
+
         for b in budgets:
-            spent = float(db.query(func.sum(Transaction.amount)).filter(
-                Transaction.user_id == current_user.id,
-                Transaction.category_id == b.category_id,
-                Transaction.type == "expense",
-                Transaction.date >= month_start,
-                Transaction.date < next_month_start
-            ).scalar() or 0.0)
-            
+            spent = cat_spending.get(b.category_id, 0.0)
             b_amount = float(b.amount)
             if b_amount > 0:
+                cat_name = b.category.name if b.category else "Category"
                 if spent > b_amount:
                     insights.append({
                         "title": f"Budget Exceeded",
-                        "description": f"You have exceeded your {b.category.name if b.category else 'Category'} budget limit by ₹{int(spent - b_amount):,}.",
+                        "description": f"You have exceeded your {cat_name} budget limit by ₹{int(spent - b_amount):,}.",
                         "priority": "Critical",
                         "category": "Budget",
                         "confidence": 100,
@@ -1346,7 +1346,7 @@ def get_dashboard_ai_summary(
                 elif spent >= 0.8 * b_amount:
                     insights.append({
                         "title": f"Budget Limit Alert",
-                        "description": f"You have spent {int((spent/b_amount)*100)}% of your {b.category.name if b.category else 'Category'} budget limit.",
+                        "description": f"You have spent {int((spent/b_amount)*100)}% of your {cat_name} budget limit.",
                         "priority": "High",
                         "category": "Budget",
                         "confidence": 99,

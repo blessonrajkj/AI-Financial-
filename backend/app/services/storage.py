@@ -180,6 +180,18 @@ def generate_object_key(user_id: int, category: str, original_filename: str) -> 
     return f"users/{user_id}/{category}/{unique_id}{safe_ext}"
 
 
+def generate_signed_url(object_key: str, user_id: int, expires_in: int = 3600) -> str:
+    """Generate a tamper-proof short-lived signed URL for a specific user and object."""
+    import hmac
+    import hashlib
+    import time
+    clean_key = object_key.lstrip("/\\")
+    exp = int(time.time()) + expires_in
+    payload = f"{clean_key}:{user_id}:{exp}"
+    signature = hmac.new(settings.SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return f"/uploads/{clean_key}?uid={user_id}&exp={exp}&sig={signature}"
+
+
 @contextmanager
 def temp_file_for_processing(storage_service: StorageService, object_key: str, suffix: str = ".tmp") -> Generator[str, None, None]:
     """

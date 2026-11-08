@@ -201,6 +201,21 @@ def change_password(
     if not security.verify_password(data.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect current password")
     
+    if security.verify_password(data.new_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="New password cannot be the same as the current password")
+        
+    is_valid_pwd, pwd_error = security.validate_password_strength(data.new_password)
+    if not is_valid_pwd:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=pwd_error)
+        
+    try:
+        security.revoke_user_sessions(current_user.id)
+    except security.RevocationStoreUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password update failed: Session security store is unreachable. Password change aborted for account security."
+        )
+
     current_user.hashed_password = security.get_password_hash(data.new_password)
     db.add(current_user)
     db.commit()

@@ -1,7 +1,7 @@
 def test_register_user(client):
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": "test@example.com", "password": "testpassword", "full_name": "Test User"}
+        json={"email": "test@example.com", "password": "TestPassword@123", "full_name": "Test User"}
     )
     assert response.status_code == 201
     data = response.json()
@@ -13,13 +13,13 @@ def test_login_user(client):
     # Register first
     client.post(
         "/api/v1/auth/register",
-        json={"email": "login@example.com", "password": "testpassword", "full_name": "Login User"}
+        json={"email": "login@example.com", "password": "TestPassword@123", "full_name": "Login User"}
     )
     
     # Login
     response = client.post(
         "/api/v1/auth/login",
-        data={"username": "login@example.com", "password": "testpassword"}
+        data={"username": "login@example.com", "password": "TestPassword@123"}
     )
     assert response.status_code == 200
     data = response.json()
@@ -30,11 +30,11 @@ def test_get_me(client):
     # Register and Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "me@example.com", "password": "testpassword", "full_name": "Me User"}
+        json={"email": "me@example.com", "password": "TestPassword@123", "full_name": "Me User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "me@example.com", "password": "testpassword"}
+        data={"username": "me@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     

@@ -6,43 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.transaction import Transaction
 
 from sqlalchemy import func
-
-def detect_anomalies_mad(transactions: List[Transaction]) -> List[Dict[str, Any]]:
-    """
-    Detects expenditure anomalies using Median Absolute Deviation (MAD).
-    MAD = median(|x_i - median(x)|).
-    Anomaly score = 0.6745 * |x_i - median| / MAD.
-    Scores > 3.0 are flagged as statistically significant anomalies.
-    """
-    if not transactions or len(transactions) < 3:
-        return []
-    
-    amounts = np.array([float(t.amount) for t in transactions if (t.type or "").lower() == "expense"])
-    if len(amounts) < 3:
-        return []
-
-    med = np.median(amounts)
-    mad = np.median(np.abs(amounts - med))
-    if mad == 0:
-        mad = 1e-6
-
-    anomalies = []
-    for t in transactions:
-        if (t.type or "").lower() != "expense":
-            continue
-        amt = float(t.amount)
-        score = 0.6745 * abs(amt - med) / mad
-        if score > 3.0:
-            anomalies.append({
-                "id": t.id,
-                "amount": float(t.amount),
-                "date": t.date.isoformat() if t.date else None,
-                "description": t.description,
-                "category": t.category.name if t.category else "Uncategorized",
-                "anomaly_score": round(float(score), 2),
-                "median_baseline": round(float(med), 2)
-            })
-    return anomalies
+from app.services.anomaly_detector import detect_anomalies_mad
 
 class Forecaster:
     def __init__(self):

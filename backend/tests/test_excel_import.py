@@ -5,11 +5,11 @@ def test_bulk_validate_and_import(client):
     # 1. Register & Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "excel@example.com", "password": "testpassword", "full_name": "Excel User"}
+        json={"email": "excel@example.com", "password": "TestPassword@123", "full_name": "Excel User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "excel@example.com", "password": "testpassword"}
+        data={"username": "excel@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

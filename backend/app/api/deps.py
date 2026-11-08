@@ -5,7 +5,7 @@ from jose import jwt
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.security import decode_access_token
+from app.core.security import decode_access_token, RevocationStoreUnavailableError
 from app.models.user import User
 
 reusable_oauth2 = OAuth2PasswordBearer(
@@ -15,7 +15,13 @@ reusable_oauth2 = OAuth2PasswordBearer(
 def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> User:
-    sub = decode_access_token(token)
+    try:
+        sub = decode_access_token(token)
+    except RevocationStoreUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable: session security cluster is offline."
+        )
     if not sub:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

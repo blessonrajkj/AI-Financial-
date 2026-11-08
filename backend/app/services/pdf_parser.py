@@ -1106,9 +1106,128 @@ class PDFStatementParser:
                     "review_reason": review_reason
                 })
 
+        if not all_transactions:
+            text_lines = []
+            for p_idx in range(len(doc)):
+                text_lines.extend(doc[p_idx].get_text().split("\n"))
+            fallback_txs = self._parse_sbi_monospace_lines(text_lines, source_file_name)
+            if fallback_txs:
+                all_transactions = fallback_txs
+                all_invalid = []
+                row_confidences = [90] * len(all_transactions)
+
         doc.close()
         overall_confidence = round(sum(row_confidences) / len(row_confidences)) if row_confidences else 70
         return all_transactions, all_invalid, overall_confidence
+
+    def _parse_sbi_monospace_lines(self, text_lines: list, source_file_name: str) -> list:
+        deb_col = None
+        cre_col = None
+        bal_col = None
+
+        for line in text_lines:
+            line_clean = line.rstrip()
+            line_lower = line_clean.lower()
+            if "debit" in line_lower and "credit" in line_lower:
+                for m in re.finditer(r'debit', line_clean, re.I):
+                    deb_col = m.start()
+                for m in re.finditer(r'credit', line_clean, re.I):
+                    cre_col = m.start()
+                for m in re.finditer(r'balance', line_clean, re.I):
+                    bal_col = m.start()
+                break
+
+        transactions = []
+        for line in text_lines:
+            line_clean = line.rstrip()
+            m_date = re.match(r'^\s*(\d{2}[/-]\d{2}[/-]\d{4}|\d{4}[/-]\d{2}[/-]\d{2}|\d{2}\s+[A-Za-z]{3}\s+\d{4})', line_clean)
+            if not m_date:
+                continue
+
+            date_str = m_date.group(1)
+            parsed_date = self.parse_date(date_str)
+            if not parsed_date:
+                continue
+
+            amt_matches = list(re.finditer(r'[\d,]+\.\d{2}', line_clean))
+            if not amt_matches:
+                continue
+
+            debit_val = None
+            credit_val = None
+            balance_val = None
+
+            if deb_col is not None and cre_col is not None and bal_col is not None:
+                for am in amt_matches:
+                    idx = am.start()
+                    val = self.parse_amount(am.group(0))
+                    dist_bal = abs(idx - bal_col)
+                    dist_cre = abs(idx - cre_col)
+                    dist_deb = abs(idx - deb_col)
+                    if dist_bal <= dist_cre and dist_bal <= dist_deb:
+                        balance_val = val
+                    elif dist_cre <= dist_deb:
+                        credit_val = val
+                    else:
+                        debit_val = val
+            else:
+                vals = [self.parse_amount(am.group(0)) for am in amt_matches]
+                if len(vals) >= 2:
+                    balance_val = vals[-1]
+                    debit_val = vals[-2]
+                elif len(vals) == 1:
+                    debit_val = vals[0]
+
+            first_amt_idx = amt_matches[0].start()
+            desc = line_clean[m_date.end():first_amt_idx].strip().strip('-').strip()
+
+            amount = 0.0
+            tx_type = "expense"
+            direction = "out"
+            final_debit = None
+            final_credit = None
+
+            if credit_val is not None and credit_val > 0:
+                amount = credit_val
+                tx_type = "income"
+                direction = "in"
+                final_credit = credit_val
+            elif debit_val is not None and debit_val > 0:
+                amount = debit_val
+                tx_type = "expense"
+                direction = "out"
+                final_debit = debit_val
+
+            if amount <= 0:
+                continue
+
+            merchant, ref = self.extract_sbi_merchant_and_ref(desc)
+            category = self.classify_category(desc, self.classify_specific_type(desc, tx_type))
+            tx_id = ref or f"SBI-{parsed_date.strftime('%Y%m%d')}-{int(amount)}"
+
+            transactions.append({
+                "date": parsed_date.strftime("%Y-%m-%d"),
+                "post_date": parsed_date.strftime("%Y-%m-%d"),
+                "amount": amount,
+                "debit_amount": final_debit,
+                "credit_amount": final_credit,
+                "type": tx_type,
+                "direction": direction,
+                "merchant": merchant,
+                "description": desc or "SBI Transaction",
+                "transaction_id": tx_id,
+                "reference_number": ref or tx_id,
+                "balance": balance_val,
+                "payment_method": self.detect_payment_method(desc),
+                "bank": "SBI",
+                "category": category,
+                "source_type": "PDF",
+                "source_file_name": source_file_name,
+                "needs_review": False,
+                "review_reason": None
+            })
+
+        return transactions
 
     def parse_pdf(self, pdf_path: str, filename: str = "SBI Statement PDF") -> dict:
         is_scanned = self.is_scanned_pdf(pdf_path)

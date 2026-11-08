@@ -2,11 +2,11 @@ def test_create_and_read_transactions(client):
     # Register & Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "trans@example.com", "password": "testpassword", "full_name": "Trans User"}
+        json={"email": "trans@example.com", "password": "TestPassword@123", "full_name": "Trans User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "trans@example.com", "password": "testpassword"}
+        data={"username": "trans@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

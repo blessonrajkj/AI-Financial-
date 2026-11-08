@@ -2,11 +2,11 @@ def test_analytics_endpoints(client):
     # Register & Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "analytics@example.com", "password": "testpassword", "full_name": "Analytics User"}
+        json={"email": "analytics@example.com", "password": "TestPassword@123", "full_name": "Analytics User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "analytics@example.com", "password": "testpassword"}
+        data={"username": "analytics@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
@@ -173,11 +173,11 @@ def test_transaction_updates_investment(client):
     # Register & Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "hook@example.com", "password": "testpassword", "full_name": "Hook User"}
+        json={"email": "hook@example.com", "password": "TestPassword@123", "full_name": "Hook User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "hook@example.com", "password": "testpassword"}
+        data={"username": "hook@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
@@ -232,11 +232,11 @@ def test_dashboard_ai_summary_edge_cases(client):
     # Register & Login
     client.post(
         "/api/v1/auth/register",
-        json={"email": "aisummary@example.com", "password": "testpassword", "full_name": "AI User"}
+        json={"email": "aisummary@example.com", "password": "TestPassword@123", "full_name": "AI User"}
     )
     login_res = client.post(
         "/api/v1/auth/login",
-        data={"username": "aisummary@example.com", "password": "testpassword"}
+        data={"username": "aisummary@example.com", "password": "TestPassword@123"}
     )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

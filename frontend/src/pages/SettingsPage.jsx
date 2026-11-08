@@ -560,12 +560,12 @@ const SettingsPage = () => {
                         required
                         value={passwordForm.currentPassword}
                         onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                        className="w-full h-11 pl-4 pr-10 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                        className="w-full h-11 pl-4 pr-11 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowPassword(p => ({ ...p, current: !p.current }))}
-                        className="absolute right-3.5 top-3 text-textSecondary hover:text-textPrimary"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-textSecondary hover:text-textPrimary p-1 rounded-lg transition-colors focus:outline-none cursor-pointer z-10"
                       >
                         {showPassword.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -584,12 +584,12 @@ const SettingsPage = () => {
                           setPasswordForm(prev => ({ ...prev, newPassword: val }));
                           checkPasswordStrength(val);
                         }}
-                        className="w-full h-11 pl-4 pr-10 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                        className="w-full h-11 pl-4 pr-11 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowPassword(p => ({ ...p, new: !p.new }))}
-                        className="absolute right-3.5 top-3 text-textSecondary hover:text-textPrimary"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-textSecondary hover:text-textPrimary p-1 rounded-lg transition-colors focus:outline-none cursor-pointer z-10"
                       >
                         {showPassword.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -617,12 +617,12 @@ const SettingsPage = () => {
                         required
                         value={passwordForm.confirmPassword}
                         onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        className="w-full h-11 pl-4 pr-10 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                        className="w-full h-11 pl-4 pr-11 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowPassword(p => ({ ...p, confirm: !p.confirm }))}
-                        className="absolute right-3.5 top-3 text-textSecondary hover:text-textPrimary"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-textSecondary hover:text-textPrimary p-1 rounded-lg transition-colors focus:outline-none cursor-pointer z-10"
                       >
                         {showPassword.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>

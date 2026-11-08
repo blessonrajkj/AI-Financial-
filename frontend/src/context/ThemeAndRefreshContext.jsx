@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { clearApiCache } from '../services/apiCache';
 
 const ThemeAndRefreshContext = createContext(null);
 
@@ -36,6 +37,7 @@ export const ThemeAndRefreshProvider = ({ children }) => {
   };
 
   const invalidateCache = () => {
+    clearApiCache();
     setRefreshTrigger(prev => prev + 1);
   };
 
