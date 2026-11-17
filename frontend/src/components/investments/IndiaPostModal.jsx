@@ -500,33 +500,33 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
       <div className="bg-cardBg border-t sm:border border-borderColor rounded-t-3xl sm:rounded-3xl w-full max-w-6xl max-h-[92dvh] sm:h-[90vh] shadow-2xl flex flex-col overflow-hidden relative animate-scale-up">
         
         {/* Header toolbar */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-borderColor bg-background/30">
-          <div className="flex items-center space-x-3">
-            <span className="text-2xl">📮</span>
-            <div>
-              <h2 className="text-xl font-black text-textPrimary">India Post Investment Center</h2>
-              <p className="text-[10px] text-textSecondary mt-0.5">Sovereign-backed small savings and pension schemes organizer</p>
+        <div className="flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-b border-borderColor bg-background/30">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+            <span className="text-xl sm:text-2xl shrink-0">📮</span>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-xl font-black text-textPrimary truncate">India Post Investment Center</h2>
+              <p className="text-[10px] text-textSecondary mt-0.5 truncate hidden xs:block sm:block">Sovereign-backed small savings and pension schemes organizer</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
             <button 
               onClick={handlePrint}
-              className="p-2 text-textSecondary hover:bg-hoverBg rounded-lg transition-colors"
+              className="p-2 text-textSecondary hover:bg-hoverBg rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
               title="Print PDF Report"
             >
               <Download className="w-4 h-4" />
             </button>
             <button 
               onClick={handleExportCSV}
-              className="p-2 text-textSecondary hover:bg-hoverBg rounded-lg transition-colors"
+              className="p-2 text-textSecondary hover:bg-hoverBg rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
               title="Export CSV Ledger"
             >
               <FileSpreadsheetIcon className="w-4 h-4" />
             </button>
             <button 
               onClick={onClose}
-              className="p-2 text-textSecondary hover:bg-hoverBg rounded-lg transition-colors"
+              className="p-2 text-textSecondary hover:bg-hoverBg rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>
@@ -534,29 +534,29 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex px-6 border-b border-borderColor bg-background/10 space-x-4">
+        <div className="flex px-4 sm:px-6 border-b border-borderColor bg-background/10 space-x-3 sm:space-x-4 overflow-x-auto whitespace-nowrap no-scrollbar">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`py-3 text-xs font-bold transition-all border-b-2 ${activeTab === 'dashboard' ? 'border-primary text-primary font-black' : 'border-transparent text-textSecondary hover:text-textPrimary'}`}
+            className={`py-3 text-xs font-bold transition-all border-b-2 whitespace-nowrap flex-shrink-0 ${activeTab === 'dashboard' ? 'border-primary text-primary font-black' : 'border-transparent text-textSecondary hover:text-textPrimary'}`}
           >
             Dashboard
           </button>
           <button
             onClick={() => setActiveTab('schemes')}
-            className={`py-3 text-xs font-bold transition-all border-b-2 ${activeTab === 'schemes' ? 'border-primary text-primary font-black' : 'border-transparent text-textSecondary hover:text-textPrimary'}`}
+            className={`py-3 text-xs font-bold transition-all border-b-2 whitespace-nowrap flex-shrink-0 ${activeTab === 'schemes' ? 'border-primary text-primary font-black' : 'border-transparent text-textSecondary hover:text-textPrimary'}`}
           >
             Postal Schemes Directory
           </button>
           <button
             onClick={() => setActiveTab('portfolio')}
-            className={`py-3 text-xs font-bold transition-all border-b-2 ${activeTab === 'portfolio' ? 'border-primary text-primary font-black' : 'border-transparent text-textSecondary hover:text-textPrimary'}`}
+            className={`py-3 text-xs font-bold transition-all border-b-2 whitespace-nowrap flex-shrink-0 ${activeTab === 'portfolio' ? 'border-primary text-primary font-black' : 'border-transparent text-textSecondary hover:text-textPrimary'}`}
           >
             My Holdings Ledger ({investments.length})
           </button>
         </div>
 
         {/* Scrollable Workspace */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
           {error && (
             <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm font-semibold flex items-center space-x-2">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -576,7 +576,7 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
             <div className="space-y-6">
               
               {/* Summary statistics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <div className="bg-background/40 border border-borderColor rounded-2xl p-4">
                   <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">Total India Post Investment</span>
                   <h3 className="text-xl font-black text-textPrimary mt-1">₹{(metrics.total_invested || 0).toLocaleString()}</h3>

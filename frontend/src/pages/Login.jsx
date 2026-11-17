@@ -13,11 +13,13 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setInfoMsg('');
     setLoading(true);
     try {
       await login(email.trim(), password);
@@ -37,7 +39,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-[#F4F6FB] relative overflow-hidden select-none">
+    <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-[#F4F6FB] relative overflow-hidden select-none">
 
       {/* Ambient background glowing circles */}
       <div className="absolute -top-24 -left-24 w-[420px] h-[420px] bg-purple-200/40 rounded-full blur-[100px] pointer-events-none" />
@@ -56,7 +58,7 @@ const Login = () => {
       />
 
       {/* Floating Center Card Container */}
-      <div className="w-full max-w-[440px] bg-white border border-slate-100/80 rounded-[28px] p-7 sm:p-10 shadow-2xl shadow-indigo-100/60 relative z-10 my-auto">
+      <div className="w-full max-w-[440px] bg-white border border-slate-100/80 rounded-2xl sm:rounded-[28px] p-5 sm:p-10 shadow-2xl shadow-indigo-100/60 relative z-10 my-auto">
         
         {/* Card Top Brand Logo Section */}
         <div className="flex flex-col items-center text-center mb-6">
@@ -92,6 +94,14 @@ const Login = () => {
           </div>
         )}
 
+        {/* Info Container */}
+        {infoMsg && (
+          <div className="mb-5 p-3.5 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-semibold leading-relaxed flex items-start gap-2.5 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-indigo-500" />
+            <div className="flex-1">{infoMsg}</div>
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           
@@ -119,13 +129,13 @@ const Login = () => {
               <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
                 Password
               </label>
-              <a 
-                href="#" 
-                onClick={(e) => { e.preventDefault(); alert('Password reset instructions have been sent to your registered email.'); }} 
+              <button
+                type="button"
+                onClick={() => setInfoMsg('Self-service password recovery is disabled in this environment. Please contact support or change your password in Settings when logged in.')} 
                 className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 transition-colors hover:underline"
               >
                 Forgot password?
-              </a>
+              </button>
             </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />

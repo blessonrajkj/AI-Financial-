@@ -301,9 +301,9 @@ const Dashboard = () => {
   const monthComp   = summary?.monthly_comparison || {};
   const incomeDiff  = monthComp.income_diff_pct  ?? 0;
   const expenseDiff = monthComp.expense_diff_pct ?? 0;
-  const budgetUsedPct = Math.min(100,
-    ((summary?.monthly_spending ?? 0) / (summary?.total_budget_limit ?? 1)) * 100
-  );
+  const budgetUsedPct = (summary?.total_budget_limit > 0)
+    ? Math.min(100, ((summary?.monthly_spending ?? 0) / summary.total_budget_limit) * 100)
+    : 0;
 
   return (
     <div className="space-y-5">
@@ -332,11 +332,11 @@ const Dashboard = () => {
             </div>
 
             {/* Quick Actions Navigation Bar */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <div className="grid grid-cols-2 sm:flex sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={togglePrivacyMode}
                 title={privacyMode ? 'Disable Privacy Shield' : 'Enable Privacy Shield'}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all duration-200 shadow-sm flex items-center gap-1.5 ${
+                className={`px-3 py-2 sm:py-1.5 min-h-[40px] sm:min-h-0 text-xs font-bold rounded-xl border transition-all duration-200 shadow-sm flex items-center justify-center gap-1.5 ${
                   privacyMode
                     ? 'bg-danger/10 border-danger/30 text-danger'
                     : 'bg-surface hover:bg-hoverBg border-borderColor text-textPrimary'
@@ -349,7 +349,7 @@ const Dashboard = () => {
               <button
                 onClick={() => navigate('/import')}
                 title="Import Financial Data"
-                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg transition-all shadow-sm flex items-center gap-1.5"
+                className="px-3 py-2 sm:py-1.5 min-h-[40px] sm:min-h-0 text-xs font-bold rounded-xl bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg transition-all shadow-sm flex items-center justify-center gap-1.5"
               >
                 <UploadCloud className="w-3.5 h-3.5 text-textMuted" />
                 <span>Import</span>
@@ -358,7 +358,7 @@ const Dashboard = () => {
               <button
                 onClick={() => navigate('/scanner')}
                 title="Scan Receipt / Invoice"
-                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg transition-all shadow-sm flex items-center gap-1.5"
+                className="px-3 py-2 sm:py-1.5 min-h-[40px] sm:min-h-0 text-xs font-bold rounded-xl bg-surface border border-borderColor text-textPrimary hover:bg-hoverBg transition-all shadow-sm flex items-center justify-center gap-1.5"
               >
                 <ScanLine className="w-3.5 h-3.5 text-textMuted" />
                 <span>Scan</span>
@@ -366,7 +366,7 @@ const Dashboard = () => {
 
               <button
                 onClick={() => navigate('/transactions')}
-                className="px-4 py-2 text-xs font-extrabold rounded-xl bg-primary hover:bg-primaryHover text-white shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 flex-shrink-0"
+                className="px-4 py-2 min-h-[40px] sm:min-h-0 text-xs font-extrabold rounded-xl bg-primary hover:bg-primaryHover text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 flex-shrink-0"
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
                 <span>Add Tx</span>
@@ -454,18 +454,18 @@ const Dashboard = () => {
                   <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="flex items-end justify-between gap-2 mt-1">
-                <div>
-                  <p className="text-2xl sm:text-3xl font-black text-textPrimary font-numeric tracking-tight privacy-mask">
+              <div className="flex items-end justify-between gap-2 mt-1 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <p className="text-2xl sm:text-3xl font-black text-textPrimary font-numeric tracking-tight privacy-mask truncate">
                     {fmt(summary?.current_balance)}
                   </p>
-                  <p className="text-[10px] text-success font-bold mt-1 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success animate-ping" />
+                  <p className="text-[10px] text-success font-bold mt-1 flex items-center gap-1.5 truncate">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success animate-ping shrink-0" />
                     <span>Linked accounts active</span>
                   </p>
                 </div>
                 {trends.length > 0 && (
-                  <div className="h-9 sm:h-11 w-20 sm:w-24 flex-shrink-0">
+                  <div className="h-9 sm:h-11 w-16 sm:w-24 flex-shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                         <Area type="monotone" dataKey="savings" stroke="#6366F1" fill="#6366F1" fillOpacity={0.12} strokeWidth={2} dot={false} />
@@ -528,25 +528,43 @@ const Dashboard = () => {
             <div className="doppel-core p-3.5 sm:p-5 flex flex-col justify-between gap-3 h-full">
               <div className="flex items-center justify-between">
                 <span className="eyebrow-badge !px-2 !py-0.5 font-bold text-[10px]">Budget</span>
-                <span className="text-[10px] font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor privacy-mask">
-                  {budgetUsedPct.toFixed(0)}%
-                </span>
+                {summary?.total_budget_limit > 0 ? (
+                  <span className="text-[10px] font-numeric font-bold text-textPrimary bg-hoverBg px-2 py-0.5 rounded-lg border border-borderColor privacy-mask">
+                    {budgetUsedPct.toFixed(0)}%
+                  </span>
+                ) : (
+                  <button 
+                    onClick={() => navigate('/budgets')}
+                    className="text-[10px] font-bold text-primary hover:underline"
+                  >
+                    Set Budget
+                  </button>
+                )}
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
-                  {fmt(summary?.budget_remaining)}
-                </p>
-                <div className="mt-1.5 h-1.5 bg-borderColor/60 rounded-full overflow-hidden p-[1px]">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      budgetUsedPct >= 90 ? 'bg-danger shadow-danger-glow' : budgetUsedPct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
-                    }`}
-                    style={{ width: `${budgetUsedPct}%` }}
-                  />
-                </div>
-                <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-1">
-                  of <span className="privacy-mask">{fmt(summary?.total_budget_limit)}</span> limit remaining
-                </p>
+                {summary?.total_budget_limit > 0 ? (
+                  <>
+                    <p className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                      {fmt(summary?.budget_remaining)}
+                    </p>
+                    <div className="mt-1.5 h-1.5 bg-borderColor/60 rounded-full overflow-hidden p-[1px]">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          budgetUsedPct >= 90 ? 'bg-danger shadow-danger-glow' : budgetUsedPct >= 70 ? 'bg-warning' : 'bg-success shadow-success-glow'
+                        }`}
+                        style={{ width: `${budgetUsedPct}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-1">
+                      of <span className="privacy-mask">{fmt(summary?.total_budget_limit)}</span> limit remaining
+                    </p>
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-sm font-semibold text-textSecondary">No budget configured</p>
+                    <p className="text-[10px] text-textMuted mt-0.5">Define category limits in Budgets tab</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -658,7 +676,7 @@ const Dashboard = () => {
                 </div>
               ) : trendsWithSavings.length > 0 && trendsWithSavings.some(t => (t.income || 0) > 0 || (t.expense || 0) > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trendsWithSavings} margin={{ top: 16, right: 16, left: -10, bottom: 4 }}>
+                  <AreaChart data={trendsWithSavings} margin={{ top: 16, right: 10, left: -16, bottom: 4 }}>
                     <defs>
                       <linearGradient id="cfIncomeGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#10b981" stopOpacity={0.12} />
@@ -693,7 +711,7 @@ const Dashboard = () => {
                       fontWeight={500}
                       tickLine={false}
                       axisLine={false}
-                      width={58}
+                      width={48}
                       tickFormatter={formatYAxis}
                     />
 
@@ -952,7 +970,7 @@ const Dashboard = () => {
               className="flex flex-col items-center gap-2 p-3.5 bg-background border border-borderColor hover:border-primary/40 hover:bg-hoverBg rounded-xl text-textSecondary hover:text-primary transition-all group"
             >
               <Icon className="w-4.5 h-4.5" />
-              <span className="text-[10px] font-semibold text-center leading-tight">{label}</span>
+              <span className="text-[10px] font-semibold text-center leading-tight truncate max-w-full px-0.5">{label}</span>
             </button>
           ))}
         </div>

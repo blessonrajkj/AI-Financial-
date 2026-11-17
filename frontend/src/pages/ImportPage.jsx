@@ -715,8 +715,144 @@ const ImportPage = () => {
               </span>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto max-h-[420px] overflow-y-auto border border-borderColor/60 rounded-xl">
+            {/* Mobile Card Preview List (< md) */}
+            <div className="block md:hidden space-y-3 max-h-[440px] overflow-y-auto pr-1">
+              {filteredPreviewData.map((t) => {
+                const idx = t.origIdx;
+                const isSelected = selectedIndices.has(idx);
+                const isEditing = editingIndex === idx;
+
+                return (
+                  <div
+                    key={idx}
+                    className={`p-3.5 rounded-2xl border transition-all space-y-2.5 ${
+                      isSelected
+                        ? 'bg-primary/5 border-primary/30 shadow-xs'
+                        : 'bg-surface/60 border-borderColor/70 opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectRow(idx)}
+                          className="mt-0.5 rounded border-borderColor text-primary focus:ring-primary w-4 h-4 cursor-pointer flex-shrink-0 min-h-[20px]"
+                        />
+                        <div className="min-w-0">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={t.merchant || ''}
+                              onChange={(e) => handleCellEdit(idx, 'merchant', e.target.value)}
+                              className="w-full px-2 py-1 bg-background border rounded-lg text-xs text-textPrimary font-bold"
+                              placeholder="Merchant"
+                            />
+                          ) : (
+                            <p className="font-bold text-textPrimary text-xs truncate">
+                              {t.merchant || 'Uncategorized'}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-textMuted font-normal truncate mt-0.5">
+                            {t.description || 'No description'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={t.amount}
+                            onChange={(e) => handleCellEdit(idx, 'amount', parseFloat(e.target.value) || 0)}
+                            className="w-20 px-1.5 py-1 bg-background border rounded-lg text-xs text-right text-textPrimary font-bold font-numeric"
+                          />
+                        ) : (
+                          <span className={`text-xs font-black font-numeric ${t.type === 'income' ? 'text-success' : 'text-textPrimary'}`}>
+                            {t.type === 'income' ? '+' : '−'}₹{(t.amount || 0).toLocaleString('en-IN')}
+                          </span>
+                        )}
+                        <span className="block text-[9px] text-textMuted font-numeric mt-0.5">{t.date}</span>
+                      </div>
+                    </div>
+
+                    {/* Category & Status Row */}
+                    <div className="space-y-1.5 pt-2 border-t border-borderColor/40">
+                      <div className="grid grid-cols-2 gap-2">
+                        <CategorySelect
+                          value={t.category || 'Food & Dining'}
+                          onChange={(newCat) => {
+                            handleCellEdit(idx, 'category', newCat);
+                            const defaultSub = EXPENSE_TAXONOMY[newCat] ? EXPENSE_TAXONOMY[newCat][0] : 'Uncategorized';
+                            handleCellEdit(idx, 'subcategory', defaultSub);
+                          }}
+                          options={t.type === 'income' ? ['Income'] : t.type === 'transfer' ? ['Cash & Transfers'] : Object.keys(EXPENSE_TAXONOMY)}
+                          size="sm"
+                        />
+                        <SubcategorySelect
+                          category={t.category || 'Food & Dining'}
+                          value={t.subcategory || 'Uncategorized'}
+                          onChange={(newSub) => handleCellEdit(idx, 'subcategory', newSub)}
+                          subcategories={
+                            t.type === 'income'
+                              ? INCOME_CATEGORIES
+                              : t.type === 'transfer'
+                              ? TRANSFER_CATEGORIES
+                              : (EXPENSE_TAXONOMY[t.category] || ['Uncategorized'])
+                          }
+                          size="sm"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                            t.type === 'income' ? 'bg-success/15 text-success' : 'bg-rose-500/15 text-rose-500 dark:text-rose-400'
+                          }`}>
+                            {t.type === 'income' ? 'Income' : 'Expense'}
+                          </span>
+                          {t.needs_review ? (
+                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold text-[9px] uppercase rounded-full">
+                              Review
+                            </span>
+                          ) : t.is_duplicate ? (
+                            <span className="px-2 py-0.5 bg-warning/15 text-warning font-extrabold text-[9px] uppercase rounded-full">
+                              Duplicate
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-success/15 text-success font-extrabold text-[9px] uppercase rounded-full">
+                              Ready
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingIndex(isEditing ? null : idx)}
+                            className="p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center text-textMuted hover:text-primary transition-colors"
+                            title={isEditing ? "Save row" : "Edit row"}
+                          >
+                            {isEditing ? <Check className="w-3.5 h-3.5 text-success" /> : <Edit2 className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteRow(idx)}
+                            className="p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center text-textMuted hover:text-danger transition-colors"
+                            title="Delete row"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto max-h-[420px] overflow-y-auto border border-borderColor/60 rounded-xl">
               <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                 <thead className="sticky top-0 bg-cardBg z-10">
                   <tr className="border-b border-borderColor text-textMuted uppercase tracking-wider font-extrabold text-[10px]">

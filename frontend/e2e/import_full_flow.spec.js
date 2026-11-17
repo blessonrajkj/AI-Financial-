@@ -1,5 +1,9 @@
 import { test as base, expect } from '@playwright/test';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const test = base.extend({
   browser: async ({ playwright }, use) => {
@@ -12,15 +16,18 @@ const test = base.extend({
   },
 });
 
+const API_BASE = process.env.API_BASE_URL || process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8001';
+const FRONTEND_BASE = process.env.E2E_BASE_URL || 'http://localhost:3001';
+
 async function createFreshUser(request, prefix) {
   const email = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}@example.com`;
   const password = 'TestPassword123!';
-  const reg = await request.post('http://127.0.0.1:8000/api/v1/auth/register', {
+  const reg = await request.post(`${API_BASE}/api/v1/auth/register`, {
     data: { email, password, full_name: `User ${prefix}` }
   });
   expect([200, 201]).toContain(reg.status());
 
-  const login = await request.post('http://127.0.0.1:8000/api/v1/auth/login', {
+  const login = await request.post(`${API_BASE}/api/v1/auth/login`, {
     form: { username: email, password }
   });
   expect(login.status()).toBe(200);
@@ -46,7 +53,7 @@ test.describe('Universal Import System - Full Browser E2E Flow', () => {
     expect(redAlert).toBeNull();
 
     // 2. Upload CSV
-    const csvPath = path.resolve('backend/tests/fixtures/sample_transactions.csv');
+    const csvPath = path.resolve(__dirname, '../../backend/tests/fixtures/sample_transactions.csv');
     const fileInput = await page.$('input[type="file"]');
     expect(fileInput).not.toBeNull();
     await fileInput.setInputFiles(csvPath);
@@ -69,7 +76,7 @@ test.describe('Universal Import System - Full Browser E2E Flow', () => {
     console.log('CSV Import Successful confirmed in UI');
 
     // 4. Verify in PostgreSQL via API
-    const txRes = await request.get('http://127.0.0.1:8000/api/v1/transactions/', {
+    const txRes = await request.get(`${API_BASE}/api/v1/transactions/`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     expect(txRes.status()).toBe(200);
@@ -98,7 +105,7 @@ test.describe('Universal Import System - Full Browser E2E Flow', () => {
     await page.goto('http://localhost:3001/import');
     await page.waitForLoadState('networkidle');
 
-    const pdfPath = path.resolve('backend/tests/fixtures/sample_sbi_statement.pdf');
+    const pdfPath = path.resolve(__dirname, '../../backend/tests/fixtures/sample_sbi_statement.pdf');
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(pdfPath);
 
@@ -115,7 +122,7 @@ test.describe('Universal Import System - Full Browser E2E Flow', () => {
     console.log('SBI PDF Import Successful confirmed in UI');
 
     // Verify in PostgreSQL
-    const txRes = await request.get('http://127.0.0.1:8000/api/v1/transactions/', {
+    const txRes = await request.get(`${API_BASE}/api/v1/transactions/`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     expect(txRes.status()).toBe(200);
@@ -134,7 +141,7 @@ test.describe('Universal Import System - Full Browser E2E Flow', () => {
     await page.goto('http://localhost:3001/import');
     await page.waitForLoadState('networkidle');
 
-    const xlsxPath = path.resolve('backend/tests/fixtures/sample_test_statement.xlsx');
+    const xlsxPath = path.resolve(__dirname, '../../backend/tests/fixtures/sample_test_statement.xlsx');
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(xlsxPath);
 
@@ -151,7 +158,7 @@ test.describe('Universal Import System - Full Browser E2E Flow', () => {
     console.log('Excel XLSX Import Successful confirmed in UI');
 
     // Verify in PostgreSQL
-    const txRes = await request.get('http://127.0.0.1:8000/api/v1/transactions/', {
+    const txRes = await request.get(`${API_BASE}/api/v1/transactions/`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     expect(txRes.status()).toBe(200);

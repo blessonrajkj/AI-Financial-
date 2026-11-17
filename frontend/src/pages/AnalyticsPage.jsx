@@ -209,7 +209,7 @@ const AnalyticsPage = () => {
               <div className="h-72 w-full">
                 {dailyData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={dailyData} margin={{ top: 16, right: 16, left: 16, bottom: 4 }}>
+                    <AreaChart data={dailyData} margin={{ top: 16, right: 10, left: -14, bottom: 4 }}>
                       <defs>
                         <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#10B981" stopOpacity={0.25} />
@@ -253,8 +253,8 @@ const AnalyticsPage = () => {
                         fontWeight={600}
                         tickLine={false}
                         axisLine={false}
-                        dx={-12}
-                        width={68}
+                        dx={-4}
+                        width={48}
                         domain={['dataMin - 1000', 'dataMax + 1000']}
                         tickFormatter={(v) => {
                           if (v === 0) return '0';
@@ -293,19 +293,19 @@ const AnalyticsPage = () => {
           {/* Category Pie + Top Merchants */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Category Distribution Pie */}
-            <div className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-textPrimary mb-4">Category Distribution</h3>
+            <div className="bg-cardBg border border-borderColor rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm">
+              <h3 className="text-base sm:text-lg font-bold text-textPrimary mb-4">Category Distribution</h3>
               {categoryData.length > 0 ? (
-                <div className="flex items-center justify-between h-64">
-                  <div className="h-full w-1/2">
+                <div className="flex flex-col sm:flex-row items-center justify-between min-h-[16rem] gap-4">
+                  <div className="h-52 w-full sm:w-1/2">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={categoryData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
+                          innerRadius={55}
+                          outerRadius={75}
                           paddingAngle={3}
                           dataKey="value"
                         >
@@ -317,14 +317,14 @@ const AnalyticsPage = () => {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="w-1/2 space-y-2 pl-4 max-h-60 overflow-y-auto">
+                  <div className="w-full sm:w-1/2 space-y-2 pl-0 sm:pl-4 max-h-52 overflow-y-auto">
                     {categoryData.map((entry, idx) => (
-                      <div key={entry.name} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center space-x-2">
+                      <div key={entry.name} className="flex items-center justify-between text-xs py-0.5">
+                        <div className="flex items-center space-x-2 min-w-0 pr-2">
                           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                          <span className="font-semibold text-textSecondary truncate max-w-[100px]">{entry.name}</span>
+                          <span className="font-semibold text-textSecondary truncate">{entry.name}</span>
                         </div>
-                        <span className="font-bold text-textPrimary">{fmt(entry.value)}</span>
+                        <span className="font-bold text-textPrimary shrink-0">{fmt(entry.value)}</span>
                       </div>
                     ))}
                   </div>

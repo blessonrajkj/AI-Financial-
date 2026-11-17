@@ -416,22 +416,22 @@ const ProfilePage = () => {
               <span>Edit Profile</span>
             </button>
           ) : (
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
               <button 
                 onClick={() => { resetForm(profile); setIsEditing(false); }}
-                className="px-5 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary font-bold rounded-xl border border-borderColor transition-colors"
+                className="flex-1 sm:flex-initial px-3 sm:px-5 h-11 bg-hoverBg hover:bg-borderColor text-textPrimary text-xs sm:text-sm font-bold rounded-xl border border-borderColor transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={() => resetForm(profile)}
-                className="px-5 h-11 bg-background hover:bg-hoverBg text-textSecondary font-bold rounded-xl border border-borderColor transition-colors"
+                className="flex-1 sm:flex-initial px-3 sm:px-5 h-11 bg-background hover:bg-hoverBg text-textSecondary text-xs sm:text-sm font-bold rounded-xl border border-borderColor transition-colors"
               >
                 Reset
               </button>
               <button 
                 onClick={handleSaveProfile}
-                className="px-6 h-11 bg-success hover:bg-success/90 text-white font-bold rounded-xl flex items-center space-x-1.5 shadow-md shadow-success/20 hover:shadow-lg transition-all"
+                className="w-full sm:w-auto px-5 sm:px-6 h-11 bg-success hover:bg-success/90 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center space-x-1.5 shadow-md shadow-success/20 hover:shadow-lg transition-all"
               >
                 <Check className="w-4 h-4" />
                 <span>Save Changes</span>

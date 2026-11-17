@@ -169,7 +169,8 @@ const Navbar = ({ toggleSidebar }) => {
           {/* Mobile hamburger */}
           <button
             onClick={toggleSidebar}
-            className="lg:hidden p-2 rounded-xl text-textSecondary hover:bg-surface transition-colors duration-200"
+            className="lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-textSecondary hover:bg-surface transition-colors duration-200"
+            aria-label="Toggle navigation menu"
           >
             <MenuIcon />
           </button>

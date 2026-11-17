@@ -67,7 +67,7 @@ services:
     container_name: pariview_frontend
     restart: always
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT:-5173}:80"
     depends_on:
       - backend
 

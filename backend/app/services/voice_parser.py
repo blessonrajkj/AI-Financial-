@@ -6,7 +6,7 @@ from app.core.config import settings
 
 class VoiceParser:
     def __init__(self):
-        self.model_initialized = settings.GEMINI_API_KEY is not None
+        self.model_initialized = bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip())
 
     def parse_transcript(self, transcript: str, db: Session) -> dict:
         result = {

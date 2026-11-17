@@ -70,7 +70,7 @@ const Modal = ({
           >
             {/* Header Toolbar */}
             {(title || showCloseButton) && (
-              <div className="px-5 sm:px-6 pt-5 pb-3 border-b border-borderColor flex justify-between items-center bg-cardBg shrink-0">
+              <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-borderColor flex justify-between items-center bg-cardBg shrink-0">
                 <div className="flex items-center space-x-3 pr-2">
                   {Icon && (
                     <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -105,13 +105,13 @@ const Modal = ({
             )}
 
             {/* Scrollable Form Content Body */}
-            <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 -webkit-overflow-scrolling-touch">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 -webkit-overflow-scrolling-touch">
               {children}
             </div>
 
             {/* Sticky Action Footer (Optional) */}
             {footer && (
-              <div className="px-5 sm:px-6 py-4 border-t border-borderColor bg-cardBg shrink-0">
+              <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-borderColor bg-cardBg shrink-0">
                 {footer}
               </div>
             )}

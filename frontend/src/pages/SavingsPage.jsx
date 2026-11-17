@@ -264,39 +264,39 @@ const SavingsPage = () => {
             return (
               <div 
                 key={g.id} 
-                className="bg-cardBg border border-borderColor rounded-3xl p-6 shadow-sm relative flex flex-col justify-between"
+                className="bg-cardBg border border-borderColor rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm relative flex flex-col justify-between"
               >
                 <div>
                   {/* Goal Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="text-lg font-bold text-textPrimary">{g.name}</h4>
-                      <p className="text-xs text-textSecondary flex items-center space-x-1.5 mt-0.5">
-                        <Calendar className="w-3.5 h-3.5 text-textMuted" />
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-base sm:text-lg font-bold text-textPrimary truncate">{g.name}</h4>
+                      <p className="text-xs text-textSecondary flex items-center space-x-1.5 mt-0.5 truncate">
+                        <Calendar className="w-3.5 h-3.5 text-textMuted shrink-0" />
                         <span>Target: {formattedDate}</span>
                       </p>
                     </div>
 
-                    <div className="flex space-x-2">
+                    <div className="flex items-center space-x-1.5 shrink-0 self-start sm:self-auto">
                       <button 
                         onClick={() => {
                           setContribGoal(g);
                           setContribAmount('');
                           setShowContribModal(true);
                         }}
-                        className="px-3 py-1.5 bg-success/15 hover:bg-success/20 text-success text-xs font-bold rounded-lg transition-colors flex items-center space-x-1"
+                        className="px-3 py-1.5 min-h-[36px] bg-success/15 hover:bg-success/20 text-success text-xs font-bold rounded-lg transition-colors flex items-center space-x-1"
                       >
                         <span>+ Deposit</span>
                       </button>
                       <button 
                         onClick={() => handleOpenEdit(g)}
-                        className="p-2 text-textSecondary hover:bg-hoverBg rounded-lg transition-colors"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-textSecondary hover:bg-hoverBg rounded-lg transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDelete(g.id)}
-                        className="p-2 text-textMuted hover:text-danger hover:bg-danger/5 rounded-lg transition-colors"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-textMuted hover:text-danger hover:bg-danger/5 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

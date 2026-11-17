@@ -65,7 +65,9 @@ def test_1_sbi_pdf_statement_upload_parse_and_bulk_import(import_client, import_
     token = create_access_token(u1_id)
     headers = {"Authorization": f"Bearer {token}"}
 
-    sbi_path = "backend/tests/fixtures/sample_sbi_statement.pdf"
+    sbi_path = os.path.join(os.path.dirname(__file__), "fixtures", "sample_sbi_statement.pdf")
+    if not os.path.exists(sbi_path):
+        sbi_path = "backend/tests/fixtures/sample_sbi_statement.pdf"
     assert os.path.exists(sbi_path)
 
     # 1. Upload & Parse
@@ -132,7 +134,9 @@ def test_2_csv_bank_statement_upload_parse_and_bulk_import(import_client, import
     token = create_access_token(u1_id)
     headers = {"Authorization": f"Bearer {token}"}
 
-    csv_path = "backend/tests/fixtures/sample_transactions.csv"
+    csv_path = os.path.join(os.path.dirname(__file__), "fixtures", "sample_transactions.csv")
+    if not os.path.exists(csv_path):
+        csv_path = "backend/tests/fixtures/sample_transactions.csv"
     assert os.path.exists(csv_path)
 
     with open(csv_path, "rb") as f:

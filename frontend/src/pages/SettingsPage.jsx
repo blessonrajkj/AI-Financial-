@@ -500,7 +500,7 @@ const SettingsPage = () => {
         </div>
 
         {/* Tab Content Box */}
-        <div className="lg:col-span-3 glass-panel p-6 shadow-soft relative overflow-hidden">
+        <div className="lg:col-span-3 glass-panel p-4 sm:p-6 shadow-soft relative overflow-hidden rounded-2xl sm:rounded-3xl">
           
           {/* TAB 1: PERSONAL INFORMATION */}
           {activeTab === 'personal' && (

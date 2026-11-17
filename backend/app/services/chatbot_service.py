@@ -1,5 +1,6 @@
 import os
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.core.config import settings
 from app.models.transaction import Transaction
@@ -81,11 +82,11 @@ User Question: {query}
         
         if "spend" in q_lower or "spent" in q_lower:
             # Query sum of expenses
-            total = db.query(Transaction).filter(
+            total = db.query(func.sum(Transaction.amount)).filter(
                 Transaction.user_id == user_id,
                 Transaction.type == "expense"
-            ).sum(Transaction.amount) or 0.0
-            return f"According to your records, your total historical spending is **{round(total, 2)}**. For specific date periods, you can check the Transactions tab which supports filter operations."
+            ).scalar() or 0.0
+            return f"According to your records, your total historical spending is **{round(float(total), 2)}**. For specific date periods, you can check the Transactions tab which supports filter operations."
             
         elif "budget" in q_lower:
             budgets = db.query(Budget).filter(Budget.user_id == user_id).all()

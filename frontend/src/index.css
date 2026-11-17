@@ -91,6 +91,8 @@ html.dark {
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   body {
@@ -100,6 +102,17 @@ html.dark {
     transition: background-color 0.3s cubic-bezier(0.32, 0.72, 0, 1),
                 color 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     min-height: 100dvh;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Utility to hide scrollbars on horizontal tab strips while preserving touch scroll */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   /* Clean, crisp tabular numeric formatting */

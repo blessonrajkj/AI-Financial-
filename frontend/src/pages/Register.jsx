@@ -57,7 +57,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-[#F4F6FB] relative overflow-hidden select-none">
+    <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-[#F4F6FB] relative overflow-hidden select-none">
 
       {/* Ambient background glowing circles */}
       <div className="absolute -top-24 -left-24 w-[420px] h-[420px] bg-purple-200/40 rounded-full blur-[100px] pointer-events-none" />
@@ -76,7 +76,7 @@ const Register = () => {
       />
 
       {/* Floating Center Card Container */}
-      <div className="w-full max-w-[440px] bg-white border border-slate-100/80 rounded-[28px] p-7 sm:p-10 shadow-2xl shadow-indigo-100/60 relative z-10 my-auto">
+      <div className="w-full max-w-[440px] bg-white border border-slate-100/80 rounded-2xl sm:rounded-[28px] p-5 sm:p-10 shadow-2xl shadow-indigo-100/60 relative z-10 my-auto">
         
         {/* Card Top Brand Logo Section */}
         <div className="flex flex-col items-center text-center mb-6">

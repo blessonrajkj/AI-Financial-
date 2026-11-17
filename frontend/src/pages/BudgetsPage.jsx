@@ -260,14 +260,14 @@ const BudgetsPage = () => {
                           <button
                             onClick={() => openEditModal(b)}
                             title="Edit Budget"
-                            className="p-1.5 rounded-lg text-textSecondary hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
+                            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-textSecondary hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(b)}
                             title="Delete Budget"
-                            className="p-1.5 rounded-lg text-textSecondary hover:text-danger hover:bg-danger/10 transition-all border border-transparent hover:border-danger/20"
+                            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-textSecondary hover:text-danger hover:bg-danger/10 transition-all border border-transparent hover:border-danger/20"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

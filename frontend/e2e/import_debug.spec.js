@@ -11,6 +11,9 @@ const test = base.extend({
   },
 });
 
+const API_BASE = process.env.API_BASE_URL || process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8001';
+const FRONTEND_BASE = process.env.E2E_BASE_URL || 'http://localhost:3001';
+
 test('Diagnose Import Transactions page loading and network requests', async ({ page, request }) => {
   const testUser = {
     email: `import_diag_${Date.now()}@example.com`,
@@ -19,11 +22,11 @@ test('Diagnose Import Transactions page loading and network requests', async ({ 
   };
 
   // 1. Register test user
-  const regRes = await request.post('http://127.0.0.1:8000/api/v1/auth/register', { data: testUser });
+  const regRes = await request.post(`${API_BASE}/api/v1/auth/register`, { data: testUser });
   expect([200, 201]).toContain(regRes.status());
 
   // 2. Login user
-  const loginRes = await request.post('http://127.0.0.1:8000/api/v1/auth/login', {
+  const loginRes = await request.post(`${API_BASE}/api/v1/auth/login`, {
     form: { username: testUser.email, password: testUser.password }
   });
   expect(loginRes.status()).toBe(200);

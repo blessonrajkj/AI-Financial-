@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import PariViewLogo from '../common/PariViewLogo';
@@ -147,6 +147,17 @@ const BottomNav = () => {
   const isMoreActive = MORE_SECTIONS.some((sec) =>
     sec.items.some((item) => item.path === location.pathname)
   );
+
+  // Lock body scroll when more sheet is open
+  useEffect(() => {
+    if (moreOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [moreOpen]);
 
   const primaryTabs = [
     { name: 'Home', path: '/dashboard', Icon: HomeIcon },

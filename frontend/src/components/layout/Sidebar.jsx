@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import PariViewLogo from '../common/PariViewLogo';
@@ -129,6 +129,23 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  const handleNavClick = () => {
+    if (isOpen && toggleSidebar) {
+      toggleSidebar();
+    }
+  };
+
   return (
     <>
       {/* Mobile overlay */}
@@ -166,16 +183,20 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         className={`lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Sidebar Brand Header with PariView Logo */}
-        <div style={{ height: 72, padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          <NavLink to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+        <div style={{ height: 72, padding: '0 16px 0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <NavLink to="/dashboard" onClick={handleNavClick} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
             <PariViewLogo size="md" />
           </NavLink>
           <button
             onClick={toggleSidebar}
             className="lg:hidden"
             style={{
-              padding: 6,
-              borderRadius: 10,
+              minWidth: 44,
+              minHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 12,
               background: 'transparent',
               border: 'none',
               color: 'var(--text-secondary)',
@@ -219,12 +240,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                   <li key={item.path}>
                     <NavLink
                       to={item.path}
-                      onClick={toggleSidebar}
+                      onClick={handleNavClick}
                       style={({ isActive }) => ({
                         display: 'flex',
                         alignItems: 'center',
                         gap: 10,
-                        padding: '9px 12px',
+                        padding: '10px 12px',
+                        minHeight: 44,
                         borderRadius: 10,
                         textDecoration: 'none',
                         fontSize: '0.8125rem',
@@ -264,7 +286,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
         {/* Bottom user strip + logout */}
         <div style={{
-          padding: '12px',
+          padding: '12px 12px calc(12px + env(safe-area-inset-bottom, 0px)) 12px',
           borderTop: '1px solid var(--border)',
           display: 'flex',
           flexDirection: 'column',
@@ -273,12 +295,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           {/* Settings link */}
           <NavLink
             to="/settings/account"
-            onClick={toggleSidebar}
+            onClick={handleNavClick}
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              padding: '9px 12px',
+              padding: '10px 12px',
+              minHeight: 44,
               borderRadius: 10,
               textDecoration: 'none',
               fontSize: '0.8125rem',
@@ -303,8 +326,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               background: 'var(--surface)',
               border: '1px solid var(--border)',
               cursor: 'pointer',
+              minHeight: 44,
             }}
-            onClick={() => { navigate('/profile'); toggleSidebar(); }}
+            onClick={() => { navigate('/profile'); handleNavClick(); }}
             >
               <img
                 src={user.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`}
@@ -324,8 +348,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 title="Log out"
                 style={{
                   flexShrink: 0,
-                  width: 26,
-                  height: 26,
+                  width: 32,
+                  height: 32,
                   borderRadius: 8,
                   background: 'rgba(220,38,38,0.12)',
                   border: '1px solid rgba(220,38,38,0.2)',

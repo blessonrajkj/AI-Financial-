@@ -122,8 +122,9 @@ def get_dashboard_summary(
         Budget.year == now.year
     ).scalar() or 0.0)
 
-    display_budget_limit = total_budget_limit if total_budget_limit > 0 else 50000.0
-    budget_remaining = max(0.0, display_budget_limit - current_month_expense)
+    display_budget_limit = total_budget_limit
+    has_budget = total_budget_limit > 0
+    budget_remaining = max(0.0, total_budget_limit - current_month_expense) if has_budget else 0.0
 
     # 5. Savings rate & Real AI generated insight (Task 3)
     current_month_savings = current_month_income - current_month_expense
@@ -148,8 +149,8 @@ def get_dashboard_summary(
     # Savings Rate score (max 25 pts)
     savings_score_pts = min(25, max(0, int((savings_rate / 30.0) * 25))) if savings_rate > 0 else 0
     # Budget Usage score (max 20 pts)
-    budget_usage_pct = current_month_expense / display_budget_limit if display_budget_limit > 0 else 0
-    budget_score_pts = max(0, int(20 * (1.0 - budget_usage_pct)))
+    budget_usage_pct = current_month_expense / total_budget_limit if total_budget_limit > 0 else 0
+    budget_score_pts = max(0, int(20 * (1.0 - budget_usage_pct))) if total_budget_limit > 0 else 15
     # Debt ratio default score (max 15 pts)
     debt_score_pts = 15
     # Investment Growth score (max 15 pts)
@@ -250,7 +251,8 @@ def get_dashboard_summary(
         "monthly_income": round(current_month_income, 2),
         "current_balance": round(current_balance, 2),
         "budget_remaining": round(budget_remaining, 2),
-        "total_budget_limit": round(display_budget_limit, 2),
+        "total_budget_limit": round(total_budget_limit, 2),
+        "has_budget": has_budget,
         "savings_rate": savings_rate,
         "health_score": health_score,
         "monthly_comparison": {
