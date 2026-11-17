@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { UploadCloud, FileText, Sparkles, Check, AlertCircle } from 'lucide-react';
+import Select from '../components/ui/Select';
+import DatePicker from '../components/ui/DatePicker';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -276,30 +278,26 @@ const ScannerPage = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Category</label>
-                  <select 
+                  <Select 
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  >
-                    {(categoriesList.filter(c => c.type === 'expense').length > 0
-                      ? categoriesList.filter(c => c.type === 'expense').map(c => c.name)
-                      : ['Food', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Other']
-                    ).map(catName => (
-                      <option key={catName} value={catName}>{catName}</option>
-                    ))}
-                  </select>
+                    placeholder="Select Category"
+                    options={
+                      categoriesList.filter(c => c.type === 'expense').length > 0
+                        ? categoriesList.filter(c => c.type === 'expense').map(c => c.name)
+                        : ['Food', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Other']
+                    }
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Transaction Date</label>
-                  <input 
-                    type="date" 
-                    required
+                  <DatePicker 
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
+                    onChange={setDate}
+                    required
                   />
                 </div>
 

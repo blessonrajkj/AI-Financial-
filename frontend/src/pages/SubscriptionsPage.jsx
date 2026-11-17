@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Modal from '../components/ui/Modal';
+import Select from '../components/ui/Select';
+import DatePicker from '../components/ui/DatePicker';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -487,24 +489,22 @@ const SubscriptionsPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Billing Cycle</label>
-              <select 
+              <Select 
                 value={billingCycle}
                 onChange={(e) => setBillingCycle(e.target.value)}
-                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
-              >
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-              </select>
+                options={[
+                  { value: 'monthly', label: 'Monthly' },
+                  { value: 'yearly', label: 'Yearly' }
+                ]}
+              />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Next Billing Date</label>
-              <input 
-                type="date" 
-                required
+              <DatePicker 
                 value={nextBillingDate}
-                onChange={(e) => setNextBillingDate(e.target.value)}
-                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+                onChange={setNextBillingDate}
+                required
               />
             </div>
           </div>

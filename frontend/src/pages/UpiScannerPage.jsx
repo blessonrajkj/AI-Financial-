@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
+import Select from '../components/ui/Select';
+import DatePicker from '../components/ui/DatePicker';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -404,38 +406,31 @@ const UpiScannerPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Transaction Type</label>
-                    <select
+                    <Select
                       value={previewData.type}
                       onChange={(e) => handleFieldChange('type', e.target.value)}
-                      className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all font-bold"
-                    >
-                      <option value="Expense">Expense</option>
-                      <option value="Income">Income</option>
-                    </select>
+                      size="sm"
+                      options={['Expense', 'Income']}
+                    />
                   </div>
 
                   <div>
                     <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Category</label>
-                    <select
+                    <Select
                       value={previewData.category}
                       onChange={(e) => handleFieldChange('category', e.target.value)}
-                      className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
-                    >
-                      {categoriesList.map(cat => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
-                      ))}
-                    </select>
+                      size="sm"
+                      options={categoriesList.map(cat => ({ value: cat.name, label: cat.name }))}
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">Payment Date</label>
-                    <input 
-                      type="date"
+                    <DatePicker 
                       value={previewData.date}
-                      onChange={(e) => handleFieldChange('date', e.target.value)}
-                      className="w-full h-10 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-xs focus:outline-none focus:border-primary transition-all"
+                      onChange={(val) => handleFieldChange('date', val)}
                     />
                   </div>
 

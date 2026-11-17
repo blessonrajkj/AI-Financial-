@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import Select from '../components/ui/Select';
 import { 
   User as UserIcon, 
   Mail, 
@@ -683,17 +684,17 @@ const ProfilePage = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Gender</label>
-                    <select 
+                    <Select 
                       name="gender"
                       value={formData.gender}
                       onChange={handleInputChange}
-                      className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                    >
-                      <option value="">Select Gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
+                      placeholder="Select Gender"
+                      options={[
+                        { value: 'male', label: 'Male' },
+                        { value: 'female', label: 'Female' },
+                        { value: 'other', label: 'Other' }
+                      ]}
+                    />
                   </div>
 
                   <div>
@@ -725,18 +726,18 @@ const ProfilePage = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Preferred Currency</label>
-                    <select 
+                    <Select 
                       name="preferred_currency"
                       value={formData.preferred_currency}
                       onChange={handleInputChange}
-                      className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                    >
-                      <option value="INR">INR (₹)</option>
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
-                      <option value="AED">AED (Dh)</option>
-                    </select>
+                      options={[
+                        { value: 'INR', label: 'INR (₹)' },
+                        { value: 'USD', label: 'USD ($)' },
+                        { value: 'EUR', label: 'EUR (€)' },
+                        { value: 'GBP', label: 'GBP (£)' },
+                        { value: 'AED', label: 'AED (Dh)' }
+                      ]}
+                    />
                   </div>
 
                   <div className="md:col-span-2">
@@ -801,34 +802,34 @@ const ProfilePage = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Preferred Language</label>
-                    <select 
+                    <Select 
                       name="preferred_language"
                       value={formData.preferred_language}
                       onChange={handleInputChange}
-                      className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                    >
-                      <option value="English">English</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Spanish">Spanish</option>
-                      <option value="French">French</option>
-                      <option value="German">German</option>
-                    </select>
+                      options={[
+                        { value: 'English', label: 'English' },
+                        { value: 'Hindi', label: 'Hindi' },
+                        { value: 'Spanish', label: 'Spanish' },
+                        { value: 'French', label: 'French' },
+                        { value: 'German', label: 'German' }
+                      ]}
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Time Zone</label>
-                    <select 
+                    <Select 
                       name="time_zone"
                       value={formData.time_zone}
                       onChange={handleInputChange}
-                      className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                    >
-                      <option value="Asia/Kolkata">India (Asia/Kolkata)</option>
-                      <option value="America/New_York">US Eastern (America/New_York)</option>
-                      <option value="Europe/London">London (Europe/London)</option>
-                      <option value="Asia/Dubai">Dubai (Asia/Dubai)</option>
-                      <option value="Asia/Singapore">Singapore (Asia/Singapore)</option>
-                    </select>
+                      options={[
+                        { value: 'Asia/Kolkata', label: 'India (Asia/Kolkata)' },
+                        { value: 'America/New_York', label: 'US Eastern (America/New_York)' },
+                        { value: 'Europe/London', label: 'London (Europe/London)' },
+                        { value: 'Asia/Dubai', label: 'Dubai (Asia/Dubai)' },
+                        { value: 'Asia/Singapore', label: 'Singapore (Asia/Singapore)' }
+                      ]}
+                    />
                   </div>
                 </div>
               </form>

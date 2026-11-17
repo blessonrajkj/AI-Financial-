@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 import { useNavigate } from 'react-router-dom';
+import Select from '../components/ui/Select';
 import { 
   User, 
   Lock, 
@@ -929,17 +930,17 @@ const SettingsPage = () => {
 
                 <div className="space-y-2 pt-2">
                   <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider">Localization Language</label>
-                  <select 
+                  <Select 
                     value={profileData?.preferred_language || 'English'}
                     onChange={(e) => handleLanguageChange(e.target.value)}
-                    className="w-full h-11 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  >
-                    <option value="English">English (United States)</option>
-                    <option value="Hindi">Hindi (India)</option>
-                    <option value="Spanish">Spanish (Spain)</option>
-                    <option value="French">French (France)</option>
-                    <option value="German">German (Germany)</option>
-                  </select>
+                    options={[
+                      { value: 'English', label: 'English (United States)' },
+                      { value: 'Hindi', label: 'Hindi (India)' },
+                      { value: 'Spanish', label: 'Spanish (Spain)' },
+                      { value: 'French', label: 'French (France)' },
+                      { value: 'German', label: 'German (Germany)' }
+                    ]}
+                  />
                 </div>
               </div>
             </div>
@@ -1082,16 +1083,12 @@ const SettingsPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Bank Name *</label>
-                  <select 
+                  <Select 
                     name="bank_name"
                     value={bankForm.bank_name}
                     onChange={handleBankInputChange}
-                    className="w-full h-11 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  >
-                    {SUPPORTED_BANKS.map((b) => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
-                  </select>
+                    options={SUPPORTED_BANKS}
+                  />
                 </div>
 
                 <div>
@@ -1161,17 +1158,12 @@ const SettingsPage = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Account Type</label>
-                  <select 
+                  <Select 
                     name="account_type"
                     value={bankForm.account_type}
                     onChange={handleBankInputChange}
-                    className="w-full h-11 px-3 bg-background border border-borderColor rounded-xl text-textPrimary text-sm focus:outline-none focus:border-primary transition-all"
-                  >
-                    <option value="Savings">Savings</option>
-                    <option value="Current">Current</option>
-                    <option value="Salary">Salary</option>
-                    <option value="Joint">Joint</option>
-                  </select>
+                    options={['Savings', 'Current', 'Salary', 'Joint']}
+                  />
                 </div>
 
                 <div>

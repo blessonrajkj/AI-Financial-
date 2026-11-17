@@ -21,6 +21,7 @@ import {
   Download
 } from 'lucide-react';
 import CategorySelect, { SubcategorySelect } from '../components/ui/CategorySelect';
+import Select from '../components/ui/Select';
 import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../utils/taxonomy';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 
@@ -929,14 +930,16 @@ const ImportPage = () => {
                         {/* Type */}
                         <td className="py-2.5 px-3">
                           {isEditing ? (
-                            <select 
+                            <Select 
                               value={t.type}
                               onChange={(e) => handleCellEdit(idx, 'type', e.target.value)}
-                              className="px-1.5 py-0.5 bg-background border rounded text-xs text-textPrimary"
-                            >
-                              <option value="expense">Expense (Money Out)</option>
-                              <option value="income">Income (Money In)</option>
-                            </select>
+                              size="sm"
+                              minWidth="w-40"
+                              options={[
+                                { value: 'expense', label: 'Expense (Money Out)' },
+                                { value: 'income', label: 'Income (Money In)' }
+                              ]}
+                            />
                           ) : (
                             <div className="flex flex-col">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase w-fit ${

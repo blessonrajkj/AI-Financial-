@@ -46,6 +46,7 @@ import {
 } from 'recharts';
 import IndiaPostModal from '../components/investments/IndiaPostModal';
 import Modal from '../components/ui/Modal';
+import Select from '../components/ui/Select';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -1433,15 +1434,11 @@ const InvestmentsPage = () => {
 
             <div>
               <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Asset Type</label>
-              <select 
+              <Select 
                 value={assetType}
                 onChange={(e) => setAssetType(e.target.value)}
-                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
-              >
-                {ASSET_TYPES.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
+                options={ASSET_TYPES}
+              />
             </div>
           </div>
 

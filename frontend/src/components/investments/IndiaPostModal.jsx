@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import Modal from '../ui/Modal';
+import Select from '../ui/Select';
 import { 
   X, 
   Search, 
@@ -800,25 +801,29 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
                 </div>
 
                 <div className="flex items-center space-x-3 w-full md:w-auto">
-                  <select 
+                  <Select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="h-11 px-3 bg-background border border-borderColor rounded-xl text-xs text-textPrimary focus:outline-none focus:border-primary w-full md:w-36"
-                  >
-                    <option value="All">All Statuses</option>
-                    <option value="Active">Active</option>
-                    <option value="Matured">Matured</option>
-                    <option value="Maturing Soon">Maturing Soon</option>
-                  </select>
+                    size="sm"
+                    minWidth="w-full md:w-40"
+                    options={[
+                      { value: 'All', label: 'All Statuses' },
+                      { value: 'Active', label: 'Active' },
+                      { value: 'Matured', label: 'Matured' },
+                      { value: 'Maturing Soon', label: 'Maturing Soon' }
+                    ]}
+                  />
 
-                  <select 
+                  <Select
                     value={sortField}
                     onChange={(e) => setSortField(e.target.value)}
-                    className="h-11 px-3 bg-background border border-borderColor rounded-xl text-xs text-textPrimary focus:outline-none focus:border-primary w-full md:w-36"
-                  >
-                    <option value="date">Sort by Date</option>
-                    <option value="amount">Sort by Amount</option>
-                  </select>
+                    size="sm"
+                    minWidth="w-full md:w-36"
+                    options={[
+                      { value: 'date', label: 'Sort by Date' },
+                      { value: 'amount', label: 'Sort by Amount' }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -979,14 +984,11 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Frequency</label>
-              <select 
+              <Select 
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value)}
-                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
-              >
-                <option value="One Time">One Time</option>
-                <option value="Monthly">Monthly</option>
-              </select>
+                options={['One Time', 'Monthly']}
+              />
             </div>
 
             <div>
@@ -1027,14 +1029,11 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
 
           <div>
             <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Nominee / Scheme Status</label>
-            <select 
+            <Select 
               value={invStatus}
               onChange={(e) => setInvStatus(e.target.value)}
-              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
-            >
-              <option value="Active">Active</option>
-              <option value="Matured">Matured</option>
-            </select>
+              options={['Active', 'Matured']}
+            />
           </div>
 
           <div>
