@@ -28,6 +28,10 @@ const Login = () => {
       console.error(err);
       if (!err.response) {
         setError('Cannot connect to server. Please ensure the backend is running.');
+      } else if (err.response.status === 400 || err.response.status === 401) {
+        setError(err.response.data?.detail || 'Incorrect email or password. Please verify your credentials.');
+      } else if (err.response.status === 502 || err.response.status === 503 || err.response.status === 504) {
+        setError(err.response.data?.detail || 'Cannot connect to backend server. Please ensure the backend is running.');
       } else if (err.response.status >= 500) {
         setError(err.response.data?.detail || 'Server error occurred. Please try again.');
       } else {
