@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -265,6 +265,111 @@ const FlowTypeSelect = ({ value, onChange }) => {
                   </div>
                   {isSelected && (
                     <Check className="w-4 h-4 text-primary flex-shrink-0 ml-2" />
+                  )}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const FilterSelect = ({ label, value, options, onChange, minWidth = 'min-w-[130px]' }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const normalizedOptions = useMemo(() => {
+    return options.map(opt => {
+      if (typeof opt === 'string') {
+        return { id: opt, label: opt === 'All' ? `All ${label || ''}`.trim() : opt };
+      }
+      return opt;
+    });
+  }, [options, label]);
+
+  const selectedOpt = normalizedOptions.find(o => o.id === value) || normalizedOptions[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`h-11 px-3 bg-background hover:bg-hoverBg border border-borderColor rounded-xl text-sm text-textPrimary flex items-center justify-between gap-2 font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer ${minWidth}`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className="truncate">{selectedOpt ? selectedOpt.label : value}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-textSecondary transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Hidden native select for form validation and accessibility */}
+      <select 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)} 
+        className="sr-only" 
+        tabIndex={-1} 
+        aria-hidden="true"
+      >
+        {normalizedOptions.map(o => (
+          <option key={o.id} value={o.id}>{o.label}</option>
+        ))}
+      </select>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className={`absolute left-0 top-full mt-1.5 bg-cardBg border border-borderColor rounded-xl shadow-2xl shadow-indigo-500/10 z-50 overflow-hidden py-1 max-h-60 overflow-y-auto ${minWidth}`}
+            role="listbox"
+          >
+            {normalizedOptions.map((opt) => {
+              const isSelected = opt.id === value;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.id);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 flex items-center justify-between text-left text-xs font-semibold transition-colors duration-150 cursor-pointer ${
+                    isSelected ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-hoverBg text-textPrimary font-medium'
+                  }`}
+                  role="option"
+                  aria-selected={isSelected}
+                >
+                  <span className="truncate">{opt.label}</span>
+                  {isSelected && (
+                    <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-2" />
                   )}
                 </button>
               );
@@ -793,32 +898,34 @@ const Transactions = () => {
           <div className="hidden sm:flex flex-row items-center gap-3 w-full md:w-auto">
             <div className="flex items-center space-x-2 w-full sm:w-auto">
               <span className="text-xs font-bold text-textMuted uppercase tracking-wider hidden sm:inline">Type:</span>
-              <select 
+              <FilterSelect
+                label="Types"
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="h-11 px-3 bg-background border border-borderColor rounded-xl text-sm text-textPrimary focus:outline-none focus:border-primary w-full sm:w-auto font-medium"
-              >
-                <option value="All" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Types</option>
-                <option value="income" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Income</option>
-                <option value="expense" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Expense</option>
-              </select>
+                onChange={setFilterType}
+                minWidth="min-w-[130px]"
+                options={[
+                  { id: 'All', label: 'All Types' },
+                  { id: 'income', label: 'Income' },
+                  { id: 'expense', label: 'Expense' }
+                ]}
+              />
             </div>
 
             <div className="flex items-center space-x-2 w-full sm:w-auto">
               <span className="text-xs font-bold text-textMuted uppercase tracking-wider hidden sm:inline">Category:</span>
-              <select 
+              <FilterSelect
+                label="Categories"
                 value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="h-11 px-3 bg-background border border-borderColor rounded-xl text-sm text-textPrimary focus:outline-none focus:border-primary w-full sm:w-auto font-medium"
-              >
-                <option value="All" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Categories</option>
-                {(categoriesList.length > 0 
-                  ? Array.from(new Set(categoriesList.map(c => c.name)))
-                  : ['Food', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Other', 'Salary']
-                ).map(name => (
-                  <option key={name} value={name} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{name}</option>
-                ))}
-              </select>
+                onChange={setFilterCategory}
+                minWidth="min-w-[160px]"
+                options={[
+                  'All',
+                  ...(categoriesList.length > 0 
+                    ? Array.from(new Set(categoriesList.map(c => c.name)))
+                    : ['Food', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Other', 'Salary']
+                  )
+                ]}
+              />
             </div>
           </div>
 
