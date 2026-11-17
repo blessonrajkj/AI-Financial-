@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,12 @@ import {
   FileSpreadsheet,
   FileText,
   UploadCloud,
-  Check
+  Check,
+  ChevronDown,
+  Banknote,
+  CreditCard,
+  Smartphone,
+  Landmark
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
@@ -25,6 +30,112 @@ import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../uti
 import Modal from '../components/ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+const PAYMENT_METHODS = [
+  { id: 'Cash', label: 'Cash', icon: Banknote, color: 'text-emerald-500 bg-emerald-500/10' },
+  { id: 'Card', label: 'Card / Card Payment', icon: CreditCard, color: 'text-indigo-500 bg-indigo-500/10' },
+  { id: 'UPI', label: 'UPI (Google Pay, PhonePe, Paytm)', icon: Smartphone, color: 'text-purple-500 bg-purple-500/10' },
+  { id: 'Net Banking', label: 'Net Banking / Bank Transfer', icon: Landmark, color: 'text-amber-500 bg-amber-500/10' },
+];
+
+const PaymentMethodSelect = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const selectedMethod = PAYMENT_METHODS.find(m => m.id === value) || PAYMENT_METHODS[0];
+  const IconComponent = selectedMethod.icon;
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full h-12 px-3.5 bg-background border border-borderColor rounded-xl flex items-center justify-between text-textPrimary text-sm font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-left"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <div className="flex items-center gap-2.5 truncate">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedMethod.color}`}>
+            <IconComponent className="w-4 h-4" />
+          </div>
+          <span className="font-semibold text-textPrimary truncate">{selectedMethod.label}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-textSecondary transition-transform duration-200 flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Hidden native select for form validation and accessibility */}
+      <select 
+        name="payment_method"
+        value={value} 
+        onChange={(e) => onChange(e.target.value)} 
+        className="sr-only" 
+        tabIndex={-1} 
+        aria-hidden="true"
+      >
+        {PAYMENT_METHODS.map(m => (
+          <option key={m.id} value={m.id}>{m.label}</option>
+        ))}
+      </select>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute left-0 right-0 top-full mt-1.5 bg-cardBg border border-borderColor rounded-xl shadow-2xl shadow-indigo-500/10 z-50 overflow-hidden py-1.5"
+            role="listbox"
+          >
+            {PAYMENT_METHODS.map((method) => {
+              const MethodIcon = method.icon;
+              const isSelected = method.id === value;
+              return (
+                <button
+                  key={method.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(method.id);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full px-3.5 py-2.5 flex items-center justify-between text-left transition-colors duration-150 ${
+                    isSelected ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-hoverBg text-textPrimary font-medium'
+                  }`}
+                  role="option"
+                  aria-selected={isSelected}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${method.color}`}>
+                      <MethodIcon className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm truncate">{method.label}</span>
+                  </div>
+                  {isSelected && (
+                    <Check className="w-4 h-4 text-primary flex-shrink-0 ml-2" />
+                  )}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const Transactions = () => {
   const navigate = useNavigate();
@@ -528,9 +639,9 @@ const Transactions = () => {
                 onChange={(e) => setFilterType(e.target.value)}
                 className="h-11 px-3 bg-background border border-borderColor rounded-xl text-sm text-textPrimary focus:outline-none focus:border-primary w-full sm:w-auto font-medium"
               >
-                <option value="All">All Types</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
+                <option value="All" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Types</option>
+                <option value="income" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Income</option>
+                <option value="expense" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Expense</option>
               </select>
             </div>
 
@@ -541,12 +652,12 @@ const Transactions = () => {
                 onChange={(e) => setFilterCategory(e.target.value)}
                 className="h-11 px-3 bg-background border border-borderColor rounded-xl text-sm text-textPrimary focus:outline-none focus:border-primary w-full sm:w-auto font-medium"
               >
-                <option value="All">All Categories</option>
+                <option value="All" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Categories</option>
                 {(categoriesList.length > 0 
                   ? Array.from(new Set(categoriesList.map(c => c.name)))
                   : ['Food', 'Fuel', 'Shopping', 'Travel', 'Healthcare', 'Entertainment', 'Utilities', 'Other', 'Salary']
                 ).map(name => (
-                  <option key={name} value={name}>{name}</option>
+                  <option key={name} value={name} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{name}</option>
                 ))}
               </select>
             </div>
@@ -783,11 +894,11 @@ const Transactions = () => {
             <select 
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all"
+              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all capitalize"
             >
-              <option value="expense">Expense (Outflow)</option>
-              <option value="income">Income (Inflow)</option>
-              <option value="transfer">Transfer (Internal)</option>
+              <option value="expense" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-2">Expense (Outflow)</option>
+              <option value="income" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-2">Income (Inflow)</option>
+              <option value="transfer" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-2">Transfer (Internal)</option>
             </select>
           </div>
 
@@ -853,16 +964,10 @@ const Transactions = () => {
 
             <div>
               <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Mode of Transaction</label>
-              <select 
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-medium focus:outline-none focus:border-primary transition-all"
-              >
-                <option value="Cash">Cash</option>
-                <option value="Card">Card / Card Payment</option>
-                <option value="UPI">UPI (Google Pay, PhonePe, Paytm)</option>
-                <option value="Net Banking">Net Banking / Bank Transfer</option>
-              </select>
+              <PaymentMethodSelect 
+                value={paymentMethod} 
+                onChange={setPaymentMethod} 
+              />
             </div>
           </div>
 

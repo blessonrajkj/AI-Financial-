@@ -7,6 +7,7 @@
    Not generic white. Feels like high-quality paper.
 ───────────────────────────────────────── */
 :root {
+  color-scheme: light;
   --background: #F4F3F0;
   --surface: #FAFAF8;
   --surface-hover: #F0EFE9;
@@ -46,6 +47,7 @@
    Rich OLED black, not flat grey soup.
 ───────────────────────────────────────── */
 html.dark {
+  color-scheme: dark;
   --background: #0A0A0A;
   --surface: #111111;
   --surface-hover: #1A1A1A;
@@ -279,23 +281,45 @@ html.dark {
   }
 
   /* ── SELECT ── */
-  .select {
+  select, .select {
     width: 100%;
+    color-scheme: light;
+    background-color: var(--card-bg, #ffffff);
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  html.dark select, html.dark .select {
+    color-scheme: dark;
+    background-color: var(--card-bg, #161616);
+    color: var(--text-primary);
+  }
+
+  select option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    padding: 8px 12px;
+  }
+
+  html.dark select option {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+  }
+
+  .select {
     height: 44px;
     padding: 0 1rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    color: var(--text-primary);
     font-size: 0.875rem;
-    font-family: inherit;
     outline: none;
     appearance: none;
     cursor: pointer;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .select:focus {
+  select:focus, .select:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
   }
