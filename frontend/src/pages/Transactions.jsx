@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 import TransactionToast from '../components/ui/TransactionToast';
 import CategorySelect, { SubcategorySelect } from '../components/ui/CategorySelect';
+import DatePicker from '../components/ui/DatePicker';
 import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../utils/taxonomy';
 import Modal from '../components/ui/Modal';
 
@@ -953,12 +954,10 @@ const Transactions = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Transaction Date</label>
-              <input 
-                type="date" 
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-medium focus:outline-none focus:border-primary transition-all"
+              <DatePicker 
+                value={date} 
+                onChange={setDate} 
+                required 
               />
             </div>
 

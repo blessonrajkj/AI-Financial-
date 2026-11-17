@@ -324,6 +324,28 @@ html.dark {
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
   }
 
+  /* ── DATE INPUT ── */
+  input[type="date"] {
+    color-scheme: light;
+  }
+
+  html.dark input[type="date"] {
+    color-scheme: dark;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
+    border-radius: 6px;
+    padding: 2px;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
   /* ── LABEL ── */
   .field-label {
     display: block;
