@@ -10,6 +10,7 @@ import {
   Download, 
   ArrowUpRight, 
   ArrowDownLeft, 
+  ArrowLeftRight,
   SlidersHorizontal,
   X,
   FileSpreadsheet,
@@ -138,6 +139,143 @@ const PaymentMethodSelect = ({ value, onChange }) => {
   );
 };
 
+const FLOW_TYPES = [
+  { 
+    id: 'expense', 
+    label: 'Expense (Outflow)', 
+    desc: 'Money leaving your account',
+    icon: ArrowDownLeft, 
+    color: 'text-rose-500 bg-rose-500/10' 
+  },
+  { 
+    id: 'income', 
+    label: 'Income (Inflow)', 
+    desc: 'Money entering your account',
+    icon: ArrowUpRight, 
+    color: 'text-emerald-500 bg-emerald-500/10' 
+  },
+  { 
+    id: 'transfer', 
+    label: 'Transfer (Internal)', 
+    desc: 'Movement between your accounts',
+    icon: ArrowLeftRight, 
+    color: 'text-indigo-500 bg-indigo-500/10' 
+  },
+];
+
+const FlowTypeSelect = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const selectedType = FLOW_TYPES.find(t => t.id === value) || FLOW_TYPES[0];
+  const IconComponent = selectedType.icon;
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full h-12 px-3.5 bg-background border border-borderColor rounded-xl flex items-center justify-between text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-left cursor-pointer hover:border-primary/50"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <div className="flex items-center gap-2.5 truncate">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedType.color}`}>
+            <IconComponent className="w-4 h-4" />
+          </div>
+          <span className="font-semibold text-textPrimary truncate">{selectedType.label}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-textSecondary transition-transform duration-200 flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Hidden native select for form validation and accessibility */}
+      <select 
+        name="type"
+        value={value} 
+        onChange={(e) => onChange(e.target.value)} 
+        className="sr-only" 
+        tabIndex={-1} 
+        aria-hidden="true"
+      >
+        {FLOW_TYPES.map(t => (
+          <option key={t.id} value={t.id}>{t.label}</option>
+        ))}
+      </select>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute left-0 right-0 top-full mt-1.5 bg-cardBg border border-borderColor rounded-xl shadow-2xl shadow-indigo-500/10 z-50 overflow-hidden py-1.5"
+            role="listbox"
+          >
+            {FLOW_TYPES.map((item) => {
+              const ItemIcon = item.icon;
+              const isSelected = item.id === value;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(item.id);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full px-3.5 py-2.5 flex items-center justify-between text-left transition-colors duration-150 cursor-pointer ${
+                    isSelected ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-hoverBg text-textPrimary font-medium'
+                  }`}
+                  role="option"
+                  aria-selected={isSelected}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${item.color}`}>
+                      <ItemIcon className="w-4 h-4" />
+                    </div>
+                    <div className="truncate">
+                      <div className="text-sm font-semibold truncate leading-tight">{item.label}</div>
+                      <div className="text-[11px] text-textMuted truncate mt-0.5">{item.desc}</div>
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <Check className="w-4 h-4 text-primary flex-shrink-0 ml-2" />
+                  )}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const Transactions = () => {
   const navigate = useNavigate();
   const { invalidateCache } = useThemeAndRefresh();
@@ -165,6 +303,26 @@ const Transactions = () => {
   const [type, setType] = useState('expense');
   const [category, setCategory] = useState('Food & Dining');
   const [subcategory, setSubcategory] = useState('Groceries');
+
+  const handleTypeChange = (newType) => {
+    setType(newType);
+    if (newType === 'income') {
+      if (category !== 'Income') {
+        setCategory('Income');
+        setSubcategory(INCOME_CATEGORIES[0] || 'Salary');
+      }
+    } else if (newType === 'transfer') {
+      if (category !== 'Cash & Transfers') {
+        setCategory('Cash & Transfers');
+        setSubcategory(TRANSFER_CATEGORIES[0] || 'Internal Transfer');
+      }
+    } else {
+      if (category === 'Income' || category === 'Cash & Transfers') {
+        setCategory('Food & Dining');
+        setSubcategory(EXPENSE_TAXONOMY['Food & Dining']?.[0] || 'Groceries');
+      }
+    }
+  };
   const [merchant, setMerchant] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
@@ -892,15 +1050,10 @@ const Transactions = () => {
           {/* 1. Flow Type */}
           <div>
             <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-1.5">Flow Type</label>
-            <select 
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full h-12 px-4 bg-background border border-borderColor rounded-xl text-textPrimary text-sm font-semibold focus:outline-none focus:border-primary transition-all capitalize"
-            >
-              <option value="expense" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-2">Expense (Outflow)</option>
-              <option value="income" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-2">Income (Inflow)</option>
-              <option value="transfer" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-2">Transfer (Internal)</option>
-            </select>
+            <FlowTypeSelect 
+              value={type} 
+              onChange={handleTypeChange} 
+            />
           </div>
 
           {/* 2. Amount Field (Visually Prominent) */}
