@@ -34,7 +34,10 @@ import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
-const fmt = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
+const fmt = (n) => {
+  const val = Number(n) || 0;
+  return `${val < 0 ? '−' : ''}₹${Math.abs(val).toLocaleString('en-IN')}`;
+};
 const fmtPct = (n) => `${Math.abs(n || 0).toFixed(1)}%`;
 
 // Custom Fintech Cashflow Tooltip
@@ -454,20 +457,20 @@ const Dashboard = () => {
                   <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="flex items-end justify-between gap-2 mt-1 min-w-0">
+              <div className="flex items-end justify-between gap-1.5 sm:gap-2 mt-1 min-w-0">
                 <div className="min-w-0 flex-1">
-                  <p className="text-2xl sm:text-3xl font-black text-textPrimary font-numeric tracking-tight privacy-mask truncate">
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-black text-textPrimary font-numeric tracking-tight privacy-mask whitespace-nowrap">
                     {fmt(summary?.current_balance)}
                   </p>
-                  <p className="text-[10px] text-success font-bold mt-1 flex items-center gap-1.5 truncate">
+                  <p className="text-[10px] text-success font-bold mt-1 flex items-center gap-1.5 whitespace-nowrap">
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success animate-ping shrink-0" />
                     <span>Linked accounts active</span>
                   </p>
                 </div>
                 {trends.length > 0 && (
-                  <div className="h-9 sm:h-11 w-16 sm:w-24 flex-shrink-0">
+                  <div className="h-8 sm:h-9 w-12 sm:w-16 xl:w-20 shrink-0 mb-0.5">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={trends} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                      <AreaChart data={trends} margin={{ top: 1, right: 1, left: 1, bottom: 1 }}>
                         <Area type="monotone" dataKey="savings" stroke="#6366F1" fill="#6366F1" fillOpacity={0.12} strokeWidth={2} dot={false} />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -488,10 +491,10 @@ const Dashboard = () => {
               </div>
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1.5 mt-1">
                 <div>
-                  <p className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                  <p className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask whitespace-nowrap">
                     {fmt(summary?.monthly_income)}
                   </p>
-                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-0.5 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
+                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-0.5 whitespace-nowrap ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
                     {incomeDiff >= 0 ? <ArrowUpRight className="w-3 h-3 stroke-[2.5]" /> : <ArrowDownRight className="w-3 h-3 stroke-[2.5]" />}
                     {fmtPct(incomeDiff)} vs last mo
                   </div>
@@ -511,10 +514,10 @@ const Dashboard = () => {
               </div>
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1.5 mt-1">
                 <div>
-                  <p className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                  <p className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask whitespace-nowrap">
                     {fmt(summary?.monthly_spending)}
                   </p>
-                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-0.5 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
+                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-0.5 whitespace-nowrap ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
                     {expenseDiff <= 0 ? <ArrowDownRight className="w-3 h-3 stroke-[2.5]" /> : <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />}
                     {fmtPct(expenseDiff)} vs last mo
                   </div>
@@ -544,7 +547,7 @@ const Dashboard = () => {
               <div>
                 {summary?.total_budget_limit > 0 ? (
                   <>
-                    <p className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask">
+                    <p className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask whitespace-nowrap">
                       {fmt(summary?.budget_remaining)}
                     </p>
                     <div className="mt-1.5 h-1.5 bg-borderColor/60 rounded-full overflow-hidden p-[1px]">
