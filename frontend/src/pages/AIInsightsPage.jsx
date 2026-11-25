@@ -263,13 +263,13 @@ const AIInsightsPage = () => {
                 key={idx}
                 className={`rounded-2xl border p-5 transition-all animate-fade-in ${config.bgColor} ${config.borderColor}`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex items-start space-x-3 sm:space-x-4 flex-1 min-w-0">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${config.bgColor} border ${config.borderColor}`}>
                       <Icon className={`w-5 h-5 ${config.iconColor}`} />
                     </div>
 
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center flex-wrap gap-2 mb-1">
                         <h4 className="text-sm font-black text-textPrimary">{insight.title}</h4>
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${config.badgeBg}`}>
@@ -302,7 +302,7 @@ const AIInsightsPage = () => {
                   {insight.action && insight.action !== 'Ignore' && (
                     <button
                       onClick={() => handleAction(insight)}
-                      className={`ml-4 flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all flex-shrink-0 border ${config.badgeBg} hover:opacity-80`}
+                      className={`sm:ml-4 flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all w-full sm:w-auto shrink-0 border ${config.badgeBg} hover:opacity-80 min-h-[40px]`}
                     >
                       <span>{insight.action}</span>
                       <ArrowRight className="w-3 h-3" />
@@ -311,7 +311,7 @@ const AIInsightsPage = () => {
                   {insight.action === 'Ignore' && (
                     <button
                       onClick={() => handleAction(insight)}
-                      className="ml-4 px-3 py-2 rounded-xl text-xs font-bold text-textMuted hover:bg-hoverBg border border-borderColor transition-all flex-shrink-0"
+                      className="sm:ml-4 px-3.5 py-2 rounded-xl text-xs font-bold text-textMuted hover:bg-hoverBg border border-borderColor transition-all w-full sm:w-auto shrink-0 min-h-[40px] flex items-center justify-center"
                     >
                       Dismiss
                     </button>

@@ -95,9 +95,9 @@ const ChatbotPage = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-160px)] sm:h-[calc(100vh-140px)] flex flex-col bg-cardBg border border-borderColor rounded-3xl overflow-hidden shadow-sm">
+    <div className="h-[calc(100dvh-12rem)] lg:h-[calc(100dvh-10rem)] flex flex-col bg-cardBg border border-borderColor rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm">
       {/* Bot Header */}
-      <div className="px-6 py-4 bg-background border-b border-borderColor flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-background border-b border-borderColor flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
             <Bot className="w-5 h-5" />
@@ -114,15 +114,15 @@ const ChatbotPage = () => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 p-6 overflow-y-auto space-y-4">
+      <div className="flex-1 p-3.5 sm:p-6 overflow-y-auto space-y-3 sm:space-y-4">
         {messages.map((msg, index) => {
           const isBot = msg.sender === 'bot';
           return (
-            <div key={index} className={`flex items-start space-x-3 max-w-[80%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse space-x-reverse'}`}>
+            <div key={index} className={`flex items-start space-x-2.5 sm:space-x-3 max-w-[90%] sm:max-w-[80%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse space-x-reverse'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${isBot ? 'bg-primary/10 text-primary border-primary/20' : 'bg-secondary/10 text-secondary border-secondary/20'}`}>
                 {isBot ? <Bot className="w-4.5 h-4.5" /> : <User className="w-4.5 h-4.5" />}
               </div>
-              <div className={`p-4 rounded-2xl text-sm leading-relaxed ${isBot ? 'bg-background border border-borderColor text-textPrimary rounded-tl-none' : 'bg-primary text-white shadow-md shadow-primary/15 rounded-tr-none'}`}>
+              <div className={`p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${isBot ? 'bg-background border border-borderColor text-textPrimary rounded-tl-none' : 'bg-primary text-white shadow-md shadow-primary/15 rounded-tr-none'}`}>
                 {msg.text}
               </div>
             </div>
@@ -145,7 +145,7 @@ const ChatbotPage = () => {
 
       {/* Suggestion Chips */}
       {messages.length === 1 && (
-        <div className="px-6 py-2 flex flex-wrap gap-2">
+        <div className="px-3.5 sm:px-6 py-2 flex flex-wrap gap-1.5 sm:gap-2">
           {suggestionChips.map(chip => (
             <button 
               key={chip} 
@@ -159,7 +159,7 @@ const ChatbotPage = () => {
       )}
 
       {/* Input Area */}
-      <div className="p-4 bg-background border-t border-borderColor">
+      <div className="p-2.5 sm:p-4 bg-background border-t border-borderColor">
         <form 
           onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
           className="flex items-center space-x-3 bg-cardBg border border-borderColor rounded-2xl p-2 pr-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all"

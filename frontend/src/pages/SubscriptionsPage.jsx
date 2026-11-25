@@ -160,14 +160,14 @@ const SubscriptionsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-textPrimary">Subscriptions</h1>
-          <p className="text-textSecondary mt-1">Monitor active recurring contracts, billing cycles, and automated payment deadlines</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-textPrimary">Subscriptions</h1>
+          <p className="text-textSecondary text-xs sm:text-sm mt-1">Monitor active recurring contracts, billing cycles, and automated payment deadlines</p>
         </div>
         <button 
           onClick={handleOpenAdd}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-primary hover:bg-primaryHover text-white text-sm font-bold rounded-xl shadow-md transition-all"
+          className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-primary hover:bg-primaryHover text-white text-sm font-bold rounded-xl shadow-md transition-all w-full sm:w-auto shrink-0 min-h-[44px]"
         >
           <Plus className="w-4 h-4" />
           <span>Add Subscription</span>

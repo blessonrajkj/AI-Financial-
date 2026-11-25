@@ -195,30 +195,30 @@ const SavingsPage = () => {
       )}
 
       {/* Overview stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="doppel-shell h-36">
-          <div className="doppel-core p-6 flex flex-col justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <div className="doppel-shell h-auto sm:h-36">
+          <div className="doppel-core p-4 sm:p-6 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
               <span className="eyebrow-badge !px-2 !py-0.5">Total Saved Balance</span>
               <span className="p-2 bg-success/10 text-success rounded-xl border border-success/20"><Coins className="w-4 h-4" /></span>
             </div>
-            <div>
-              <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{totalSaved.toLocaleString()}</h3>
-              <p className="text-[11px] text-textMuted font-medium mt-1">Across {goals.length} active savings plans</p>
+            <div className="mt-2 sm:mt-0">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{totalSaved.toLocaleString()}</h3>
+              <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-1">Across {goals.length} active savings plans</p>
             </div>
           </div>
         </div>
 
-        <div className="doppel-shell h-36">
-          <div className="doppel-core p-6 flex flex-col justify-between">
+        <div className="doppel-shell h-auto sm:h-36">
+          <div className="doppel-core p-4 sm:p-6 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
               <span className="eyebrow-badge !px-2 !py-0.5">Overall Progress</span>
               <span className="p-2 bg-primary/10 text-primary rounded-xl border border-primary/20"><TrendingUp className="w-4 h-4" /></span>
             </div>
-            <div>
+            <div className="mt-2 sm:mt-0">
               <div className="flex items-baseline space-x-2">
-                <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">{overallProgress.toFixed(1)}%</h3>
-                <span className="text-[11px] text-textMuted font-medium">of target ₹{totalTarget.toLocaleString()}</span>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">{overallProgress.toFixed(1)}%</h3>
+                <span className="text-[10px] sm:text-[11px] text-textMuted font-medium">of target ₹{totalTarget.toLocaleString()}</span>
               </div>
               <div className="w-full bg-borderColor/60 rounded-full h-2 mt-2.5 overflow-hidden p-0.5">
                 <div 
@@ -230,15 +230,15 @@ const SavingsPage = () => {
           </div>
         </div>
 
-        <div className="doppel-shell h-36">
-          <div className="doppel-core p-6 flex flex-col justify-between">
+        <div className="doppel-shell h-auto sm:h-36">
+          <div className="doppel-core p-4 sm:p-6 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
               <span className="eyebrow-badge !px-2 !py-0.5">Pending Target Reserve</span>
               <span className="p-2 bg-warning/10 text-warning rounded-xl border border-warning/20"><Target className="w-4 h-4" /></span>
             </div>
-            <div>
-              <h3 className="text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{Math.max(totalTarget - totalSaved, 0).toLocaleString()}</h3>
-              <p className="text-[11px] text-textMuted font-medium mt-1">Needed to fulfill all set milestones</p>
+            <div className="mt-2 sm:mt-0">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight">₹{Math.max(totalTarget - totalSaved, 0).toLocaleString()}</h3>
+              <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-1">Needed to fulfill all set milestones</p>
             </div>
           </div>
         </div>

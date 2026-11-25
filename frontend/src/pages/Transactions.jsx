@@ -858,7 +858,7 @@ const Transactions = () => {
             </label>
             <button 
               onClick={() => { resetForm(); setShowAddModal(true); }}
-              className="btn-island group"
+              className="btn-island group w-full sm:w-auto justify-center"
             >
               <span>Add Record</span>
               <span className="btn-island-icon">
@@ -991,7 +991,7 @@ const Transactions = () => {
                         <p className="text-[11px] text-textMuted font-normal truncate mt-0.5">{t.description || 'No description'}</p>
                       </div>
                     </div>
-                    <span className={`text-sm font-black font-numeric flex-shrink-0 privacy-mask ${isIncome ? 'text-success' : 'text-danger'}`}>
+                    <span className={`text-sm font-black font-numeric flex-shrink-0 privacy-mask whitespace-nowrap ${isIncome ? 'text-success' : 'text-danger'}`}>
                       {isIncome ? '+' : '-'} ₹{t.amount.toLocaleString()}
                     </span>
                   </div>

@@ -494,9 +494,12 @@ const Dashboard = () => {
                   <p className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask whitespace-nowrap">
                     {fmt(summary?.monthly_income)}
                   </p>
-                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-0.5 whitespace-nowrap ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
-                    {incomeDiff >= 0 ? <ArrowUpRight className="w-3 h-3 stroke-[2.5]" /> : <ArrowDownRight className="w-3 h-3 stroke-[2.5]" />}
-                    {fmtPct(incomeDiff)} vs last mo
+                  <div className={`flex flex-wrap items-center gap-0.5 text-[10px] font-bold mt-0.5 ${incomeDiff >= 0 ? 'text-success' : 'text-danger'}`}>
+                    <span className="flex items-center gap-0.5 shrink-0">
+                      {incomeDiff >= 0 ? <ArrowUpRight className="w-3 h-3 stroke-[2.5]" /> : <ArrowDownRight className="w-3 h-3 stroke-[2.5]" />}
+                      {fmtPct(incomeDiff)}
+                    </span>
+                    <span className="text-textMuted font-medium text-[9px] sm:text-[10px]">vs last mo</span>
                   </div>
                 </div>
               </div>
@@ -517,9 +520,12 @@ const Dashboard = () => {
                   <p className="text-lg sm:text-2xl font-extrabold text-textPrimary font-numeric tracking-tight privacy-mask whitespace-nowrap">
                     {fmt(summary?.monthly_spending)}
                   </p>
-                  <div className={`flex items-center gap-0.5 text-[10px] font-bold mt-0.5 whitespace-nowrap ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
-                    {expenseDiff <= 0 ? <ArrowDownRight className="w-3 h-3 stroke-[2.5]" /> : <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />}
-                    {fmtPct(expenseDiff)} vs last mo
+                  <div className={`flex flex-wrap items-center gap-0.5 text-[10px] font-bold mt-0.5 ${expenseDiff <= 0 ? 'text-success' : 'text-danger'}`}>
+                    <span className="flex items-center gap-0.5 shrink-0">
+                      {expenseDiff <= 0 ? <ArrowDownRight className="w-3 h-3 stroke-[2.5]" /> : <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />}
+                      {fmtPct(expenseDiff)}
+                    </span>
+                    <span className="text-textMuted font-medium text-[9px] sm:text-[10px]">vs last mo</span>
                   </div>
                 </div>
               </div>
@@ -792,8 +798,8 @@ const Dashboard = () => {
         </div>
 
         {/* Recent transactions — 1/3 width */}
-        <div className="doppel-shell h-[420px] w-full">
-          <div className="doppel-core p-6 flex flex-col justify-between">
+        <div className="doppel-shell min-h-[380px] lg:min-h-[460px] w-full flex flex-col">
+          <div className="doppel-core p-6 flex flex-col justify-between flex-1">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <span className="eyebrow-badge mb-1">Ledger</span>
@@ -801,7 +807,7 @@ const Dashboard = () => {
               </div>
               <Link
                 to="/transactions"
-                className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 bg-hoverBg px-2.5 py-1 rounded-full border border-primary/20"
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 bg-hoverBg px-2.5 py-1 rounded-full border border-primary/20 shrink-0"
               >
                 View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>
@@ -861,7 +867,7 @@ const Dashboard = () => {
       {/* ── AI Advisor ── */}
       <div className="doppel-shell overflow-hidden">
         <div className="doppel-core p-6">
-          <div className="flex items-center justify-between pb-4 border-b border-borderColor mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-borderColor mb-5">
             <div>
               <span className="eyebrow-badge mb-1">AI Copilot</span>
               <h2 className="text-base font-extrabold text-textPrimary tracking-tight">Autonomous Financial Insights</h2>
@@ -870,7 +876,7 @@ const Dashboard = () => {
             {!aiLoading && aiInsights.length > 0 && (
               <Link
                 to="/ai-insights"
-                className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 bg-hoverBg px-3 py-1.5 rounded-full border border-primary/20"
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 bg-hoverBg px-3 py-1.5 rounded-full border border-primary/20 self-start sm:self-auto shrink-0"
               >
                 Full Analysis <ChevronRight className="w-3.5 h-3.5" />
               </Link>
@@ -970,7 +976,7 @@ const Dashboard = () => {
             <button
               key={path}
               onClick={() => navigate(path)}
-              className="flex flex-col items-center gap-2 p-3.5 bg-background border border-borderColor hover:border-primary/40 hover:bg-hoverBg rounded-xl text-textSecondary hover:text-primary transition-all group"
+              className="flex flex-col items-center gap-2 p-2.5 sm:p-3.5 bg-background border border-borderColor hover:border-primary/40 hover:bg-hoverBg rounded-xl text-textSecondary hover:text-primary transition-all group"
             >
               <Icon className="w-4.5 h-4.5" />
               <span className="text-[10px] font-semibold text-center leading-tight truncate max-w-full px-0.5">{label}</span>

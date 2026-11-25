@@ -372,15 +372,13 @@ const Navbar = ({ toggleSidebar }) => {
           <button
             onClick={toggleTheme}
             title={darkMode ? 'Switch to light' : 'Switch to dark'}
-            className="hidden sm:flex"
+            className="flex items-center justify-center min-w-[36px] min-h-[36px]"
             style={{
               width: 36,
               height: 36,
               borderRadius: 10,
               background: 'var(--surface)',
               border: '1px solid var(--border)',
-              alignItems: 'center',
-              justifyContent: 'center',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',

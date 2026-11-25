@@ -354,7 +354,7 @@ const AnalyticsPage = () => {
                             <span className="w-5 h-5 rounded-lg bg-primary/10 text-primary text-[9px] font-black flex items-center justify-center">
                               {idx + 1}
                             </span>
-                            <span className="font-semibold text-textPrimary truncate max-w-[150px]">{m.merchant_name || 'Unknown'}</span>
+                            <span className="font-semibold text-textPrimary truncate min-w-0 max-w-[110px] sm:max-w-[200px] md:max-w-[260px]">{m.merchant_name || 'Unknown'}</span>
                           </div>
                           <div className="text-right">
                             <span className="font-bold text-textPrimary">{fmt(m.total_spent)}</span>
