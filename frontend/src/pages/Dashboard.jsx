@@ -542,7 +542,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {/* Primary Hero Balance Card */}
           <div className="doppel-shell col-span-2 sm:col-span-2 lg:col-span-1 border-primary/30 shadow-[0_4px_20px_rgba(99,102,241,0.08)]">
-            <div className="doppel-core p-4 sm:p-5 flex flex-col justify-between gap-3 bg-gradient-to-br from-primary/10 via-cardBg to-cardBg h-full">
+            <div className="doppel-core p-4 sm:p-5 flex flex-col justify-between gap-3 bg-gradient-to-br from-primary/10 via-cardBg to-cardBg h-full relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <span className="eyebrow-badge !px-2.5 !py-0.5 !bg-primary/15 !text-primary !border-primary/30 font-bold text-[11px]">
                   Total Balance
@@ -551,18 +551,26 @@ const Dashboard = () => {
                   <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="flex items-end justify-between gap-1.5 sm:gap-2 mt-1 min-w-0">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl sm:text-2xl xl:text-3xl font-black text-textPrimary font-numeric tracking-tight privacy-mask whitespace-nowrap">
-                    {fmt(summary?.current_balance)}
-                  </p>
-                  <p className="text-[10px] text-success font-bold mt-1 flex items-center gap-1.5 whitespace-nowrap">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success animate-ping shrink-0" />
-                    <span>Linked accounts active</span>
-                  </p>
-                </div>
+
+              <div className="my-auto py-1">
+                <p className={`font-black text-textPrimary font-numeric tracking-tight privacy-mask whitespace-nowrap overflow-visible ${
+                  fmt(summary?.current_balance).length > 13 
+                    ? 'text-lg sm:text-xl xl:text-2xl' 
+                    : fmt(summary?.current_balance).length > 10 
+                    ? 'text-xl sm:text-2xl xl:text-[26px]' 
+                    : 'text-xl sm:text-2xl xl:text-3xl'
+                }`}>
+                  {fmt(summary?.current_balance)}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+                <p className="text-[10px] text-success font-bold flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success animate-ping shrink-0" />
+                  <span>Linked accounts active</span>
+                </p>
                 {trends.length > 0 && (
-                  <div className="h-8 sm:h-9 w-12 sm:w-16 xl:w-20 shrink-0 mb-0.5">
+                  <div className="h-6 w-14 sm:w-16 shrink-0 opacity-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={trends} margin={{ top: 1, right: 1, left: 1, bottom: 1 }}>
                         <Area type="monotone" dataKey="savings" stroke="#6366F1" fill="#6366F1" fillOpacity={0.12} strokeWidth={2} dot={false} />
