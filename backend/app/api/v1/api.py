@@ -6,7 +6,6 @@ from app.api.v1.endpoints import (
     receipts,
     ai,
     analytics,
-    settings,
     savings,
     investments,
     subscriptions,
@@ -31,7 +30,6 @@ api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
 api_router.include_router(receipts.router, prefix="/receipts", tags=["receipts"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
-api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
 api_router.include_router(savings.router, prefix="/savings", tags=["savings"])
 api_router.include_router(investments.router, prefix="/investments", tags=["investments"])
 api_router.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])

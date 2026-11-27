@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_active_user
+from app.core import security
+from app.services.storage import storage_service
 from app.models.user import User
 from app.models.transaction import Transaction
 from app.models.account import Account
@@ -11,6 +13,7 @@ from app.models.budget import Budget
 from app.models.investment import Investment
 from app.models.savings_goal import SavingsGoal
 from app.models.subscription import Subscription
+from app.schemas.profile_schema import DeleteAccountIn
 from app.services.audit_service import log_audit_event
 
 router = APIRouter()
@@ -18,7 +21,7 @@ router = APIRouter()
 @router.get("/export-data")
 def export_user_data(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Export all user financial records (GDPR Data Portability compliant).
@@ -77,15 +80,31 @@ def export_user_data(
 
 @router.delete("/delete-account", status_code=status.HTTP_200_OK)
 def delete_user_account(
+    data: DeleteAccountIn,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
-    Permanently delete user account and cascade delete all associated data (Right to be Forgotten).
+    Permanently delete user account with password confirmation (Right to be Forgotten).
     """
+    if not security.verify_password(data.password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect password. Account deletion aborted.")
+
     log_audit_event(
         db, user_id=current_user.id, action="DELETE_ACCOUNT", resource_type="User", resource_id=str(current_user.id)
     )
+
+    if current_user.avatar_url:
+        old_key = current_user.avatar_url.replace("/uploads/", "")
+        try:
+            storage_service.delete_file(old_key)
+        except Exception:
+            pass
+
+    try:
+        security.revoke_user_sessions(current_user.id)
+    except Exception:
+        pass
 
     db.delete(current_user)
     db.commit()

@@ -288,15 +288,32 @@ def parse_excel_csv_backend(file_path: str, filename: str) -> tuple:
             
     return transactions, invalid_rows
 
+def validate_statement_upload(file: UploadFile) -> tuple[str, str, bytes]:
+    filename = (file.filename or "statement.csv").lower()
+    ext = os.path.splitext(filename)[1]
+    if ext not in [".pdf", ".csv", ".xlsx", ".xls"]:
+        raise HTTPException(status_code=400, detail="Unsupported file format. Please upload CSV, Excel, or PDF.")
+
+    file_bytes = file.file.read()
+    if len(file_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds maximum allowed limit of 10MB.")
+
+    if ext == ".pdf":
+        if not file_bytes.startswith(b"%PDF"):
+            raise HTTPException(status_code=400, detail="Invalid PDF file content.")
+    elif ext == ".xlsx":
+        if not file_bytes.startswith(b"PK\x03\x04"):
+            raise HTTPException(status_code=400, detail="Invalid Excel XLSX file content.")
+    return filename, ext, file_bytes
+
+
 @router.post("/import", status_code=status.HTTP_201_CREATED)
 def import_transactions(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    # Backward compatibility: legacy import endpoint maps to parser + save directly
-    filename = file.filename.lower()
-    ext = os.path.splitext(filename)[1]
+    filename, ext, file_bytes = validate_statement_upload(file)
     
     temp_dir = os.path.join(settings.UPLOAD_DIR, "temp")
     os.makedirs(temp_dir, exist_ok=True)
@@ -304,7 +321,7 @@ def import_transactions(
     temp_filepath = os.path.join(temp_dir, temp_filename)
     
     with open(temp_filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(file_bytes)
         
     try:
         transactions = []
@@ -509,19 +526,16 @@ def batch_detect_duplicates(
 
     return results
 
+@router.post("/import/bank-statement")
 @router.post("/upload-parse")
 def upload_and_parse_statement(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    filename = file.filename.lower()
-    ext = os.path.splitext(filename)[1]
-    if ext not in [".pdf", ".csv", ".xlsx", ".xls"]:
-        raise HTTPException(status_code=400, detail="Unsupported file format. Please upload CSV, Excel, or PDF.")
+    filename, ext, file_bytes = validate_statement_upload(file)
 
-    object_key = generate_object_key(current_user.id, "statements", file.filename)
-    file_bytes = file.file.read()
+    object_key = generate_object_key(current_user.id, "statements", filename)
     storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
         
     try:

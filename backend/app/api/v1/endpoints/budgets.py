@@ -140,10 +140,12 @@ def create_budget(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    # Verify Category exists
+    # Verify Category exists and belongs to current user or is default
     category = db.query(Category).filter(Category.id == budget_in.category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
+    if category.user_id is not None and category.user_id != current_user.id:
+        raise HTTPException(status_code=400, detail="Category does not belong to the current user")
         
     # Check if budget already exists for this category/month/year
     existing = db.query(Budget).filter(
@@ -185,7 +187,13 @@ def update_budget(
     if not db_budget:
         raise HTTPException(status_code=404, detail="Budget not found")
         
-    update_data = budget_in.dict(exclude_unset=True)
+    update_data = budget_in.model_dump(exclude_unset=True)
+    if "category_id" in update_data and update_data["category_id"] is not None:
+        cat = db.query(Category).filter(Category.id == update_data["category_id"]).first()
+        if not cat:
+            raise HTTPException(status_code=404, detail="Category not found")
+        if cat.user_id is not None and cat.user_id != current_user.id:
+            raise HTTPException(status_code=400, detail="Category does not belong to the current user")
     for field, value in update_data.items():
         setattr(db_budget, field, value)
         

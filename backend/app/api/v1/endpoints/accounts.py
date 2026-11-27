@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_active_user
 from app.models.user import User
 from app.models.account import Account
 from app.schemas.account import AccountCreate, AccountUpdate, AccountOut
@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get("/", response_model=List[AccountOut])
 def get_user_accounts(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Retrieve all accounts for current user."""
     accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
@@ -23,7 +23,7 @@ def get_user_accounts(
 def create_account(
     account_in: AccountCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Create a new financial account."""
     account = Account(
@@ -45,7 +45,7 @@ def create_account(
 def get_account(
     account_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Get a specific account by ID."""
     account = db.query(Account).filter(Account.id == account_id, Account.user_id == current_user.id).first()
@@ -58,7 +58,7 @@ def update_account(
     account_id: int,
     account_in: AccountUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Update account details."""
     account = db.query(Account).filter(Account.id == account_id, Account.user_id == current_user.id).first()
@@ -77,7 +77,7 @@ def update_account(
 def delete_account(
     account_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Delete an account."""
     from sqlalchemy import or_

@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import List
 
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_active_user
 from app.models.user import User
 from app.models.liability import Liability
 from app.schemas.liability import LiabilityCreate, LiabilityUpdate, LiabilityOut
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/", response_model=List[LiabilityOut])
 def get_user_liabilities(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Retrieve all liabilities for current user."""
     return db.query(Liability).filter(Liability.user_id == current_user.id).all()
@@ -23,7 +23,7 @@ def get_user_liabilities(
 def create_liability(
     liability_in: LiabilityCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Create a new liability obligation."""
     liability = Liability(
@@ -45,7 +45,7 @@ def create_liability(
 @router.get("/summary")
 def get_liabilities_summary(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Get debt health metrics, total liabilities, and minimum monthly obligations."""
     liabilities = db.query(Liability).filter(Liability.user_id == current_user.id, Liability.status == "Active").all()
@@ -71,7 +71,7 @@ def get_liabilities_summary(
 def get_liability(
     liability_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Get specific liability by ID."""
     liability = db.query(Liability).filter(Liability.id == liability_id, Liability.user_id == current_user.id).first()
@@ -84,7 +84,7 @@ def update_liability(
     liability_id: int,
     liability_in: LiabilityUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Update liability details."""
     liability = db.query(Liability).filter(Liability.id == liability_id, Liability.user_id == current_user.id).first()
@@ -103,7 +103,7 @@ def update_liability(
 def delete_liability(
     liability_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Delete a liability."""
     liability = db.query(Liability).filter(Liability.id == liability_id, Liability.user_id == current_user.id).first()

@@ -20,7 +20,8 @@ from app.schemas.profile_schema import (
     LinkedBankOut,
     UserSettingsUpdate,
     UserSettingsOut,
-    ChangePasswordIn
+    ChangePasswordIn,
+    DeleteAccountIn
 )
 
 router = APIRouter()
@@ -163,20 +164,37 @@ def update_profile(
 
 from app.services.storage import storage_service, generate_object_key
 
+def validate_image_bytes(file_bytes: bytes) -> str | None:
+    if len(file_bytes) > 2 * 1024 * 1024:
+        return "Avatar file size must not exceed 2MB."
+    if len(file_bytes) < 12:
+        return "Invalid image file."
+    if file_bytes.startswith(b"\xff\xd8\xff"):
+        return None  # JPEG
+    if file_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return None  # PNG
+    if file_bytes.startswith(b"RIFF") and file_bytes[8:12] == b"WEBP":
+        return None  # WebP
+    return "Unsupported image type. Only JPEG, PNG, and WebP images are allowed."
+
 @router.post("/profile/avatar")
 def upload_avatar(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    # Validate file extension
-    file_ext = os.path.splitext(file.filename)[1].lower()
+    filename = file.filename or "avatar.png"
+    file_ext = os.path.splitext(filename)[1].lower()
     if file_ext not in [".png", ".jpg", ".jpeg", ".webp"]:
-        raise HTTPException(status_code=400, detail="Unsupported file format.")
+        raise HTTPException(status_code=400, detail="Unsupported file format. Only JPEG, PNG, and WebP are allowed.")
+
+    file_bytes = file.file.read()
+    err = validate_image_bytes(file_bytes)
+    if err:
+        raise HTTPException(status_code=400, detail=err)
 
     # Save file via storage service
-    object_key = generate_object_key(current_user.id, "avatars", file.filename)
-    file_bytes = file.file.read()
+    object_key = generate_object_key(current_user.id, "avatars", filename)
     storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
 
     # Clean old avatar if exists
@@ -319,13 +337,22 @@ def update_bank(
     if not db_bank:
         raise HTTPException(status_code=404, detail="Bank account not found.")
 
-    if bank_in.is_primary:
+    if bank_in.is_primary is True:
         # Toggle other accounts
         db.query(LinkedBank).filter(
             LinkedBank.user_id == current_user.id,
+            LinkedBank.id != id,
             LinkedBank.is_primary == True
         ).update({LinkedBank.is_primary: False}, synchronize_session=False)
         db_bank.is_primary = True
+    elif bank_in.is_primary is False:
+        other_primaries = db.query(LinkedBank).filter(
+            LinkedBank.user_id == current_user.id,
+            LinkedBank.id != id,
+            LinkedBank.is_primary == True
+        ).count()
+        if other_primaries > 0:
+            db_bank.is_primary = False
 
     if bank_in.nickname is not None:
         db_bank.nickname = bank_in.nickname
@@ -405,7 +432,7 @@ def export_profile_data(
                 "id": b.id,
                 "bank_name": b.bank_name,
                 "account_holder": b.account_holder,
-                "account_number": b.account_number,
+                "account_number": f"••••{str(b.account_number).strip()[-4:]}" if len(str(b.account_number).strip()) > 4 else str(b.account_number),
                 "ifsc_code": b.ifsc_code,
                 "branch": b.branch,
                 "account_type": b.account_type,
@@ -418,9 +445,27 @@ def export_profile_data(
 
 @router.delete("/profile")
 def delete_user_profile(
+    data: DeleteAccountIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
+    if not security.verify_password(data.password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect password. Account deletion aborted.")
+
+    # Clean avatar from storage if exists
+    if current_user.avatar_url:
+        old_key = current_user.avatar_url.replace("/uploads/", "")
+        try:
+            storage_service.delete_file(old_key)
+        except Exception:
+            pass
+
+    # Revoke sessions
+    try:
+        security.revoke_user_sessions(current_user.id)
+    except Exception:
+        pass
+
     db.delete(current_user)
     db.commit()
     return {"status": "success", "message": "Account deleted successfully."}

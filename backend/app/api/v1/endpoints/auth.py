@@ -94,15 +94,17 @@ def update_user_me(
     current_user: User = Depends(deps.get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    if user_in.email is not None and user_in.email != current_user.email:
-        # Check if email is already taken
-        existing_user = db.query(User).filter(User.email == user_in.email).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=400,
-                detail="Email already registered.",
-            )
-        current_user.email = user_in.email
+    if user_in.email is not None:
+        normalized_email = user_in.email.strip().lower()
+        if normalized_email != current_user.email:
+            # Check if email is already taken
+            existing_user = db.query(User).filter(User.email == normalized_email).first()
+            if existing_user:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Email already registered.",
+                )
+            current_user.email = normalized_email
 
     if user_in.full_name is not None:
         current_user.full_name = user_in.full_name
@@ -151,16 +153,29 @@ def upload_avatar(
     current_user: User = Depends(deps.get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    # Verify file extension
-    ext = os.path.splitext(file.filename)[1]
-    if ext.lower() not in [".jpg", ".jpeg", ".png"]:
+    # Verify file extension and handle None filename
+    filename = file.filename or "avatar.png"
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
         raise HTTPException(
             status_code=400,
-            detail="Only JPEG and PNG images are allowed."
+            detail="Only JPEG, PNG, and WebP images are allowed."
         )
-        
-    object_key = generate_object_key(current_user.id, "avatars", file.filename)
+
     file_bytes = file.file.read()
+    if len(file_bytes) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Avatar file size must not exceed 2MB.")
+    if len(file_bytes) < 12:
+        raise HTTPException(status_code=400, detail="Invalid image file.")
+    is_valid_image = (
+        file_bytes.startswith(b"\xff\xd8\xff") or
+        file_bytes.startswith(b"\x89PNG\r\n\x1a\n") or
+        (file_bytes.startswith(b"RIFF") and file_bytes[8:12] == b"WEBP")
+    )
+    if not is_valid_image:
+        raise HTTPException(status_code=400, detail="Unsupported image type. Only JPEG, PNG, and WebP images are allowed.")
+        
+    object_key = generate_object_key(current_user.id, "avatars", filename)
     storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
         
     current_user.avatar_url = storage_service.get_url(object_key)

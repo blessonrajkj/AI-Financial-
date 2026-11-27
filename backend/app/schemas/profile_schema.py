@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -56,8 +56,21 @@ class LinkedBankOut(LinkedBankBase):
     id: int
     user_id: int
 
+    @field_validator("account_number", mode="after")
+    @classmethod
+    def mask_acc(cls, v: str) -> str:
+        if not v:
+            return ""
+        clean = str(v).strip()
+        if len(clean) <= 4:
+            return clean
+        return f"••••{clean[-4:]}"
+
     class Config:
         from_attributes = True
+
+class DeleteAccountIn(BaseModel):
+    password: str
 
 # ----------------- User Settings -----------------
 class UserSettingsBase(BaseModel):

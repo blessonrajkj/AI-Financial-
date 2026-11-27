@@ -20,22 +20,40 @@ from app.services.storage import storage_service, generate_object_key, temp_file
 
 router = APIRouter()
 
+def validate_receipt_upload(file: UploadFile) -> tuple[str, str, bytes]:
+    filename = (file.filename or "receipt.jpg").lower()
+    ext = os.path.splitext(filename)[1]
+    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".webp"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Only JPEG, PNG, WebP, and PDF files are allowed."
+        )
+
+    file_bytes = file.file.read()
+    if len(file_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds maximum allowed limit of 10MB.")
+
+    if ext == ".pdf" and not file_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Invalid PDF file content.")
+    elif ext in [".jpg", ".jpeg"] and not file_bytes.startswith(b"\xff\xd8\xff"):
+        raise HTTPException(status_code=400, detail="Invalid JPEG image content.")
+    elif ext == ".png" and not file_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise HTTPException(status_code=400, detail="Invalid PNG image content.")
+    elif ext == ".webp" and not (file_bytes.startswith(b"RIFF") and file_bytes[8:12] == b"WEBP"):
+        raise HTTPException(status_code=400, detail="Invalid WebP image content.")
+
+    return filename, ext, file_bytes
+
+
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 def upload_receipt(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    # Verify file extension
-    ext = os.path.splitext(file.filename)[1]
-    if ext.lower() not in [".jpg", ".jpeg", ".png", ".pdf"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Only JPEG, PNG and PDF files are allowed."
-        )
+    filename, ext, file_bytes = validate_receipt_upload(file)
 
-    object_key = generate_object_key(current_user.id, "receipts", file.filename)
-    file_bytes = file.file.read()
+    object_key = generate_object_key(current_user.id, "receipts", filename)
     storage_service.upload_file(file_bytes, object_key, content_type=file.content_type)
     db_relative_path = storage_service.get_url(object_key)
 
