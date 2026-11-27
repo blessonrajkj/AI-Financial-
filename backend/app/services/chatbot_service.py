@@ -1,7 +1,6 @@
-import os
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-from datetime import datetime, timedelta
+from datetime import datetime
 from app.core.config import settings
 from app.models.transaction import Transaction
 from app.models.category_merchant import Category
@@ -110,7 +109,7 @@ User Question: {query}
 
     def _generate_fallback_response(self, db: Session, user_id: int, query: str) -> str:
         q_lower = query.lower()
-        now = datetime.now()
+        datetime.now()
         
         if "spend" in q_lower or "spent" in q_lower:
             # Query sum of expenses

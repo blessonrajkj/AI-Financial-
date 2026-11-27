@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 import json
 
@@ -15,7 +15,7 @@ from app.models.category_merchant import Category, Merchant
 from app.services.chatbot_service import chatbot_service
 from app.services.voice_parser import voice_parser
 from app.services.ml_categorizer import ml_categorizer
-from app.schemas.misc import ChatQuery, ChatResponse, VoiceTranscript, VoiceLogOut, VoiceTransactionConfirm
+from app.schemas.misc import ChatQuery, ChatResponse, VoiceTranscript, VoiceTransactionConfirm
 
 router = APIRouter()
 

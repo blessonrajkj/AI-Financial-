@@ -1,7 +1,6 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.models.investment import Investment
 from app.models.investment_transaction import InvestmentTransaction

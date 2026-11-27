@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import os
-import shutil
 from datetime import timedelta
 
 from sqlalchemy import func
@@ -16,7 +15,6 @@ from app.schemas.auth import Token
 
 router = APIRouter()
 
-import traceback
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
@@ -53,7 +51,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         return db_user
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
         raise

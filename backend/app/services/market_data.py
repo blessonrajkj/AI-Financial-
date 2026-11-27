@@ -1,14 +1,12 @@
 from decimal import Decimal
-import io
 import os
 import re
 import asyncio
 import logging
 import requests
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, Tuple
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.core.config import settings
 

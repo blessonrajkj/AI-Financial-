@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, case
 from datetime import datetime, timedelta
 from decimal import Decimal
 import csv
 import io
-import os
 from typing import List, Dict
 
 from app.api import deps
@@ -156,7 +155,6 @@ def get_dashboard_summary(
     else:
         budgeted_expenses = 0.0
 
-    display_budget_limit = total_budget_limit
     has_budget = total_budget_limit > 0
     budget_remaining = max(0.0, total_budget_limit - budgeted_expenses) if has_budget else 0.0
 
@@ -860,8 +858,7 @@ def generate_custom_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    from datetime import datetime, timedelta
-    from sqlalchemy import extract, or_
+    from datetime import datetime
     import io
     import csv
     from app.models.savings_goal import SavingsGoal

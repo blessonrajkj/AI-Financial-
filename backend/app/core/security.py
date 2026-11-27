@@ -1,4 +1,3 @@
-import os
 import re
 import time
 from datetime import datetime, timedelta, timezone
@@ -8,7 +7,6 @@ from jose import jwt, JWTError
 
 class RevocationStoreUnavailableError(Exception):
     """Raised when the distributed revocation store (Redis) is unreachable in production."""
-    pass
 
 # In-memory revocation cache fallback (strictly used ONLY when ENVIRONMENT != production)
 _REVOKED_USERS: dict[str, int] = {}

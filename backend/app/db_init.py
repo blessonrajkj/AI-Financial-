@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import Base, engine, SessionLocal
-from app.models import (
+from app.models import (  # noqa: F401
     User,
     UserProfile,
     LinkedBank,
@@ -128,7 +128,7 @@ def create_tables():
                 try:
                     db.execute(text(sql))
                     db.commit()
-                except Exception as ex:
+                except Exception:
                     db.rollback()
 
         if dialect_name == "postgresql":
@@ -150,7 +150,7 @@ def create_tables():
                 try:
                     db.execute(text(sql))
                     db.commit()
-                except Exception as ex:
+                except Exception:
                     db.rollback()
 
         if dialect_name == "postgresql":
@@ -169,7 +169,7 @@ def create_tables():
                 try:
                     db.execute(text(sql))
                     db.commit()
-                except Exception as ex:
+                except Exception:
                     db.rollback()
 
         init_db(db)

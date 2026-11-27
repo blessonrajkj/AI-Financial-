@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.models.transaction import Transaction
 
@@ -12,7 +11,6 @@ class Forecaster:
     def __init__(self):
         self.use_prophet = False
         try:
-            import prophet
             self.use_prophet = True
         except ImportError:
             pass

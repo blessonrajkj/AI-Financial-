@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 class CategoryOut(BaseModel):
@@ -6,16 +6,14 @@ class CategoryOut(BaseModel):
     name: str
     type: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class MerchantOut(BaseModel):
     id: int
     name: str
     default_category_id: int | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TransactionBase(BaseModel):
     amount: float
@@ -68,11 +66,7 @@ class TransactionOut(TransactionBase):
     category: CategoryOut | None = None
     merchant: MerchantOut | None = None
 
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
+    model_config = ConfigDict(from_attributes=True)
 
 class BulkTransactionItem(BaseModel):
     date: str
@@ -100,8 +94,7 @@ class BulkTransactionItem(BaseModel):
     upi_id: str | None = None
     origIdx: int | None = None
 
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
 class BulkValidateRequest(BaseModel):
     transactions: list[BulkTransactionItem]

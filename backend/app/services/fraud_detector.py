@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import List, Dict, Any
 from app.models.transaction import Transaction
-from app.models.category_merchant import Merchant
 from app.services.anomaly_detector import detect_anomalies_mad
 
 class FraudDetector:

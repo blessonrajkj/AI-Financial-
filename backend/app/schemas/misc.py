@@ -1,6 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Any
 
 # Subscription
 class SubscriptionBase(BaseModel):
@@ -18,11 +17,7 @@ class SubscriptionOut(SubscriptionBase):
     user_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
+    model_config = ConfigDict(from_attributes=True)
 
 # Investment
 class InvestmentBase(BaseModel):
@@ -41,11 +36,7 @@ class InvestmentOut(InvestmentBase):
     user_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
+    model_config = ConfigDict(from_attributes=True)
 
 # Notification
 class NotificationOut(BaseModel):
@@ -57,11 +48,7 @@ class NotificationOut(BaseModel):
     is_read: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
+    model_config = ConfigDict(from_attributes=True)
 
 # Chat
 class ChatQuery(BaseModel):
@@ -71,8 +58,7 @@ class ChatResponse(BaseModel):
     response: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Voice Log
 class VoiceTranscript(BaseModel):
@@ -91,5 +77,4 @@ class VoiceLogOut(BaseModel):
     parsed_json: str | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

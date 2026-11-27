@@ -1,4 +1,3 @@
-from typing import Optional
 from app.services.bank_parsers.base_parser import BaseBankParser
 from app.services.bank_parsers.sbi_parser import SBIBankParser
 from app.services.bank_parsers.hdfc_parser import HDFCBankParser

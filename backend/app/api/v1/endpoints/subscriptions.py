@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.api import deps
 from app.core.database import get_db

@@ -232,7 +232,7 @@ jobs:
         run: |
           cd frontend
           npm ci
-          npm audit --audit-level=high || echo "Non-blocking dependency security warnings logged."
+          npm audit --audit-level=high
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -264,19 +264,21 @@ jobs:
           echo "==================================================="
           echo "PARIVIEW CI RESULT SUMMARY"
           echo "==================================================="
-          echo "Backend Static Validation : PASS"
-          echo "PostgreSQL Test Database   : PASS"
-          echo "Database Migrations (Alembic): PASS"
-          echo "Pytest Backend Suite      : PASS (29/29 Passed)"
-          echo "Frontend Production Build : PASS"
-          echo "Sanitized Test Fixtures   : PASS"
-          echo "Health Check (GET /health): PASS"
-          echo "Playwright E2E Suite      : PASS (6/6 Passed)"
-          echo "Secret & Credential Scan  : PASS"
-          echo "Dependency Security Audit : PASS"
-          echo "Backend Docker Build      : PASS"
-          echo "Frontend Docker Build     : PASS"
+          echo "Static Validation       : ${{ needs.static-validation.result }}"
+          echo "Backend & DB Tests      : ${{ needs.backend-and-db-tests.result }}"
+          echo "Frontend Validation     : ${{ needs.frontend-validation.result }}"
+          echo "E2E & Health Tests      : ${{ needs.e2e-and-health-tests.result }}"
+          echo "Security & Docker       : ${{ needs.security-and-docker.result }}"
           echo "==================================================="
-          echo "Overall Status: PASS"
-          echo "Production Deployment: MANUAL APPROVAL REQUIRED"
+          if [ "${{ needs.static-validation.result }}" != "success" ] || \
+             [ "${{ needs.backend-and-db-tests.result }}" != "success" ] || \
+             [ "${{ needs.frontend-validation.result }}" != "success" ] || \
+             [ "${{ needs.e2e-and-health-tests.result }}" != "success" ] || \
+             [ "${{ needs.security-and-docker.result }}" != "success" ]; then
+            echo "Overall Status: FAILED"
+            exit 1
+          else
+            echo "Overall Status: PASS"
+            echo "Production Deployment: MANUAL APPROVAL REQUIRED"
+          fi
           echo "==================================================="

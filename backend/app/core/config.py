@@ -1,6 +1,5 @@
 import os
-from typing import List, Union
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 KNOWN_INSECURE_SECRETS = {
     "supersecretkeychangeinproduction1234567890",
@@ -62,9 +61,7 @@ class Settings(BaseSettings):
     S3_ACCESS_KEY_ID: str | None = os.environ.get("S3_ACCESS_KEY_ID", None)
     S3_SECRET_ACCESS_KEY: str | None = os.environ.get("S3_SECRET_ACCESS_KEY", None)
 
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
 
     def validate_security(self):
         """Enforces security rules based on active environment."""

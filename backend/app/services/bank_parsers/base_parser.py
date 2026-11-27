@@ -22,4 +22,3 @@ class BaseBankParser(ABC):
           - reference_number (str)
           - bank (str)
         """
-        pass

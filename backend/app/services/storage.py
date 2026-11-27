@@ -10,27 +10,22 @@ class BaseStorageProvider(ABC):
     @abstractmethod
     def upload_file(self, file_data: bytes, object_key: str, content_type: Optional[str] = None) -> str:
         """Upload binary file data and return object key/path."""
-        pass
 
     @abstractmethod
     def download_file(self, object_key: str) -> bytes:
         """Download binary file data from storage."""
-        pass
 
     @abstractmethod
     def delete_file(self, object_key: str) -> bool:
         """Delete file from storage."""
-        pass
 
     @abstractmethod
     def exists(self, object_key: str) -> bool:
         """Check if object key exists in storage."""
-        pass
 
     @abstractmethod
     def get_url(self, object_key: str, expires_in: int = 3600) -> str:
         """Get accessible URL or pre-signed URL for the object."""
-        pass
 
 
 class LocalStorageProvider(BaseStorageProvider):
@@ -80,7 +75,6 @@ class LocalStorageProvider(BaseStorageProvider):
 class S3StorageProvider(BaseStorageProvider):
     def __init__(self):
         import boto3
-        from botocore.config import Config
 
         self.bucket_name = settings.S3_BUCKET_NAME
         s3_kwargs = {"region_name": settings.S3_REGION}

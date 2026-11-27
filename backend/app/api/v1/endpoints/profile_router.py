@@ -1,14 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 import os
-import shutil
-import uuid
 import re
 from typing import List
 
 from app.api import deps
 from app.core import security
-from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 from app.models.profile import UserProfile, LinkedBank, UserSettings

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from app.schemas.transaction import CategoryOut
 
@@ -22,8 +22,4 @@ class BudgetOut(BudgetBase):
     created_at: datetime
     category: CategoryOut | None = None
 
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
+    model_config = ConfigDict(from_attributes=True)

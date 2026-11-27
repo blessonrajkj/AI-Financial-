@@ -1,6 +1,5 @@
 import time
 import logging
-from typing import Optional
 from app.core.config import settings
 
 logger = logging.getLogger("redis_client")
@@ -49,7 +48,7 @@ def get_redis_client():
         client.ping()
         _client = client
         return _client
-    except Exception as e:
+    except Exception:
         # Trip circuit-breaker for _COOLDOWN_SECONDS
         _down_until = time.time() + _COOLDOWN_SECONDS
         _pool = None

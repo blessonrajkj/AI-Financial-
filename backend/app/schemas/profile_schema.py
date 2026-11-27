@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict, field_validator
+from typing import Optional
 from datetime import datetime
 
 # ----------------- User Profile -----------------
@@ -31,8 +31,7 @@ class UserProfileOut(UserProfileBase):
     is_verified: bool
     role: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ----------------- Linked Bank Accounts -----------------
 class LinkedBankBase(BaseModel):
@@ -66,8 +65,7 @@ class LinkedBankOut(LinkedBankBase):
             return clean
         return f"••••{clean[-4:]}"
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DeleteAccountIn(BaseModel):
     password: str
@@ -93,8 +91,7 @@ class UserSettingsUpdate(UserSettingsBase):
 class UserSettingsOut(UserSettingsBase):
     user_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ----------------- Change Password -----------------
 class ChangePasswordIn(BaseModel):

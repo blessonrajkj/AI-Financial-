@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -24,7 +23,6 @@ from app.services.investment_service import (
     add_sell_transaction,
     add_dividend_transaction,
     ensure_legacy_transactions,
-    to_decimal,
     calculate_real_xirr
 )
 

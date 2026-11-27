@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from decimal import Decimal
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from app.models.india_post_rate import IndiaPostRate

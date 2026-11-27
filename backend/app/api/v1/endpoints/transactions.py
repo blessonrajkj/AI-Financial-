@@ -1,12 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_
 from datetime import datetime, timedelta
 from typing import List
 from pydantic import BaseModel
-import io
 import csv
-import shutil
 import uuid
 import os
 from openpyxl import load_workbook
@@ -23,9 +21,7 @@ from app.services.market_data import check_and_update_investments_from_transacti
 from app.services.category_taxonomy import (
     EXPENSE_TAXONOMY,
     INCOME_CATEGORIES,
-    TRANSFER_CATEGORIES,
-    validate_category_combination,
-    auto_categorize
+    TRANSFER_CATEGORIES
 )
 
 router = APIRouter()
@@ -658,10 +654,10 @@ def bulk_validate_transactions(
         
         # 1. Date parse check
         try:
-            date_parsed = datetime.fromisoformat(t.date.replace("Z", "+00:00"))
+            datetime.fromisoformat(t.date.replace("Z", "+00:00"))
         except Exception:
             try:
-                date_parsed = datetime.strptime(t.date.split("T")[0], "%Y-%m-%d")
+                datetime.strptime(t.date.split("T")[0], "%Y-%m-%d")
             except Exception:
                 is_valid = False
                 error_msg = "Invalid date format. Expected YYYY-MM-DD."

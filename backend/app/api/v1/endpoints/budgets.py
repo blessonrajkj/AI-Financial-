@@ -10,7 +10,7 @@ from app.models.user import User
 from app.models.budget import Budget
 from app.models.transaction import Transaction
 from app.models.category_merchant import Category
-from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetOut
+from app.schemas.budget import BudgetCreate, BudgetUpdate
 
 router = APIRouter()
 

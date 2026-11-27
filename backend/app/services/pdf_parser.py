@@ -481,7 +481,6 @@ class PDFStatementParser:
                 tx_type = self.determine_type_from_text_and_color(amt_text, desc_str, amount_color_type)
             else:
                 # Fallback: check other cells for numerical amounts
-                found_amount = False
                 for c_idx in range(len(cells)):
                     if c_idx != date_idx and c_idx != desc_idx:
                         amt_cell = cells[c_idx]
@@ -491,7 +490,6 @@ class PDFStatementParser:
                             amount = val
                             amount_color_type = self.get_text_color_type(amt_cell["color"])
                             tx_type = self.determine_type_from_text_and_color(amt_text, desc_str, amount_color_type)
-                            found_amount = True
                             break
             
             # Stop if amount is not found or is 0
@@ -505,7 +503,7 @@ class PDFStatementParser:
                 balance = self.parse_amount(cells[bal_idx]["text"])
                 
             # Classify specific financial ledger type
-            specific_type = self.classify_specific_type(desc_str, tx_type)
+            self.classify_specific_type(desc_str, tx_type)
             merchant_name = self.extract_merchant(desc_str)
             calc_type, main_cat, sub_cat = auto_categorize(tx_type, merchant_name, desc_str)
             upi_id = self.extract_upi_id(desc_str)

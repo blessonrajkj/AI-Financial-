@@ -1,12 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
 import os
-import uuid
-import shutil
 from datetime import datetime
 
 from app.api import deps
-from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 from app.models.receipt import Receipt
@@ -14,7 +11,6 @@ from app.models.transaction import Transaction
 from app.models.category_merchant import Merchant, Category
 from app.services.ocr_service import ocr_service
 from app.services.ml_categorizer import ml_categorizer
-from app.schemas.receipt import ReceiptOut
 
 from app.services.storage import storage_service, generate_object_key, temp_file_for_processing
 

@@ -2,7 +2,7 @@ import os
 import time
 import math
 import uuid
-from typing import Optional, Tuple
+from typing import Optional
 from collections import defaultdict
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
