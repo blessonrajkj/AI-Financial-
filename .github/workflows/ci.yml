@@ -69,6 +69,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install --no-cache-dir -r backend/requirements.txt
+          pip install --no-cache-dir -r backend/requirements-dev.txt
 
       - name: Run Alembic Database Migrations Against PostgreSQL
         env:
@@ -147,6 +148,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install --no-cache-dir -r backend/requirements.txt uvicorn
+          pip install --no-cache-dir -r backend/requirements-dev.txt
 
       - name: Run Sanitized Fixture Generator
         run: |

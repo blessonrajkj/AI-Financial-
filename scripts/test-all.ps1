@@ -1,4 +1,4 @@
-# PARIVIEW — LOCAL CI/CD FULL TEST RUNNER (POWERSHELL)
+﻿# PARIVIEW — LOCAL CI/CD FULL TEST RUNNER (POWERSHELL)
 $ErrorActionPreference = "Continue"
 
 Write-Host '===================================================' -ForegroundColor Cyan
@@ -22,6 +22,7 @@ Write-Host ''
 # 2. Pytest Backend Suite
 Write-Host '[2/8] Running Pytest Backend Suite...' -ForegroundColor Yellow
 Set-Location "$RootDir\backend"
+pip install -q -r requirements-dev.txt
 pytest -v --tb=short
 if ($LASTEXITCODE -ne 0) {
     Write-Host '[FAIL] Pytest test suite failed!' -ForegroundColor Red

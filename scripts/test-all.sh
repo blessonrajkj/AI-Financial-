@@ -17,6 +17,7 @@ echo ""
 
 echo "[2/5] Running Backend Pytest Test Suite..."
 cd "$ROOT_DIR/backend"
+pip install -q -r requirements-dev.txt
 pytest -v --tb=short
 echo "[PASS] All backend tests passed."
 echo ""

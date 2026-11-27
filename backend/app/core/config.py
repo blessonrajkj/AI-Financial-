@@ -1,6 +1,5 @@
 import os
 from typing import List, Union
-from pydantic import AnyHttpUrl, validator
 from pydantic_settings import BaseSettings
 
 KNOWN_INSECURE_SECRETS = {
@@ -27,13 +26,16 @@ class Settings(BaseSettings):
     # JWT & Security
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "dev-insecure-secret-key-change-in-production-min-32-chars")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 24 * 7))  # 7 days
-    
+    PRICE_UPDATE_INTERVAL_HOURS: int = int(os.environ.get("PRICE_UPDATE_INTERVAL_HOURS", 24))
+
+    # CORS
     BACKEND_CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://10.178.84.28:3000",
+        origin.strip()
+        for origin in os.environ.get(
+            "CORS_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
+        ).split(",")
+        if origin.strip()
     ]
 
     # Database

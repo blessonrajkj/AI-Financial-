@@ -174,3 +174,43 @@ def check_and_update_investments_from_transaction(db: Session, tx):
         notes=f"Auto-logged from transaction: {tx.description or ''}"
     )
 
+
+def update_all_market_prices():
+    """Fetches and updates live prices for all distinct investments across users."""
+    from app.core.database import SessionLocal
+    from app.models.investment import Investment
+    db = SessionLocal()
+    try:
+        user_ids = [uid[0] for uid in db.query(Investment.user_id).distinct().all() if uid[0] is not None]
+        for uid in user_ids:
+            try:
+                market_data_service.update_prices_for_user(db, uid, force=False)
+            except Exception as e:
+                logger.exception(f"Error updating prices for user {uid}: {e}")
+    except Exception as e:
+        logger.exception(f"Failed to query investments for background price update: {e}")
+    finally:
+        db.close()
+
+
+async def start_daily_price_updater():
+    """Async background task that periodically updates investment prices."""
+    interval_hours = getattr(settings, "PRICE_UPDATE_INTERVAL_HOURS", 24)
+    interval_seconds = max(60, int(interval_hours * 3600))
+    logger.info(f"Starting daily market price updater loop (interval: {interval_hours}h / {interval_seconds}s)")
+    while True:
+        try:
+            await asyncio.to_thread(update_all_market_prices)
+        except asyncio.CancelledError:
+            logger.info("Daily market price updater loop received cancellation, shutting down")
+            break
+        except Exception as e:
+            logger.exception(f"Error during market price update cycle: {e}")
+
+        try:
+            await asyncio.sleep(interval_seconds)
+        except asyncio.CancelledError:
+            logger.info("Daily market price updater sleep cancelled, shutting down")
+            break
+
+

@@ -1,6 +1,7 @@
 import os
 import asyncio
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -8,10 +9,33 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db_init import create_tables
 from app.middleware.rate_limit import RateLimitMiddleware
+from app.services.market_data import start_daily_price_updater
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Dynamic DB bootstrap on startup
+    try:
+        create_tables()
+    except Exception as e:
+        is_production = settings.ENVIRONMENT.lower() in ("production", "prod")
+        if is_production:
+            raise
+        print(f"Error during startup DB initialization: {e}")
+
+    updater_task = asyncio.create_task(start_daily_price_updater())
+    try:
+        yield
+    finally:
+        updater_task.cancel()
+        try:
+            await updater_task
+        except asyncio.CancelledError:
+            pass
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
 # Add rate limiting middleware
@@ -36,16 +60,6 @@ os.makedirs(os.path.join(settings.UPLOAD_DIR, "receipts"), exist_ok=True)
 from app.api.v1.endpoints.uploads import router as uploads_router
 app.include_router(uploads_router, prefix="/uploads", tags=["secure-uploads"])
 
-# Dynamic DB bootstrap on startup
-@app.on_event("startup")
-def on_startup():
-    try:
-        create_tables()
-        from app.services.market_data import start_daily_price_updater
-        asyncio.create_task(start_daily_price_updater())
-    except Exception as e:
-        print(f"Error during startup DB initialization: {e}")
-
 # Include central router mapping
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
@@ -56,7 +70,7 @@ def read_root():
     }
 
 @app.get("/health")
-def health_check():
+def health_check(response: Response):
     from app.core.database import SessionLocal
     from sqlalchemy import text
     db = SessionLocal()
@@ -69,6 +83,7 @@ def health_check():
             "db_engine": db_type
         }
     except Exception as e:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {
             "status": "error",
             "database": "disconnected",
@@ -81,4 +96,4 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
