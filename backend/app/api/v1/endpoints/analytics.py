@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, case
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import csv
 import io
@@ -1071,7 +1071,7 @@ def generate_custom_report(
             # CAGR
             years = 1.0
             if inv.purchase_date:
-                delta = datetime.utcnow() - inv.purchase_date.replace(tzinfo=None)
+                delta = datetime.now(timezone.utc).replace(tzinfo=None) - inv.purchase_date.replace(tzinfo=None)
                 years = max(delta.days / 365.25, 0.1)
 
             p_float = float(p_val)

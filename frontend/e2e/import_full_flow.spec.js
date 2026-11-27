@@ -16,7 +16,7 @@ const test = base.extend({
   },
 });
 
-const API_BASE = process.env.API_BASE_URL || process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8001';
+const API_BASE = process.env.API_BASE_URL || process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 const FRONTEND_BASE = process.env.E2E_BASE_URL || 'http://localhost:3001';
 
 async function createFreshUser(request, prefix) {
@@ -54,6 +54,7 @@ test.describe('Universal Import System - Full Browser E2E Flow', () => {
 
     // 2. Upload CSV
     const csvPath = path.resolve(__dirname, '../../backend/tests/fixtures/sample_transactions.csv');
+    await page.waitForSelector('input[type="file"]', { state: 'attached', timeout: 15000 });
     const fileInput = await page.$('input[type="file"]');
     expect(fileInput).not.toBeNull();
     await fileInput.setInputFiles(csvPath);

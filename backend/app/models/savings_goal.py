@@ -1,8 +1,11 @@
 from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class SavingsGoal(Base):
     __tablename__ = "savings_goals"
@@ -13,6 +16,6 @@ class SavingsGoal(Base):
     target_amount = Column(Numeric(12, 2), nullable=False)
     current_amount = Column(Numeric(12, 2), default=0.00)
     target_date = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     user = relationship("User", back_populates="savings_goals")

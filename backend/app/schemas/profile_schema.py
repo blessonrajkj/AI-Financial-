@@ -80,9 +80,6 @@ class UserSettingsBase(BaseModel):
     budget_alerts: bool = True
     subscription_alerts: bool = True
     salary_credit_alerts: bool = True
-    two_factor_enabled: bool = False
-    two_factor_method: str = "App"
-    privacy_mode: bool = False
     theme: str = "dark"
 
 class UserSettingsUpdate(UserSettingsBase):

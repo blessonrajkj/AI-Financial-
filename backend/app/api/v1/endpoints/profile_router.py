@@ -69,8 +69,7 @@ def get_or_create_profile_and_settings(db: Session, user: User):
             investment_alerts=True,
             budget_alerts=True,
             subscription_alerts=True,
-            salary_credit_alerts=True,
-            two_factor_enabled=False
+            salary_credit_alerts=True
         )
         db.add(config)
         db.commit()
@@ -262,7 +261,7 @@ def change_password(
         
     is_valid_pwd, pwd_error = security.validate_password_strength(data.new_password)
     if not is_valid_pwd:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=pwd_error)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=pwd_error)
         
     try:
         security.revoke_user_sessions(current_user.id)
@@ -419,9 +418,6 @@ def export_profile_data(
             "budget_alerts": config.budget_alerts,
             "subscription_alerts": config.subscription_alerts,
             "salary_credit_alerts": config.salary_credit_alerts,
-            "two_factor_enabled": config.two_factor_enabled,
-            "two_factor_method": config.two_factor_method,
-            "privacy_mode": config.privacy_mode,
             "theme": config.theme
         },
         "linked_banks": [

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.api import deps
 from app.core.database import get_db
@@ -45,7 +45,7 @@ def get_subscriptions(
             
     # Upcoming Renewals (next 30 days)
     upcoming = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     for s in active_subs:
         if not s.next_billing_date:
             continue

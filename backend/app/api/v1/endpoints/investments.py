@@ -121,7 +121,7 @@ def get_investments(
             p_date = inv.purchase_date
             if p_date.tzinfo is not None:
                 p_date = p_date.replace(tzinfo=None)
-            delta = datetime.utcnow() - p_date
+            delta = datetime.now(timezone.utc).replace(tzinfo=None) - p_date
             years = max(delta.days / 365.25, 0.08)
             
         cagr = 0.0
@@ -144,7 +144,7 @@ def get_investments(
 
         # Add current terminal value as an inflow today
         if c_val > 0:
-            cashflows.append((datetime.utcnow(), c_val))
+            cashflows.append((datetime.now(timezone.utc).replace(tzinfo=None), c_val))
 
         xirr = calculate_real_xirr(cashflows, fallback_cagr=cagr)
             

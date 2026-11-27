@@ -57,24 +57,6 @@ const SettingsPage = () => {
   // Modal control
   const [showBankModal, setShowBankModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [show2FAModal, setShow2FAModal] = useState(false);
-
-  // Edit / Link State variables
-  const [editingBank, setEditingBank] = useState(null);
-  const [editNickname, setEditNickname] = useState('');
-
-  // Password change form state
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
-  const [passwordStrength, setPasswordStrength] = useState({ score: 0, text: 'Weak', color: 'bg-danger' });
-
-  // Two Factor authentication mock state
-  const [twoFactorOtp, setTwoFactorOtp] = useState('');
-  const [twoFactorMethod, setTwoFactorMethod] = useState('App');
 
   // Bank Form State
   const [bankForm, setBankForm] = useState({
@@ -222,48 +204,6 @@ const SettingsPage = () => {
       triggerToast(err.response?.data?.detail || "Failed to update password", "error");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 2FA Setup
-  const handleToggle2FA = async (enable) => {
-    if (enable) {
-      setTwoFactorMethod('App');
-      setShow2FAModal(true);
-    } else {
-      if (window.confirm("Are you sure you want to disable Two-Factor Authentication?")) {
-        try {
-          const res = await axios.put(`${API_URL}/settings`, { ...dbSettings, two_factor_enabled: false });
-          setDbSettings(res.data);
-          triggerToast("2FA disabled successfully.");
-        } catch (err) {
-          console.error(err);
-          triggerToast("Failed to update 2FA status.", "error");
-        }
-      }
-    }
-  };
-
-  const handleVerify2FAOTP = async (e) => {
-    e.preventDefault();
-    if (twoFactorOtp.length !== 6 || isNaN(twoFactorOtp)) {
-      triggerToast("Please enter a valid 6-digit OTP code", "error");
-      return;
-    }
-    // Mock verify OTP & set enabled in DB
-    try {
-      const res = await axios.put(`${API_URL}/settings`, { 
-        ...dbSettings, 
-        two_factor_enabled: true,
-        two_factor_method: twoFactorMethod
-      });
-      setDbSettings(res.data);
-      setShow2FAModal(false);
-      setTwoFactorOtp('');
-      triggerToast("Two-Factor Authentication is now active!");
-    } catch (err) {
-      console.error(err);
-      triggerToast("Failed to verify OTP code", "error");
     }
   };
 
@@ -638,35 +578,6 @@ const SettingsPage = () => {
                   </button>
                 </form>
               </div>
-
-              {/* 2FA Section */}
-              <div className="space-y-4 border-t border-borderColor pt-6">
-                <div>
-                  <h4 className="text-sm font-bold text-textPrimary">Two-Factor Authentication (2FA)</h4>
-                  <p className="text-xs text-textSecondary mt-0.5">Provide an additional level of visual safety to your transactions</p>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-background rounded-2xl border border-borderColor/60">
-                  <div className="space-y-0.5">
-                    <h5 className="text-xs font-bold text-textPrimary">Two-Factor Shield</h5>
-                    <p className="text-[10px] text-textSecondary">
-                      Status: <span className={dbSettings?.two_factor_enabled ? "text-success font-bold" : "text-textMuted font-bold"}>
-                        {dbSettings?.two_factor_enabled ? "Enabled" : "Disabled"}
-                      </span>
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => handleToggle2FA(!dbSettings?.two_factor_enabled)}
-                    className={`px-4 py-2 font-bold text-xs rounded-xl border transition-all ${
-                      dbSettings?.two_factor_enabled 
-                        ? 'bg-danger/10 hover:bg-danger/20 border-danger/20 text-danger' 
-                        : 'bg-primary hover:bg-primaryHover text-white border-transparent shadow-sm'
-                    }`}
-                  >
-                    {dbSettings?.two_factor_enabled ? "Disable 2FA" : "Enable 2FA"}
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1010,57 +921,6 @@ const SettingsPage = () => {
 
         </div>
       </div>
-
-      {/* 2FA SETUP MODAL */}
-      {show2FAModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-cardBg border border-borderColor rounded-3xl p-6 max-w-sm w-full space-y-5 shadow-2xl relative">
-            <button 
-              onClick={() => setShow2FAModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl hover:bg-hoverBg text-textSecondary transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="text-center space-y-2">
-              <Key className="w-8 h-8 mx-auto text-primary" />
-              <h4 className="text-lg font-bold text-textPrimary">Verify Authentication App</h4>
-              <p className="text-xs text-textSecondary">Scan the QR code with Google Authenticator or enter verification OTP code below</p>
-            </div>
-
-            {/* Mock QR Code */}
-            <div className="w-40 h-40 mx-auto bg-white p-2 rounded-2xl border border-borderColor flex items-center justify-center">
-              {/* Structured grid simulator */}
-              <div className="grid grid-cols-4 gap-1 w-full h-full opacity-80">
-                {[...Array(16)].map((_, i) => (
-                  <div key={i} className={`rounded ${i % 3 === 0 || i % 5 === 2 ? 'bg-black' : 'bg-transparent'}`}></div>
-                ))}
-              </div>
-            </div>
-
-            <form onSubmit={handleVerify2FAOTP} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2 text-center">6-Digit Verification Code</label>
-                <input 
-                  type="text" 
-                  maxLength="6"
-                  required
-                  placeholder="000000"
-                  value={twoFactorOtp}
-                  onChange={(e) => setTwoFactorOtp(e.target.value)}
-                  className="w-full h-11 text-center bg-background border border-borderColor rounded-xl text-textPrimary text-lg font-bold tracking-widest focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-              <button 
-                type="submit"
-                className="w-full h-11 bg-primary hover:bg-primaryHover text-white font-bold rounded-xl flex items-center justify-center shadow-md shadow-primary/20 transition-all"
-              >
-                Verify & Activate
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* CONNECTED BANK ACC LINK MODAL */}
       {showBankModal && (

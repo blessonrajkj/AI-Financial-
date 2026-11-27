@@ -32,7 +32,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         is_valid_pwd, pwd_error = security.validate_password_strength(user_in.password)
         if not is_valid_pwd:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=pwd_error
             )
         
@@ -110,7 +110,7 @@ def update_user_me(
     if user_in.password is not None:
         if not user_in.current_password:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Current password is required to change password."
             )
         if not security.verify_password(user_in.current_password, current_user.hashed_password):
@@ -126,7 +126,7 @@ def update_user_me(
         is_valid_pwd, pwd_error = security.validate_password_strength(user_in.password)
         if not is_valid_pwd:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=pwd_error
             )
         try:

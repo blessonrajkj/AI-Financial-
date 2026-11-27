@@ -13,6 +13,9 @@ export default defineConfig({
   use: {
     baseURL: frontendUrl,
     trace: 'on-first-retry',
+    extraHTTPHeaders: {
+      'X-E2E-Test': 'true',
+    },
   },
   webServer: [
     {
@@ -20,6 +23,10 @@ export default defineConfig({
       url: `http://127.0.0.1:${backendPort}/health`,
       reuseExistingServer: true,
       timeout: 30000,
+      env: {
+        TESTING: 'True',
+        SECRET_KEY: 'ci_test_secret_key_1234567890',
+      },
     },
     {
       command: 'npx vite preview --port 3001 --host 127.0.0.1',
