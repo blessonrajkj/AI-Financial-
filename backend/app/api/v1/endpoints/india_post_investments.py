@@ -13,14 +13,34 @@ from app.schemas.india_post_investment import (
     IndiaPostInvestmentUpdate,
     IndiaPostInvestmentOut
 )
+from app.services.india_post_service import calculate_india_post_yield, get_applicable_rate
 
 router = APIRouter()
+
+def _sync_matured_status(db: Session, user_id: int):
+    now = datetime.now(timezone.utc)
+    active_invs = db.query(IndiaPostInvestment).filter(
+        IndiaPostInvestment.user_id == user_id,
+        IndiaPostInvestment.status == "Active"
+    ).all()
+    changed = False
+    for inv in active_invs:
+        if inv.maturity_date:
+            mat = inv.maturity_date
+            if mat.tzinfo is None:
+                mat = mat.replace(tzinfo=timezone.utc)
+            if mat < now:
+                inv.status = "Matured"
+                changed = True
+    if changed:
+        db.commit()
 
 @router.get("", response_model=List[IndiaPostInvestmentOut])
 def get_investments(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
+    _sync_matured_status(db, current_user.id)
     return db.query(IndiaPostInvestment).filter(
         IndiaPostInvestment.user_id == current_user.id
     ).order_by(IndiaPostInvestment.investment_date.desc()).all()
@@ -30,6 +50,7 @@ def get_investments_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
+    _sync_matured_status(db, current_user.id)
     investments = db.query(IndiaPostInvestment).filter(
         IndiaPostInvestment.user_id == current_user.id
     ).all()
@@ -63,14 +84,20 @@ def get_investments_summary(
         if inv_date.tzinfo is None:
             inv_date = inv_date.replace(tzinfo=timezone.utc)
             
-        years_held = (now - inv_date).days / 365.25
-        years_held = max(0.0, years_held)
-
-        if "Public Provident Fund" in scheme or "PPF" in scheme or "NSC" in scheme or "KVP" in scheme:
-            current_val = amt * ((1 + rate) ** years_held)
-            estimated_returns += max(0.0, current_val - amt)
-        else:
-            estimated_returns += (amt * rate * years_held)
+        mat_date = i.maturity_date
+        if mat_date and mat_date.tzinfo is None:
+            mat_date = mat_date.replace(tzinfo=timezone.utc)
+            
+        calc_end = min(now, mat_date) if mat_date else now
+        calc_res = calculate_india_post_yield(
+            scheme_name=scheme,
+            principal=amt,
+            annual_rate=float(i.interest_rate),
+            start_date=inv_date,
+            maturity_date=calc_end,
+            frequency=i.frequency or "One Time"
+        )
+        estimated_returns += max(0.0, float(calc_res.get("total_interest_earned", 0.0)))
 
     portfolio_allocation = [
         {"name": k, "value": round(v, 2)} for k, v in allocation.items()
@@ -140,12 +167,17 @@ def create_investment(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
+    rate = inv_in.interest_rate
+    if rate is None or float(rate) <= 0:
+        q_date = inv_in.investment_date.date() if inv_in.investment_date else None
+        rate = get_applicable_rate(db, inv_in.scheme_name, q_date)
+
     db_inv = IndiaPostInvestment(
         user_id=current_user.id,
         category=getattr(inv_in, "category", None) or "India Post",
         scheme_name=inv_in.scheme_name,
         amount=inv_in.amount,
-        interest_rate=inv_in.interest_rate,
+        interest_rate=rate,
         investment_date=inv_in.investment_date,
         maturity_date=inv_in.maturity_date,
         frequency=inv_in.frequency,

@@ -143,7 +143,16 @@ def add_buy_transaction(
     investment.quantity = new_qty
     investment.purchase_price = new_avg_price
     if transaction_date:
-        investment.purchase_date = transaction_date
+        if investment.purchase_date:
+            inv_pdate = investment.purchase_date
+            tx_pdate = transaction_date
+            if inv_pdate.tzinfo is not None and tx_pdate.tzinfo is None:
+                tx_pdate = tx_pdate.replace(tzinfo=timezone.utc)
+            elif inv_pdate.tzinfo is None and tx_pdate.tzinfo is not None:
+                inv_pdate = inv_pdate.replace(tzinfo=timezone.utc)
+            investment.purchase_date = min(inv_pdate, tx_pdate)
+        else:
+            investment.purchase_date = transaction_date
 
     # Create transaction log
     tx = InvestmentTransaction(
@@ -254,3 +263,74 @@ def add_dividend_transaction(
     db.refresh(investment)
     db.refresh(tx)
     return tx
+
+
+def calculate_real_xirr(cashflows: list[tuple[datetime, float]], fallback_cagr: float = 0.0) -> float:
+    """
+    Computes exact annualized XIRR using the Newton-Raphson numerical solver.
+    Falls back to simple CAGR if cashflows are invalid or non-convergent.
+    Cashflows must be a list of (datetime, amount) tuples where negative amounts
+    represent outflows (investments) and positive amounts represent inflows/terminal value.
+    """
+    if len(cashflows) < 2:
+        return round(fallback_cagr, 2)
+
+    has_negative = any(cf[1] < 0 for cf in cashflows)
+    has_positive = any(cf[1] > 0 for cf in cashflows)
+    if not (has_negative and has_positive):
+        return round(fallback_cagr, 2)
+
+    # Sort by date
+    sorted_cfs = sorted(cashflows, key=lambda x: x[0])
+    d0 = sorted_cfs[0][0]
+    if d0.tzinfo is not None:
+        d0 = d0.replace(tzinfo=None)
+
+    normalized = []
+    for dt, amt in sorted_cfs:
+        if dt.tzinfo is not None:
+            dt = dt.replace(tzinfo=None)
+        t_years = max((dt - d0).total_seconds() / (365.25 * 86400.0), 0.0)
+        normalized.append((t_years, float(amt)))
+
+    # Initial guess
+    r = fallback_cagr / 100.0 if fallback_cagr != 0.0 else 0.1
+    if r <= -0.99:
+        r = 0.1
+
+    max_iterations = 100
+    tolerance = 1e-6
+
+    for _ in range(max_iterations):
+        if r <= -0.9999:
+            r = -0.99
+
+        f_val = 0.0
+        df_val = 0.0
+        for t, amt in normalized:
+            base = 1.0 + r
+            if base <= 0:
+                return round(fallback_cagr, 2)
+            try:
+                discount = base ** (-t)
+                f_val += amt * discount
+                if t > 0:
+                    df_val -= t * amt * (base ** (-t - 1.0))
+            except (OverflowError, ZeroDivisionError):
+                return round(fallback_cagr, 2)
+
+        if abs(df_val) < 1e-12:
+            return round(fallback_cagr, 2)
+
+        r_next = r - (f_val / df_val)
+
+        if abs(r_next - r) < tolerance:
+            xirr_pct = r_next * 100.0
+            if -100.0 <= xirr_pct <= 10000.0:
+                return round(xirr_pct, 2)
+            return round(fallback_cagr, 2)
+
+        r = r_next
+
+    return round(fallback_cagr, 2)
+

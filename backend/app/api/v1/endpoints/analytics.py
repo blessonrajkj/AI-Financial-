@@ -20,6 +20,8 @@ from app.models.subscription import Subscription
 from app.models.notification import Notification
 from app.models.savings_goal import SavingsGoal
 from app.models.india_post_investment import IndiaPostInvestment
+from app.models.account import Account
+from app.models.liability import Liability
 from app.services.forecaster import forecaster
 from app.services.fraud_detector import fraud_detector
 
@@ -116,16 +118,47 @@ def get_dashboard_summary(
 
     current_balance = total_income - total_expense + investment_returns
 
-    # 4. Budgets parameters (Task 9)
-    total_budget_limit = float(db.query(func.sum(Budget.amount)).filter(
+    # Net Worth calculation: account balances + investment current value + India Post active value - liabilities
+    total_account_balances = float(db.query(func.sum(Account.balance)).filter(
+        Account.user_id == current_user.id,
+        Account.is_active == True
+    ).scalar() or 0.0)
+
+    total_liabilities = float(db.query(func.sum(Liability.remaining_amount)).filter(
+        Liability.user_id == current_user.id,
+        Liability.status == "Active"
+    ).scalar() or 0.0)
+
+    total_india_post_val = float(sum(ip.amount for ip in db.query(IndiaPostInvestment).filter(
+        IndiaPostInvestment.user_id == current_user.id,
+        IndiaPostInvestment.status == "Active"
+    ).all()))
+
+    net_worth = total_account_balances + total_investments_current + total_india_post_val - total_liabilities
+
+    # 4. Budgets parameters: only subtract expenses belonging to budgeted categories
+    budget_rows = db.query(Budget).filter(
         Budget.user_id == current_user.id,
         Budget.month == now.month,
         Budget.year == now.year
-    ).scalar() or 0.0)
+    ).all()
+    total_budget_limit = float(sum(b.amount for b in budget_rows))
+    budget_cat_ids = [b.category_id for b in budget_rows if b.category_id is not None]
+
+    if budget_cat_ids:
+        budgeted_expenses = float(db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "expense",
+            Transaction.category_id.in_(budget_cat_ids),
+            Transaction.date >= month_start,
+            Transaction.date < next_month_start
+        ).scalar() or 0.0)
+    else:
+        budgeted_expenses = 0.0
 
     display_budget_limit = total_budget_limit
     has_budget = total_budget_limit > 0
-    budget_remaining = max(0.0, total_budget_limit - current_month_expense) if has_budget else 0.0
+    budget_remaining = max(0.0, total_budget_limit - budgeted_expenses) if has_budget else 0.0
 
     # 5. Savings rate & Real AI generated insight (Task 3)
     current_month_savings = current_month_income - current_month_expense
@@ -146,21 +179,58 @@ def get_dashboard_summary(
         insight_text = f"Warning: Savings rate dropped by {abs(savings_rate_diff)}%."
         insight_type = "alert"
 
+    # Upcoming Subscriptions / Bills with monthly equivalent
+    upcoming_subscriptions = db.query(Subscription).filter(
+        Subscription.user_id == current_user.id,
+        Subscription.is_active == True
+    ).all()
+
+    def _monthly_subscription_cost(amt: float, cycle: str | None) -> float:
+        c = (cycle or "monthly").lower().strip()
+        if c in ("yearly", "annual", "annually"):
+            return amt / 12.0
+        if c in ("quarterly",):
+            return amt / 3.0
+        if c in ("biannual", "bi-annual", "semi-annual", "semiannual"):
+            return amt / 6.0
+        if c in ("weekly",):
+            return amt * 4.33
+        if c in ("daily",):
+            return amt * 30.0
+        return amt
+
+    upcoming_bills_cost = sum(_monthly_subscription_cost(float(s.amount), s.billing_cycle) for s in upcoming_subscriptions)
+
     # 6. Financial Health Score calculation (Task 4)
     # Savings Rate score (max 25 pts)
     savings_score_pts = min(25, max(0, int((savings_rate / 30.0) * 25))) if savings_rate > 0 else 0
     # Budget Usage score (max 20 pts)
-    budget_usage_pct = current_month_expense / total_budget_limit if total_budget_limit > 0 else 0
+    budget_usage_pct = budgeted_expenses / total_budget_limit if total_budget_limit > 0 else 0
     budget_score_pts = max(0, int(20 * (1.0 - budget_usage_pct))) if total_budget_limit > 0 else 15
-    # Debt ratio default score (max 15 pts)
-    debt_score_pts = 15
+    # Debt ratio score (max 15 pts) factoring in liabilities
+    if total_liabilities <= 0:
+        debt_score_pts = 15
+    elif current_month_income > 0:
+        debt_ratio = total_liabilities / (current_month_income * 12.0)
+        debt_score_pts = max(0, int(15 * (1.0 - min(debt_ratio, 1.0))))
+    else:
+        debt_score_pts = 5
     # Investment Growth score (max 15 pts)
     investment_score_pts = 15 if investment_returns > 0 else 10
     # Emergency Fund score (max 10 pts)
     emergency_score_pts = min(10, max(0, int((current_balance / 100000.0) * 10)))
-    # Subscription Control score (max 5 pts)
-    sub_count = db.query(Subscription).filter(Subscription.user_id == current_user.id, Subscription.is_active == True).count()
-    subscription_score_pts = 5 if sub_count < 5 else 3
+    # Subscription Control score (max 5 pts) factoring in subscription burden
+    if current_month_income > 0:
+        sub_ratio = upcoming_bills_cost / current_month_income
+        if sub_ratio <= 0.05:
+            subscription_score_pts = 5
+        elif sub_ratio <= 0.15:
+            subscription_score_pts = 3
+        else:
+            subscription_score_pts = 1
+    else:
+        sub_count = len(upcoming_subscriptions)
+        subscription_score_pts = 5 if sub_count < 5 else 3
     # Bill Payments score (max 5 pts)
     bill_score_pts = 5
     # Cash Flow Stability score (max 5 pts)
@@ -168,30 +238,35 @@ def get_dashboard_summary(
 
     health_score = min(100, max(0, savings_score_pts + budget_score_pts + debt_score_pts + investment_score_pts + emergency_score_pts + subscription_score_pts + bill_score_pts + cash_flow_score_pts))
 
-    # 7. Notifications Center: Ensure unread notifications list has active alert items if empty (Task 5)
-    notif_count = db.query(Notification).filter(Notification.user_id == current_user.id).count()
-    if notif_count == 0:
-        demo_notifs = [
-            Notification(user_id=current_user.id, title="Salary credited", message="Your monthly salary has been successfully credited.", type="general", is_read=False),
-            Notification(user_id=current_user.id, title="Budget warning", message="You have reached 88% of your Entertainment budget.", type="budget_alert", is_read=False),
-            Notification(user_id=current_user.id, title="Subscription due", message="Netflix subscription is due tomorrow.", type="bill_reminder", is_read=False),
-            Notification(user_id=current_user.id, title="Investment matured", message="Your FD investment has matured.", type="general", is_read=False)
-        ]
-        db.add_all(demo_notifs)
-        db.commit()
-
+    # 7. Notifications Center: Return real DB notifications only (no fake demo notifications)
     notifications = db.query(Notification).filter(
         Notification.user_id == current_user.id
     ).order_by(Notification.created_at.desc()).limit(15).all()
 
     unread_notifications_count = sum(1 for n in notifications if not n.is_read)
 
-    # 8. Upcoming Subscriptions / Bills
-    upcoming_subscriptions = db.query(Subscription).filter(
-        Subscription.user_id == current_user.id,
-        Subscription.is_active == True
-    ).all()
-    upcoming_bills_cost = sum(s.amount for s in upcoming_subscriptions)
+    # 8. Top Categories & Spending by Merchant scoped to current month
+    top_cat_rows = db.query(
+        Category.name,
+        func.sum(Transaction.amount).label("total")
+    ).join(Transaction, Transaction.category_id == Category.id).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.type == "expense",
+        Transaction.date >= month_start,
+        Transaction.date < next_month_start
+    ).group_by(Category.name).order_by(func.sum(Transaction.amount).desc()).limit(5).all()
+    top_categories = [{"name": row[0], "amount": round(float(row[1] or 0.0), 2)} for row in top_cat_rows]
+
+    merchant_spend_rows = db.query(
+        Merchant.name,
+        func.sum(Transaction.amount).label("total")
+    ).join(Transaction, Transaction.merchant_id == Merchant.id).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.type == "expense",
+        Transaction.date >= month_start,
+        Transaction.date < next_month_start
+    ).group_by(Merchant.name).order_by(func.sum(Transaction.amount).desc()).limit(5).all()
+    spending_by_merchant = [{"name": row[0], "amount": round(float(row[1] or 0.0), 2)} for row in merchant_spend_rows]
 
     # 9. Recent Activities (last 10 transactions) - Eagerly loaded to prevent N+1 queries
     recent_transactions_db = db.query(Transaction).options(
@@ -251,6 +326,7 @@ def get_dashboard_summary(
         "monthly_spending": round(current_month_expense, 2),
         "monthly_income": round(current_month_income, 2),
         "current_balance": round(current_balance, 2),
+        "net_worth": round(net_worth, 2),
         "budget_remaining": round(budget_remaining, 2),
         "total_budget_limit": round(total_budget_limit, 2),
         "has_budget": has_budget,
@@ -288,7 +364,9 @@ def get_dashboard_summary(
         ],
         "upcoming_bills_cost": round(upcoming_bills_cost, 2),
         "goals_summary": goals_summary,
-        "investments_summary": investments_summary
+        "investments_summary": investments_summary,
+        "top_categories": top_categories,
+        "spending_by_merchant": spending_by_merchant
     }
 
 # Dynamic Notification Operations (Task 5)
@@ -346,7 +424,7 @@ def mark_all_notifications_read(
 
 @router.get("/trends")
 def get_spending_trends(
-    days: int = Query(30),
+    days: int = Query(30, ge=1, le=366),
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
@@ -496,8 +574,8 @@ def get_fraud_warnings(
 
 @router.get("/top-merchants")
 def get_top_merchants(
-    limit: int = Query(10),
-    days: int = Query(90),
+    limit: int = Query(10, ge=1, le=100),
+    days: int = Query(90, ge=1, le=366),
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
@@ -569,6 +647,14 @@ def get_filtered_transactions_query(
     return query.order_by(Transaction.date.desc())
 
 
+def sanitize_csv_cell(val):
+    if val is None:
+        return ""
+    val_str = str(val)
+    if val_str and val_str[0] in ("=", "+", "-", "@"):
+        return "'" + val_str
+    return val
+
 @router.get("/export/csv")
 def export_csv(
     db: Session = Depends(get_db),
@@ -598,18 +684,18 @@ def export_csv(
         writer.writerow([
             t.id,
             t.date.strftime("%Y-%m-%d %H:%M"),
-            t.description or "",
-            t.merchant.name if t.merchant else "Unknown",
-            t.category.name if t.category else "Uncategorized",
+            sanitize_csv_cell(t.description or ""),
+            sanitize_csv_cell(t.merchant.name if t.merchant else "Unknown"),
+            sanitize_csv_cell(t.category.name if t.category else "Uncategorized"),
             t.amount,
-            t.type,
-            t.payment_method,
-            t.tags or "",
-            t.transaction_id or "",
-            t.reference_number or "",
-            t.bank or "",
-            t.balance or "",
-            t.time or ""
+            sanitize_csv_cell(t.type),
+            sanitize_csv_cell(t.payment_method),
+            sanitize_csv_cell(t.tags or ""),
+            sanitize_csv_cell(t.transaction_id or ""),
+            sanitize_csv_cell(t.reference_number or ""),
+            sanitize_csv_cell(t.bank or ""),
+            sanitize_csv_cell(t.balance or ""),
+            sanitize_csv_cell(t.time or "")
         ])
 
     output.seek(0)
@@ -655,18 +741,18 @@ def export_excel(
         ws.append([
             t.id,
             t.date.strftime("%Y-%m-%d %H:%M"),
-            t.description or "",
-            t.merchant.name if t.merchant else "Unknown",
-            t.category.name if t.category else "Uncategorized",
+            sanitize_csv_cell(t.description or ""),
+            sanitize_csv_cell(t.merchant.name if t.merchant else "Unknown"),
+            sanitize_csv_cell(t.category.name if t.category else "Uncategorized"),
             t.amount,
-            t.type,
-            t.payment_method,
-            t.tags or "",
-            t.transaction_id or "",
-            t.reference_number or "",
-            t.bank or "",
-            t.balance or "",
-            t.time or ""
+            sanitize_csv_cell(t.type),
+            sanitize_csv_cell(t.payment_method),
+            sanitize_csv_cell(t.tags or ""),
+            sanitize_csv_cell(t.transaction_id or ""),
+            sanitize_csv_cell(t.reference_number or ""),
+            sanitize_csv_cell(t.bank or ""),
+            sanitize_csv_cell(t.balance or ""),
+            sanitize_csv_cell(t.time or "")
         ])
 
     file_stream = io.BytesIO()
@@ -899,15 +985,19 @@ def generate_custom_report(
             Transaction.date < end_date
         ).scalar() or 0.0)
 
-        # Calculate deductions from PPF and NPS investments
+        # Calculate deductions from PPF and NPS investments (scoped to fiscal year period)
         ppf_deduction = float(db.query(func.sum(Investment.quantity * Investment.purchase_price)).filter(
             Investment.user_id == current_user.id,
-            Investment.asset_type == "PPF"
+            Investment.asset_type == "PPF",
+            Investment.purchase_date >= start_date,
+            Investment.purchase_date < end_date
         ).scalar() or 0.0)
 
         nps_deduction = float(db.query(func.sum(Investment.quantity * Investment.purchase_price)).filter(
             Investment.user_id == current_user.id,
-            Investment.asset_type == "NPS"
+            Investment.asset_type == "NPS",
+            Investment.purchase_date >= start_date,
+            Investment.purchase_date < end_date
         ).scalar() or 0.0)
 
         sec_80c = min(ppf_deduction, 150000.0)
@@ -943,8 +1033,8 @@ def generate_custom_report(
         if temp_income > 300000:
             tax += (temp_income - 300000) * 0.05
 
-        # Tax Rebate under 12(A) / new rules: if taxable income is <= 7L, tax is NIL (fully rebated)
-        if total_income <= 700000:
+        # Tax Rebate under Section 87A: if taxable income is <= 7L, tax is NIL (fully rebated)
+        if taxable_income <= 700000:
             tax = 0.0
 
         summary = {
@@ -1074,14 +1164,15 @@ def generate_custom_report(
     if format == "csv":
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow([title])
+        writer.writerow([sanitize_csv_cell(title)])
         writer.writerow([])
         writer.writerow(["SUMMARY METRICS"])
         for k, v in summary.items():
-            writer.writerow([k, v])
+            writer.writerow([sanitize_csv_cell(k), sanitize_csv_cell(v)])
         writer.writerow([])
-        writer.writerow(headers)
-        writer.writerows(rows)
+        writer.writerow([sanitize_csv_cell(h) for h in headers])
+        for row in rows:
+            writer.writerow([sanitize_csv_cell(c) for c in row])
         
         output.seek(0)
         return StreamingResponse(
@@ -1100,15 +1191,15 @@ def generate_custom_report(
         ws = wb.active
         ws.title = report_type.title()[:30]
         
-        ws.append([title])
+        ws.append([sanitize_csv_cell(title)])
         ws.append([])
         ws.append(["SUMMARY METRICS"])
         for k, v in summary.items():
-            ws.append([k, v])
+            ws.append([sanitize_csv_cell(k), sanitize_csv_cell(v)])
         ws.append([])
-        ws.append(headers)
+        ws.append([sanitize_csv_cell(h) for h in headers])
         for row in rows:
-            ws.append(row)
+            ws.append([sanitize_csv_cell(c) for c in row])
             
         file_stream = io.BytesIO()
         wb.save(file_stream)
@@ -1462,9 +1553,23 @@ def get_dashboard_ai_summary(
         ).scalar() or 0.0)
 
         if food_spent > groceries_spent and food_spent > 0:
+            dining_tx = db.query(Transaction).options(joinedload(Transaction.merchant)).join(Category, Transaction.category_id == Category.id).filter(
+                Transaction.user_id == current_user.id,
+                Category.name.ilike("%food%"),
+                Transaction.type == "expense",
+                Transaction.date >= month_start,
+                Transaction.date < next_month_start
+            ).order_by(Transaction.amount.desc()).first()
+
+            merchant_name = dining_tx.merchant.name if (dining_tx and dining_tx.merchant) else None
+            if merchant_name:
+                desc = f"You spent more on {merchant_name} / dining out than groceries this month."
+            else:
+                desc = "You spent more on dining out than groceries this month."
+
             insights.append({
                 "title": "High Dining Expenses",
-                "description": "You spent more on Swiggy / dining out than groceries this month.",
+                "description": desc,
                 "priority": "Medium",
                 "category": "Expense",
                 "confidence": 93,

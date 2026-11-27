@@ -4,19 +4,20 @@ from datetime import datetime, timezone
 from typing import List
 
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_active_user
 from app.models.user import User
 from app.models.account import Account
 from app.models.transfer import Transfer
 from app.models.transaction import Transaction
 from app.schemas.transfer import TransferCreate, TransferOut
+from decimal import Decimal
 
 router = APIRouter()
 
 @router.get("/", response_model=List[TransferOut])
 def get_user_transfers(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Retrieve all internal transfers for current user."""
     transfers = db.query(Transfer).filter(Transfer.user_id == current_user.id).order_by(Transfer.transfer_date.desc()).all()
@@ -26,7 +27,7 @@ def get_user_transfers(
 def create_transfer(
     transfer_in: TransferCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Create double-entry account transfer."""
     if transfer_in.source_account_id == transfer_in.destination_account_id:
@@ -41,6 +42,14 @@ def create_transfer(
     if transfer_in.amount <= 0:
         raise HTTPException(status_code=400, detail="Transfer amount must be positive")
 
+    fee = getattr(transfer_in, "fee", Decimal("0.00")) or Decimal("0.00")
+    total_deduction = Decimal(str(transfer_in.amount)) + Decimal(str(fee))
+    if Decimal(str(source_acc.balance)) < total_deduction:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient funds in source account. Available: ₹{source_acc.balance}, Required: ₹{total_deduction}"
+        )
+
     transfer_time = transfer_in.transfer_date or datetime.now(timezone.utc)
 
     transfer = Transfer(
@@ -48,6 +57,7 @@ def create_transfer(
         source_account_id=source_acc.id,
         destination_account_id=dest_acc.id,
         amount=transfer_in.amount,
+        fee=fee,
         transfer_date=transfer_time,
         reference_number=transfer_in.reference_number,
         notes=transfer_in.notes,
@@ -55,7 +65,7 @@ def create_transfer(
     db.add(transfer)
     db.flush()
 
-    source_acc.balance -= transfer_in.amount
+    source_acc.balance -= total_deduction
     dest_acc.balance += transfer_in.amount
 
     debit_tx = Transaction(

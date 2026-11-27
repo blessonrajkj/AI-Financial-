@@ -24,7 +24,8 @@ from app.services.investment_service import (
     add_sell_transaction,
     add_dividend_transaction,
     ensure_legacy_transactions,
-    to_decimal
+    to_decimal,
+    calculate_real_xirr
 )
 
 router = APIRouter()
@@ -129,10 +130,25 @@ def get_investments(
         if p_val > 0 and c_val > 0:
             cagr = ((c_val / p_val) ** (1 / years) - 1.0) * 100.0
             
-        xirr = 0.0
-        total_return_with_divs = c_val + divs
-        if p_val > 0 and total_return_with_divs > 0:
-            xirr = ((total_return_with_divs / p_val) ** (1 / years) - 1.0) * 100.0
+        # Collect investment transactions for real XIRR calculation
+        inv_txs = db.query(InvestmentTransaction).filter(
+            InvestmentTransaction.investment_id == inv.id,
+            InvestmentTransaction.user_id == current_user.id
+        ).order_by(InvestmentTransaction.transaction_date.asc()).all()
+
+        cashflows = []
+        for itx in inv_txs:
+            t_amt = float(itx.total_amount)
+            if itx.transaction_type == "BUY":
+                cashflows.append((itx.transaction_date, -t_amt))
+            elif itx.transaction_type in ("SELL", "DIVIDEND"):
+                cashflows.append((itx.transaction_date, t_amt))
+
+        # Add current terminal value as an inflow today
+        if c_val > 0:
+            cashflows.append((datetime.utcnow(), c_val))
+
+        xirr = calculate_real_xirr(cashflows, fallback_cagr=cagr)
             
         risk = RISK_SCORES.get(inv.asset_type, 4)
         
@@ -172,14 +188,6 @@ def get_investments(
     
     portfolio_risk = (weighted_risk_sum / total_current_val) if total_current_val > 0 else 0.0
     
-    allocation = {}
-    for inv in investments:
-        c_val = float(inv.quantity) * float(inv.current_price)
-        pct = (c_val / total_current_val * 100.0) if total_current_val > 0 else 0.0
-        allocation[inv.asset_type] = allocation.get(inv.asset_type, 0.0) + pct
-        
-    allocation_list = [{"name": k, "value": round(v, 1)} for k, v in allocation.items()]
-    
     # Include India Post summary for complete wealth engine integration
     india_post_items = db.query(IndiaPostInvestment).filter(
         IndiaPostInvestment.user_id == current_user.id
@@ -188,20 +196,18 @@ def get_investments(
     active_ip = [ip for ip in india_post_items if ip.status == "Active"]
     total_india_post_val = sum(float(ip.amount) for ip in active_ip)
     
-    for ip in active_ip:
-        amt = float(ip.amount)
-        if total_current_val > 0:
-            pct = (amt / (total_current_val + total_india_post_val)) * 100.0
-        else:
-            pct = 100.0 / max(len(active_ip), 1)
-        found = False
-        for alloc_item in allocation_list:
-            if alloc_item["name"] == "Post Office":
-                alloc_item["value"] = round(alloc_item["value"] + pct, 1)
-                found = True
-                break
-        if not found and amt > 0:
-            allocation_list.append({"name": "Post Office", "value": round(pct, 1)})
+    grand_total = total_current_val + total_india_post_val
+    allocation = {}
+    for inv in investments:
+        c_val = float(inv.quantity) * float(inv.current_price)
+        pct = (c_val / grand_total * 100.0) if grand_total > 0 else 0.0
+        allocation[inv.asset_type] = allocation.get(inv.asset_type, 0.0) + pct
+        
+    allocation_list = [{"name": k, "value": round(v, 1)} for k, v in allocation.items()]
+    
+    if total_india_post_val > 0 and grand_total > 0:
+        post_office_pct = (total_india_post_val / grand_total) * 100.0
+        allocation_list.append({"name": "Post Office", "value": round(post_office_pct, 1)})
 
     return {
         "summary": {
@@ -288,6 +294,9 @@ def create_investment(
     Creates a new investment OR adds a BUY lot transaction if matching holding already exists.
     Enforces duplicate holding prevention & weighted average cost calculation.
     """
+    if inv_in.quantity <= 0 or inv_in.purchase_price <= 0:
+        raise HTTPException(status_code=400, detail="Quantity and purchase price must be greater than zero")
+
     matched_inv = find_matching_investment(
         db=db,
         user_id=current_user.id,
@@ -379,6 +388,9 @@ def buy_investment_lot(
     """
     Adds a new BUY lot to an existing holding.
     """
+    if lot_in.units <= 0 or lot_in.price_per_unit <= 0:
+        raise HTTPException(status_code=400, detail="Units and price per unit must be greater than zero")
+
     db_inv = db.query(Investment).filter(
         Investment.id == inv_id,
         Investment.user_id == current_user.id
@@ -414,6 +426,9 @@ def sell_investment_lot(
     """
     Executes a SELL lot from an existing holding using Weighted Average Cost Basis.
     """
+    if lot_in.units <= 0 or lot_in.price_per_unit <= 0:
+        raise HTTPException(status_code=400, detail="Units and price per unit must be greater than zero")
+
     db_inv = db.query(Investment).filter(
         Investment.id == inv_id,
         Investment.user_id == current_user.id
@@ -468,6 +483,21 @@ def update_investment(
             setattr(db_inv, field, val)
         
     db.commit()
+
+    # Sync opening/primary InvestmentTransaction if quantity or purchase price changed
+    if "quantity" in update_data or "purchase_price" in update_data:
+        ensure_legacy_transactions(db, db_inv)
+        buy_tx = db.query(InvestmentTransaction).filter(
+            InvestmentTransaction.investment_id == db_inv.id,
+            InvestmentTransaction.transaction_type == "BUY"
+        ).order_by(InvestmentTransaction.transaction_date.asc()).first()
+        if buy_tx:
+            if "quantity" in update_data and update_data["quantity"] is not None:
+                buy_tx.units = db_inv.quantity
+            if "purchase_price" in update_data and update_data["purchase_price"] is not None:
+                buy_tx.price_per_unit = db_inv.purchase_price
+            buy_tx.total_amount = buy_tx.units * buy_tx.price_per_unit
+            db.commit()
     
     if "symbol" in update_data or "exchange" in update_data:
         from app.services.market_data import market_data_service
