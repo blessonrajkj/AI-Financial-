@@ -80,9 +80,25 @@ def delete_account(
     current_user: User = Depends(get_current_user),
 ):
     """Delete an account."""
+    from sqlalchemy import or_
+    from app.models.transfer import Transfer
+
     account = db.query(Account).filter(Account.id == account_id, Account.user_id == current_user.id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
+
+    has_transfers = db.query(Transfer).filter(
+        or_(
+            Transfer.source_account_id == account.id,
+            Transfer.destination_account_id == account.id
+        )
+    ).first()
+    if has_transfers:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete account with existing transfers; reassign or archive instead"
+        )
+
     db.delete(account)
     db.commit()
     return None

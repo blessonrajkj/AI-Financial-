@@ -78,6 +78,13 @@ class ChatResponse(BaseModel):
 class VoiceTranscript(BaseModel):
     transcript: str
 
+class VoiceTransactionConfirm(BaseModel):
+    voice_log_id: int
+    amount: float
+    merchant_name: str
+    category_name: str
+    description: str
+
 class VoiceLogOut(BaseModel):
     id: int
     transcript: str

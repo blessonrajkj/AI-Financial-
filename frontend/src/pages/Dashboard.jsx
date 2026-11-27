@@ -23,6 +23,10 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Mic,
+  MicOff,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -197,6 +201,88 @@ const Dashboard = () => {
   const [isSpeaking, setIsSpeaking]         = useState(false);
   const navigate = useNavigate();
 
+  // Voice / Quick Add State
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [voiceText, setVoiceText] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceParsing, setVoiceParsing] = useState(false);
+  const [voiceConfirming, setVoiceConfirming] = useState(false);
+  const [parsedData, setParsedData] = useState(null);
+  const [voiceError, setVoiceError] = useState('');
+  const [voiceSuccess, setVoiceSuccess] = useState('');
+
+  const startRecording = () => {
+    setVoiceError('');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceError('Speech recognition is not supported in this browser. Please type your entry below.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = (e) => {
+      setIsRecording(false);
+      setVoiceError(`Voice recognition error: ${e.error}`);
+    };
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      setVoiceText(transcript);
+      handleParseVoice(transcript);
+    };
+    recognition.start();
+  };
+
+  const handleParseVoice = async (textToParse) => {
+    const text = textToParse || voiceText;
+    if (!text.trim()) {
+      setVoiceError('Please speak or type a transaction description.');
+      return;
+    }
+    setVoiceParsing(true);
+    setVoiceError('');
+    try {
+      const res = await axios.post(`${API_URL}/ai/voice-entry`, { transcript: text });
+      setParsedData(res.data);
+    } catch (err) {
+      setVoiceError(err.response?.data?.detail || 'Failed to parse voice/text entry.');
+    } finally {
+      setVoiceParsing(false);
+    }
+  };
+
+  const handleConfirmVoice = async () => {
+    if (!parsedData) return;
+    setVoiceConfirming(true);
+    setVoiceError('');
+    try {
+      await axios.post(`${API_URL}/ai/voice-entry/confirm`, {
+        voice_log_id: parsedData.voice_log_id,
+        amount: Number(parsedData.amount) || 0,
+        merchant_name: parsedData.merchant_name || 'Unknown',
+        category_name: parsedData.category_name || 'Miscellaneous',
+        description: parsedData.description || voiceText
+      });
+      setVoiceSuccess('Transaction added successfully!');
+      setTimeout(() => {
+        setShowVoiceModal(false);
+        setParsedData(null);
+        setVoiceText('');
+        setVoiceSuccess('');
+        fetchSummary();
+        fetchTrends();
+      }, 1200);
+    } catch (err) {
+      setVoiceError(err.response?.data?.detail || 'Failed to save transaction.');
+    } finally {
+      setVoiceConfirming(false);
+    }
+  };
+
   const toggleSpeak = () => {
     if (isSpeaking) {
       window.speechSynthesis.cancel();
@@ -365,6 +451,15 @@ const Dashboard = () => {
               >
                 <ScanLine className="w-3.5 h-3.5 text-textMuted" />
                 <span>Scan</span>
+              </button>
+
+              <button
+                onClick={() => setShowVoiceModal(true)}
+                title="Quick Add via Voice or Text"
+                className="px-3 py-2 sm:py-1.5 min-h-[40px] sm:min-h-0 text-xs font-bold rounded-xl bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-all shadow-sm flex items-center justify-center gap-1.5"
+              >
+                <Mic className="w-3.5 h-3.5" />
+                <span>Voice</span>
               </button>
 
               <button
@@ -963,19 +1058,20 @@ const Dashboard = () => {
       {/* ── Quick Actions strip ── */}
       <div className="bg-cardBg border border-borderColor rounded-2xl p-5">
         <h2 className="text-sm font-bold text-textPrimary mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           {[
-            { label: 'Add Transaction', icon: Plus,        path: '/transactions', accent: 'primary' },
-            { label: 'Import',          icon: UploadCloud, path: '/import',        accent: 'primary' },
-            { label: 'Scan Receipt',    icon: ScanLine,    path: '/scanner',       accent: 'primary' },
-            { label: 'UPI Scan',        icon: Smartphone,  path: '/upi-scanner',   accent: 'primary' },
-            { label: 'Investments',     icon: TrendingUp,  path: '/investments',   accent: 'primary' },
-            { label: 'Savings Goal',    icon: Target,      path: '/savings',       accent: 'primary' },
-            { label: 'Set Budget',      icon: Wallet,      path: '/budgets',       accent: 'primary' },
-          ].map(({ label, icon: Icon, path }) => (
+            { label: 'Voice Add',       icon: Mic,         action: () => setShowVoiceModal(true), accent: 'primary' },
+            { label: 'Add Transaction', icon: Plus,        action: () => navigate('/transactions'), accent: 'primary' },
+            { label: 'Import',          icon: UploadCloud, action: () => navigate('/import'),        accent: 'primary' },
+            { label: 'Scan Receipt',    icon: ScanLine,    action: () => navigate('/scanner'),       accent: 'primary' },
+            { label: 'UPI Scan',        icon: Smartphone,  action: () => navigate('/upi-scanner'),   accent: 'primary' },
+            { label: 'Investments',     icon: TrendingUp,  action: () => navigate('/investments'),   accent: 'primary' },
+            { label: 'Savings Goal',    icon: Target,      action: () => navigate('/savings'),       accent: 'primary' },
+            { label: 'Set Budget',      icon: Wallet,      action: () => navigate('/budgets'),       accent: 'primary' },
+          ].map(({ label, icon: Icon, action }) => (
             <button
-              key={path}
-              onClick={() => navigate(path)}
+              key={label}
+              onClick={action}
               className="flex flex-col items-center gap-2 p-2.5 sm:p-3.5 bg-background border border-borderColor hover:border-primary/40 hover:bg-hoverBg rounded-xl text-textSecondary hover:text-primary transition-all group"
             >
               <Icon className="w-4.5 h-4.5" />
@@ -984,6 +1080,148 @@ const Dashboard = () => {
           ))}
         </div>
       </div>
+
+      {/* ── Voice / Quick Add Modal ── */}
+      {showVoiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-cardBg border border-borderColor rounded-2xl w-full max-w-lg shadow-2xl p-6 relative overflow-hidden">
+            <button
+              onClick={() => { setShowVoiceModal(false); setParsedData(null); setVoiceError(''); }}
+              className="absolute top-4 right-4 p-1.5 text-textMuted hover:text-textPrimary rounded-lg hover:bg-hoverBg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-primary/10 text-primary rounded-xl">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-textPrimary">AI Voice & Quick Entry</h3>
+                <p className="text-xs text-textSecondary">Speak or type a quick transaction (e.g., "Spent 450 on petrol at HPCL")</p>
+              </div>
+            </div>
+
+            {voiceError && (
+              <div className="p-3 mb-4 rounded-xl bg-danger/10 border border-danger/30 text-danger text-xs font-medium flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{voiceError}</span>
+              </div>
+            )}
+
+            {voiceSuccess && (
+              <div className="p-3 mb-4 rounded-xl bg-success/10 border border-success/30 text-success text-xs font-medium flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{voiceSuccess}</span>
+              </div>
+            )}
+
+            {/* Input & Record controls */}
+            <div className="space-y-3 mb-4">
+              <div className="relative">
+                <textarea
+                  rows="3"
+                  value={voiceText}
+                  onChange={(e) => setVoiceText(e.target.value)}
+                  placeholder="e.g. Paid 850 for dinner at Swiggy yesterday..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-borderColor bg-surface text-textPrimary text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={startRecording}
+                  disabled={isRecording || voiceParsing}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all ${
+                    isRecording
+                      ? 'bg-danger text-white border-danger animate-pulse'
+                      : 'bg-surface hover:bg-hoverBg border-borderColor text-textPrimary'
+                  }`}
+                >
+                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-primary" />}
+                  <span>{isRecording ? 'Listening...' : 'Record Voice'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleParseVoice()}
+                  disabled={voiceParsing || !voiceText.trim()}
+                  className="py-2 px-4 rounded-xl text-xs font-bold bg-primary hover:bg-primaryHover disabled:opacity-50 text-white transition-all flex items-center gap-1.5"
+                >
+                  {voiceParsing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  <span>{voiceParsing ? 'Parsing...' : 'Analyze'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Parsed Candidates Preview */}
+            {parsedData && (
+              <div className="p-4 rounded-xl bg-surface border border-borderColor space-y-3 mb-4">
+                <div className="text-xs font-bold text-textSecondary uppercase tracking-wider">Candidate Details</div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-textMuted block mb-1">Amount (₹)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={parsedData.amount ?? ''}
+                      onChange={(e) => setParsedData({ ...parsedData, amount: e.target.value })}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-borderColor bg-cardBg text-textPrimary text-xs font-semibold focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-textMuted block mb-1">Category</label>
+                    <input
+                      type="text"
+                      value={parsedData.category_name ?? ''}
+                      onChange={(e) => setParsedData({ ...parsedData, category_name: e.target.value })}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-borderColor bg-cardBg text-textPrimary text-xs font-semibold focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-textMuted block mb-1">Merchant</label>
+                    <input
+                      type="text"
+                      value={parsedData.merchant_name ?? ''}
+                      onChange={(e) => setParsedData({ ...parsedData, merchant_name: e.target.value })}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-borderColor bg-cardBg text-textPrimary text-xs font-semibold focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-textMuted block mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={parsedData.description ?? ''}
+                      onChange={(e) => setParsedData({ ...parsedData, description: e.target.value })}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-borderColor bg-cardBg text-textPrimary text-xs font-semibold focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setParsedData(null)}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg text-textMuted hover:text-textPrimary hover:bg-hoverBg transition-colors"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmVoice}
+                    disabled={voiceConfirming}
+                    className="px-4 py-1.5 text-xs font-bold rounded-lg bg-success hover:bg-success/90 text-white shadow-sm transition-all flex items-center gap-1.5"
+                  >
+                    {voiceConfirming ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                    <span>Confirm & Add Transaction</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

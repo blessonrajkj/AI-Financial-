@@ -77,8 +77,12 @@ export const AuthProvider = ({ children }) => {
       const res = await axios.get(`${API_URL}/auth/me`);
       setUser(res.data);
     } catch (err) {
-      console.error("Session verification failed, logging out", err);
-      logout();
+      if (err.response && err.response.status === 401) {
+        console.error("Session verification failed, logging out", err);
+        logout();
+      } else {
+        console.warn("Could not fetch user profile (network/rate limit/server error); keeping session", err);
+      }
     } finally {
       setLoading(false);
     }

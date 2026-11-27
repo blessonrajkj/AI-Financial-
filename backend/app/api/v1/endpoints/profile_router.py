@@ -25,13 +25,33 @@ from app.schemas.profile_schema import (
 
 router = APIRouter()
 
+def generate_unique_username(db: Session, base_name: str, exclude_user_id: int | None = None) -> str:
+    cleaned = re.sub(r'[^a-zA-Z0-9_]', '', base_name.lower().replace(' ', '_')) or 'user'
+    candidate = cleaned
+    query = db.query(UserProfile).filter(UserProfile.username == candidate)
+    if exclude_user_id:
+        query = query.filter(UserProfile.user_id != exclude_user_id)
+    if not query.first():
+        return candidate
+    
+    import random
+    while True:
+        candidate = f"{cleaned}_{random.randint(1000, 9999)}"
+        query = db.query(UserProfile).filter(UserProfile.username == candidate)
+        if exclude_user_id:
+            query = query.filter(UserProfile.user_id != exclude_user_id)
+        if not query.first():
+            return candidate
+
 # Helper: Ensure profile & settings row exists in DB
 def get_or_create_profile_and_settings(db: Session, user: User):
     profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
     if not profile:
+        base_name = user.full_name or user.email.split('@')[0]
+        unique_uname = generate_unique_username(db, base_name)
         profile = UserProfile(
             user_id=user.id,
-            username=user.email.split('@')[0],
+            username=unique_uname,
             preferred_currency="INR",
             preferred_language="English",
             time_zone="Asia/Kolkata"
@@ -110,11 +130,32 @@ def update_profile(
     if "full_name" in update_data:
         del update_data["full_name"]
 
+    if "username" in update_data and update_data["username"]:
+        requested_username = update_data["username"].strip()
+        existing = db.query(UserProfile).filter(
+            UserProfile.username == requested_username,
+            UserProfile.user_id != current_user.id
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Username '{requested_username}' is already taken."
+            )
+        update_data["username"] = requested_username
+
     for field, value in update_data.items():
         setattr(profile, field, value)
 
-    db.add(profile)
-    db.commit()
+    from sqlalchemy.exc import IntegrityError
+    try:
+        db.add(profile)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username or unique field conflict occurred."
+        )
     db.refresh(profile)
     db.refresh(current_user)
 

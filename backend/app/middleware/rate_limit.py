@@ -40,7 +40,8 @@ def determine_tier(path: str) -> Optional[str]:
         if path == exempt or path == exempt + "/":
             return None
             
-    if "/auth/" in path:
+    clean_path = path.rstrip("/")
+    if clean_path.endswith(("/auth/login", "/auth/register", "/auth/change-password")):
         return "auth"
     elif "/upload" in path or "/receipts" in path or "/import" in path:
         return "upload"

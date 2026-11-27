@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from app.schemas.transaction import CategoryOut
 
 class BudgetBase(BaseModel):
     category_id: int
     amount: float
-    month: int
+    month: int = Field(..., ge=1, le=12)
     year: int
 
 class BudgetCreate(BudgetBase):
@@ -14,7 +14,7 @@ class BudgetCreate(BudgetBase):
 class BudgetUpdate(BaseModel):
     category_id: int | None = None
     amount: float | None = None
-    month: int | None = None
+    month: int | None = Field(None, ge=1, le=12)
     year: int | None = None
 
 class BudgetOut(BudgetBase):

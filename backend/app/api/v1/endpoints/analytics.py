@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, case
 from datetime import datetime, timedelta
+from decimal import Decimal
 import csv
 import io
 import os
@@ -788,26 +789,30 @@ def generate_custom_report(
     
     if "-" in period:
         try:
-            year_str, month_str = period.split("-")
-            year = int(year_str)
-            month = int(month_str)
+            parsed_dt = datetime.strptime(period, "%Y-%m")
+            year = parsed_dt.year
+            month = parsed_dt.month
             start_date = datetime(year, month, 1)
-            # next month start
             if month == 12:
                 end_date = datetime(year + 1, 1, 1)
             else:
                 end_date = datetime(year, month + 1, 1)
-        except Exception:
-            start_date = datetime(year, month, 1)
-            end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid period format. Expected 'YYYY-MM' or 'YYYY'."
+            )
     else:
         try:
-            year = int(period)
+            parsed_dt = datetime.strptime(period, "%Y")
+            year = parsed_dt.year
             start_date = datetime(year, 1, 1)
             end_date = datetime(year + 1, 1, 1)
-        except Exception:
-            start_date = datetime(year, 1, 1)
-            end_date = datetime(year + 1, 1, 1)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid period format. Expected 'YYYY-MM' or 'YYYY'."
+            )
 
     title = f"{report_type.replace('_', ' ').title()} Report ({period})"
     headers = []
@@ -959,37 +964,45 @@ def generate_custom_report(
     elif report_type == "investment":
         investments = db.query(Investment).filter(Investment.user_id == current_user.id).all()
         
-        total_p = 0.0
-        total_c = 0.0
-        total_divs = 0.0
+        total_p = Decimal("0.00")
+        total_c = Decimal("0.00")
+        total_divs = Decimal("0.00")
         
         headers = ["Asset Name", "Type", "Holdings", "Purchase Value", "Current Value", "CAGR %", "Dividends Received"]
         for inv in investments:
-            p_val = inv.quantity * inv.purchase_price
-            c_val = inv.quantity * inv.current_price
+            qty = Decimal(str(inv.quantity or 0))
+            p_price = Decimal(str(inv.purchase_price or 0))
+            c_price = Decimal(str(inv.current_price or inv.purchase_price or 0))
+            divs = Decimal(str(inv.dividends_received or 0))
+
+            p_val = qty * p_price
+            c_val = qty * c_price
             total_p += p_val
             total_c += c_val
-            total_divs += inv.dividends_received
+            total_divs += divs
             
             # CAGR
             years = 1.0
             if inv.purchase_date:
                 delta = datetime.utcnow() - inv.purchase_date.replace(tzinfo=None)
                 years = max(delta.days / 365.25, 0.1)
-            cagr = ((c_val / p_val) ** (1 / years) - 1.0) * 100.0 if p_val > 0 and c_val > 0 else 0.0
+
+            p_float = float(p_val)
+            c_float = float(c_val)
+            cagr = ((c_float / p_float) ** (1 / years) - 1.0) * 100.0 if p_float > 0 and c_float > 0 else 0.0
             
             rows.append([
                 inv.asset_name,
                 inv.asset_type,
-                f"{inv.quantity:.2f}",
+                f"{float(qty):.2f}",
                 f"₹{p_val:,.2f}",
                 f"₹{c_val:,.2f}",
                 f"{cagr:.1f}%",
-                f"₹{inv.dividends_received:,.2f}"
+                f"₹{divs:,.2f}"
             ])
             
         pl = total_c - total_p
-        pl_pct = (pl / total_p * 100.0) if total_p > 0 else 0.0
+        pl_pct = (float(pl) / float(total_p) * 100.0) if total_p > Decimal("0") else 0.0
         
         summary = {
             "Total Invested Capital": f"₹{total_p:,.2f}",
@@ -1001,9 +1014,9 @@ def generate_custom_report(
     elif report_type == "savings":
         goals = db.query(SavingsGoal).filter(SavingsGoal.user_id == current_user.id).all()
         
-        total_saved = sum(g.current_amount for g in goals)
-        total_target = sum(g.target_amount for g in goals)
-        overall_progress = (total_saved / total_target * 100.0) if total_target > 0 else 0.0
+        total_saved = sum((Decimal(str(g.current_amount or 0)) for g in goals), Decimal("0.00"))
+        total_target = sum((Decimal(str(g.target_amount or 0)) for g in goals), Decimal("0.00"))
+        overall_progress = (float(total_saved) / float(total_target) * 100.0) if total_target > Decimal("0") else 0.0
 
         summary = {
             "Active Savings Plans": len(goals),
@@ -1014,13 +1027,15 @@ def generate_custom_report(
 
         headers = ["Goal Objective", "Target Amount", "Current Amount Saved", "% Completed", "Target Date"]
         for g in goals:
-            pct = (g.current_amount / g.target_amount * 100.0) if g.target_amount > 0 else 0.0
+            g_tgt = Decimal(str(g.target_amount or 0))
+            g_curr = Decimal(str(g.current_amount or 0))
+            pct = (float(g_curr) / float(g_tgt) * 100.0) if g_tgt > Decimal("0") else 0.0
             rows.append([
                 g.name,
-                f"₹{g.target_amount:,.2f}",
-                f"₹{g.current_amount:,.2f}",
+                f"₹{g_tgt:,.2f}",
+                f"₹{g_curr:,.2f}",
                 f"{pct:.1f}%",
-                g.target_date.strftime("%Y-%m-%d")
+                g.target_date.strftime("%Y-%m-%d") if g.target_date else "N/A"
             ])
 
     elif report_type == "budget_performance":

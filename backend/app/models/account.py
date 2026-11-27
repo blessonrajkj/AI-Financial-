@@ -19,6 +19,6 @@ class Account(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
     user = relationship("User", back_populates="accounts")
-    transactions = relationship("Transaction", back_populates="account", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="account")
     source_transfers = relationship("Transfer", foreign_keys="Transfer.source_account_id", back_populates="source_account")
     destination_transfers = relationship("Transfer", foreign_keys="Transfer.destination_account_id", back_populates="destination_account")

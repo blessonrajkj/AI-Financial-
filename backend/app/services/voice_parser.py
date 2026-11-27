@@ -20,9 +20,11 @@ class VoiceParser:
         # 1. Attempt LLM Parsing if configured
         if self.model_initialized:
             try:
-                import google.generativeai as genai
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                prompt = f"""
+                model_name = getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash")
+                try:
+                    from google import genai
+                    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                    prompt = f"""
 You are an expert financial transaction data extractor. Extract transaction details from the following voice transcript text. Return ONLY a valid JSON string (no markdown formatting, no ```json) containing the keys:
 - amount: float or null
 - merchant_name: string or null
@@ -31,8 +33,22 @@ You are an expert financial transaction data extractor. Extract transaction deta
 
 Transcript: "{transcript}"
 """
-                response = model.generate_content(prompt)
-                text_response = response.text.strip()
+                    response = client.models.generate_content(model=model_name, contents=prompt)
+                    text_response = response.text.strip()
+                except Exception:
+                    import google.generativeai as genai
+                    model = genai.GenerativeModel(model_name)
+                    prompt = f"""
+You are an expert financial transaction data extractor. Extract transaction details from the following voice transcript text. Return ONLY a valid JSON string (no markdown formatting, no ```json) containing the keys:
+- amount: float or null
+- merchant_name: string or null
+- category_keyword: string (like petrol, dining, groceries, rent) or null
+- description: string
+
+Transcript: "{transcript}"
+"""
+                    response = model.generate_content(prompt)
+                    text_response = response.text.strip()
                 # Clean markdown blocks if Gemini outputs them anyway
                 text_response = re.sub(r"```(?:json)?|```", "", text_response).strip()
                 

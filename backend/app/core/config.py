@@ -51,6 +51,7 @@ class Settings(BaseSettings):
 
     # AI Keys
     GEMINI_API_KEY: str | None = os.environ.get("GEMINI_API_KEY", None)
+    GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 
     # Storage configuration
     UPLOAD_DIR: str = os.environ.get("UPLOAD_DIR", "uploads")

@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from datetime import datetime, timedelta
+from decimal import Decimal
 import json
 
 from app.api import deps
@@ -13,7 +15,7 @@ from app.models.category_merchant import Category, Merchant
 from app.services.chatbot_service import chatbot_service
 from app.services.voice_parser import voice_parser
 from app.services.ml_categorizer import ml_categorizer
-from app.schemas.misc import ChatQuery, ChatResponse, VoiceTranscript, VoiceLogOut
+from app.schemas.misc import ChatQuery, ChatResponse, VoiceTranscript, VoiceLogOut, VoiceTransactionConfirm
 
 router = APIRouter()
 
@@ -75,37 +77,37 @@ def parse_voice_transaction(
 
 @router.post("/voice-entry/confirm", status_code=status.HTTP_201_CREATED)
 def confirm_voice_transaction(
-    voice_log_id: int,
-    amount: float,
-    merchant_name: str,
-    category_name: str,
-    description: str,
+    payload: VoiceTransactionConfirm,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
     # Verify voice log
     log = db.query(VoiceLog).filter(
-        VoiceLog.id == voice_log_id, VoiceLog.user_id == current_user.id
+        VoiceLog.id == payload.voice_log_id, VoiceLog.user_id == current_user.id
     ).first()
     if not log:
         raise HTTPException(status_code=404, detail="Voice transcript log not found")
         
-    # Find or create category
+    # Find or create category (scoped to user or global defaults, escaping SQL wildcards)
+    escaped_cat = payload.category_name.replace("%", "\\%").replace("_", "\\_")
     category = db.query(Category).filter(
-        Category.name.ilike(category_name)
+        Category.name.ilike(escaped_cat),
+        or_(Category.user_id.is_(None), Category.user_id == current_user.id)
     ).first()
     if not category:
-        category = Category(name=category_name, type="expense", user_id=current_user.id)
+        category = Category(name=payload.category_name, type="expense", user_id=current_user.id)
         db.add(category)
         db.commit()
         db.refresh(category)
         
-    # Find or create merchant
+    # Find or create merchant (scoped to user or global defaults, escaping SQL wildcards)
+    escaped_merch = payload.merchant_name.replace("%", "\\%").replace("_", "\\_")
     merchant = db.query(Merchant).filter(
-        Merchant.name.ilike(merchant_name)
+        Merchant.name.ilike(escaped_merch),
+        or_(Merchant.user_id.is_(None), Merchant.user_id == current_user.id)
     ).first()
     if not merchant:
-        merchant = Merchant(name=merchant_name, user_id=current_user.id, default_category_id=category.id)
+        merchant = Merchant(name=payload.merchant_name, user_id=current_user.id, default_category_id=category.id)
         db.add(merchant)
         db.commit()
         db.refresh(merchant)
@@ -113,9 +115,9 @@ def confirm_voice_transaction(
     # Save transaction
     transaction = Transaction(
         user_id=current_user.id,
-        amount=amount,
+        amount=Decimal(str(payload.amount)),
         date=datetime.now(),
-        description=description,
+        description=payload.description,
         category_id=category.id,
         merchant_id=merchant.id,
         type="expense",
@@ -152,39 +154,40 @@ def get_insights(
     recommendations = []
     
     # Calculate spending parameters
-    amounts = [t.amount for t in transactions]
+    amounts = [Decimal(str(t.amount)) for t in transactions]
     total_spent = sum(amounts)
     avg_spent = total_spent / len(transactions)
-    largest_transaction = max(transactions, key=lambda x: x.amount)
+    largest_transaction = max(transactions, key=lambda x: Decimal(str(x.amount)))
     
-    insights.append(f"Your average purchase size is {round(avg_spent, 2)}.")
-    insights.append(f"Your largest recent expense was {largest_transaction.amount} on {largest_transaction.date.strftime('%Y-%m-%d')} for {largest_transaction.merchant.name if largest_transaction.merchant else 'Unknown'}.")
+    insights.append(f"Your average purchase size is ₹{round(avg_spent, 2)}.")
+    insights.append(f"Your largest recent expense was ₹{largest_transaction.amount} on {largest_transaction.date.strftime('%Y-%m-%d')} for {largest_transaction.merchant.name if largest_transaction.merchant else 'Unknown'}.")
     
     # Analyze weekend vs weekday spending
-    weekend_sum = 0
-    weekday_sum = 0
+    weekend_sum = Decimal("0")
+    weekday_sum = Decimal("0")
     weekend_count = 0
     weekday_count = 0
     for t in transactions:
+        t_amt = Decimal(str(t.amount))
         if t.date.weekday() >= 5:  # 5, 6 is Saturday, Sunday
-            weekend_sum += t.amount
+            weekend_sum += t_amt
             weekend_count += 1
         else:
-            weekday_sum += t.amount
+            weekday_sum += t_amt
             weekday_count += 1
             
-    avg_weekend = weekend_sum / weekend_count if weekend_count > 0 else 0
-    avg_weekday = weekday_sum / weekday_count if weekday_count > 0 else 0
+    avg_weekend = weekend_sum / weekend_count if weekend_count > 0 else Decimal("0")
+    avg_weekday = weekday_sum / weekday_count if weekday_count > 0 else Decimal("0")
     
-    if avg_weekend > avg_weekday * 1.3:
-        insights.append(f"Weekend spending alert: Your weekend purchases average {round(avg_weekend, 2)}, which is 30%+ higher than your weekdays.")
+    if avg_weekend > avg_weekday * Decimal("1.3"):
+        insights.append(f"Weekend spending alert: Your weekend purchases average ₹{round(avg_weekend, 2)}, which is 30%+ higher than your weekdays.")
         recommendations.append("Consider setting a separate weekend budget constraint to manage leisure spending.")
 
     # High frequency microtransactions
-    micro_trans = [t for t in transactions if t.amount < 15.0]
+    micro_trans = [t for t in transactions if Decimal(str(t.amount)) < Decimal("500.0")]
     if len(micro_trans) >= 5:
-        micro_sum = sum(t.amount for t in micro_trans)
-        insights.append(f"Frequent small transactions: You made {len(micro_trans)} purchases under $15, totaling {round(micro_sum, 2)}.")
+        micro_sum = sum(Decimal(str(t.amount)) for t in micro_trans)
+        insights.append(f"Frequent small transactions: You made {len(micro_trans)} purchases under ₹500, totaling ₹{round(micro_sum, 2)}.")
         recommendations.append("Check recurring microtransactions (like coffees or small utility bills) that can add up quietly over the month.")
 
     # General wealth building recommendations
