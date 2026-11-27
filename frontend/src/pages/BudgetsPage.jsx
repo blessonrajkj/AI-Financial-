@@ -6,8 +6,7 @@ import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
 import CategorySelect from '../components/ui/CategorySelect';
 import { EXPENSE_TAXONOMY } from '../utils/taxonomy';
 import Modal from '../components/ui/Modal';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const BudgetsPage = () => {
   const { refreshTrigger, invalidateCache } = useThemeAndRefresh();
@@ -33,7 +32,7 @@ const BudgetsPage = () => {
 
   const fetchBudgets = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_URL}/budgets?t=${Date.now()}`);
+      const res = await axios.get(`${API_URL}/budgets`);
       setBudgets(res.data);
     } catch (err) {
       console.error(err);

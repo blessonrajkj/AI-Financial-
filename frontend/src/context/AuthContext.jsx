@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL } from '../services/api';
 
 const AuthContext = createContext(null);
 
 // Configure backend API endpoint base url
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
-
 // Configure default sensible timeout (10 seconds) to avoid indefinite hangs
 axios.defaults.timeout = 10000;
 

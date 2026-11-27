@@ -23,8 +23,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../../services/api';
 
 const SCHEMES = [
   { id: 'ppf', name: 'Public Provident Fund (PPF)', rate: '7.1%', lockIn: '15 Years', risk: 'Sovereign / Low', tax: 'Yes (EEE)', desc: 'Long-term tax-free savings backed by Central Gov.' },
@@ -80,9 +79,9 @@ const IndiaPostModal = ({ isOpen, onClose, onRefreshParent }) => {
     setLoading(true);
     try {
       const [invsRes, sumRes, insRes] = await Promise.all([
-        axios.get(`${API_URL}/india-post-investments?t=${Date.now()}`),
-        axios.get(`${API_URL}/india-post-investments/summary?t=${Date.now()}`),
-        axios.get(`${API_URL}/india-post-investments/ai-insights?t=${Date.now()}`)
+        axios.get(`${API_URL}/india-post-investments`),
+        axios.get(`${API_URL}/india-post-investments/summary`),
+        axios.get(`${API_URL}/india-post-investments/ai-insights`)
       ]);
       setInvestments(invsRes.data);
       setSummary(sumRes.data);

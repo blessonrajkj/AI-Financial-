@@ -35,8 +35,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const fmt = (n) => {
   const val = Number(n) || 0;

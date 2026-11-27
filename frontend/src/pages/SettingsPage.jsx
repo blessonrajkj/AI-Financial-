@@ -27,8 +27,7 @@ import {
   Key,
   ShieldAlert
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const SUPPORTED_BANKS = [
   "SBI", "HDFC", "ICICI", "Axis", "Kotak", "Canara", 

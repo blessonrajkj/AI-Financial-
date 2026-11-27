@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, forwardRef } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,18 +16,21 @@ const DAYS_OF_WEEK = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 /**
  * Custom DatePicker component that replaces native browser date inputs
- * with an elegant, responsive, theme-aware calendar dropdown.
+ * with an elegant, responsive, theme-aware calendar dropdown with keyboard support
+ * and react-hook-form ref forwarding.
  */
-const DatePicker = ({
+const DatePicker = forwardRef(({
   value,
   onChange,
+  name = 'transaction_date',
   required = false,
   className = '',
   disabled = false,
   placeholder = 'Select date'
-}) => {
+}, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
+  const triggerRef = useRef(null);
 
   // Parse initial date from value prop or default to today
   const selectedDate = useMemo(() => {
@@ -69,16 +72,24 @@ const DatePicker = ({
     };
   }, [isOpen]);
 
-  // Close on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
+  // Keyboard navigation
+  const handleKeyDown = (e) => {
+    if (disabled) return;
+
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+        e.preventDefault();
+        setIsOpen(true);
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    }
+  };
 
   const handlePrevMonth = () => {
     if (viewMonth === 0) {
@@ -108,6 +119,7 @@ const DatePicker = ({
     const isoString = formatToISO(year, month, day);
     onChange(isoString);
     setIsOpen(false);
+    triggerRef.current?.focus();
   };
 
   const handleSelectToday = () => {
@@ -117,6 +129,7 @@ const DatePicker = ({
     setViewMonth(now.getMonth());
     onChange(isoString);
     setIsOpen(false);
+    triggerRef.current?.focus();
   };
 
   const handleSelectYesterday = () => {
@@ -127,6 +140,7 @@ const DatePicker = ({
     setViewMonth(yest.getMonth());
     onChange(isoString);
     setIsOpen(false);
+    triggerRef.current?.focus();
   };
 
   // Calendar cells computation
@@ -204,9 +218,10 @@ const DatePicker = ({
   );
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div className={`relative ${className}`} ref={containerRef} onKeyDown={handleKeyDown}>
       {/* Trigger Button */}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
@@ -227,10 +242,11 @@ const DatePicker = ({
         <ChevronDown className={`w-4 h-4 text-textSecondary transition-transform duration-200 flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Visually-hidden native input for form compatibility and validation */}
+      {/* Visually-hidden native input for form compatibility, validation, and react-hook-form */}
       <input
+        ref={ref}
         type="date"
-        name="transaction_date"
+        name={name}
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         required={required}
@@ -332,6 +348,8 @@ const DatePicker = ({
       </AnimatePresence>
     </div>
   );
-};
+});
+
+DatePicker.displayName = 'DatePicker';
 
 export default DatePicker;

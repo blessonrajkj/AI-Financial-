@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Send, Bot, User, Mic, MicOff, Sparkles } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const ChatbotPage = () => {
   const [messages, setMessages] = useState([

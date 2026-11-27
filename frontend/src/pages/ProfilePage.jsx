@@ -22,8 +22,7 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const ProfilePage = () => {
   const { user, refreshUser } = useAuth();

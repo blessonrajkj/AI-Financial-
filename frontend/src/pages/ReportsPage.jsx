@@ -15,8 +15,7 @@ import {
   FileText,
   Briefcase
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const REPORT_TYPES = [
   { id: 'monthly', name: 'Monthly Report', desc: 'Summary of income, expenses, and savings', icon: Calendar },

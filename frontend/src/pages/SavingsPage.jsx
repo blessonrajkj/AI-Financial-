@@ -17,8 +17,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Modal from '../components/ui/Modal';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const SavingsPage = () => {
   const [goals, setGoals] = useState([]);
@@ -41,7 +40,7 @@ const SavingsPage = () => {
 
   const fetchGoals = async () => {
     try {
-      const res = await axios.get(`${API_URL}/savings?t=${Date.now()}`);
+      const res = await axios.get(`${API_URL}/savings`);
       setGoals(res.data);
     } catch (err) {
       console.error(err);

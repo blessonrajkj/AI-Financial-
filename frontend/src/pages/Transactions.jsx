@@ -30,8 +30,7 @@ import CategorySelect, { SubcategorySelect } from '../components/ui/CategorySele
 import DatePicker from '../components/ui/DatePicker';
 import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../utils/taxonomy';
 import Modal from '../components/ui/Modal';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const PAYMENT_METHODS = [
   { id: 'Cash', label: 'Cash', icon: Banknote, color: 'text-emerald-500 bg-emerald-500/10' },
@@ -451,7 +450,7 @@ const Transactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get(`${API_URL}/transactions?limit=10000&t=${Date.now()}`);
+      const res = await axios.get(`${API_URL}/transactions?limit=1000`);
       setTransactions(res.data);
     } catch (err) {
       console.error(err);

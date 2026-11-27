@@ -3,8 +3,7 @@ import axios from 'axios';
 import { UploadCloud, FileText, Sparkles, Check, AlertCircle } from 'lucide-react';
 import Select from '../components/ui/Select';
 import DatePicker from '../components/ui/DatePicker';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const ScannerPage = () => {
   const [file, setFile] = useState(null);

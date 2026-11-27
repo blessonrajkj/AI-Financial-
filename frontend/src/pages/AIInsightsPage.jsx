@@ -15,8 +15,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const PRIORITY_CONFIG = {
   Critical: {
@@ -77,7 +76,7 @@ const AIInsightsPage = () => {
 
   const fetchInsights = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_URL}/analytics/dashboard/ai-summary?t=${Date.now()}`);
+      const res = await axios.get(`${API_URL}/analytics/dashboard/ai-summary`);
       setInsights(res.data?.insights || []);
       setLastUpdated(new Date());
     } catch (err) {

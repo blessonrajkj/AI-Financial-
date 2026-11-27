@@ -24,8 +24,7 @@ import CategorySelect, { SubcategorySelect } from '../components/ui/CategorySele
 import Select from '../components/ui/Select';
 import { EXPENSE_TAXONOMY, INCOME_CATEGORIES, TRANSFER_CATEGORIES } from '../utils/taxonomy';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const ImportPage = () => {
   const { invalidateCache } = useThemeAndRefresh();

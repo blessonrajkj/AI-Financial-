@@ -29,8 +29,7 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { useThemeAndRefresh } from '../context/ThemeAndRefreshContext';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const COLORS = ['#2563EB', '#7C3AED', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6', '#14B8A6'];
 
@@ -50,10 +49,10 @@ const AnalyticsPage = () => {
   const fetchAnalyticsData = useCallback(async () => {
     try {
       const [trendsRes, forecastRes, summaryRes, merchantsRes] = await Promise.all([
-        axios.get(`${API_URL}/analytics/trends?days=${days}&t=${Date.now()}`),
-        axios.get(`${API_URL}/analytics/forecast?t=${Date.now()}`),
-        axios.get(`${API_URL}/analytics/summary?t=${Date.now()}`),
-        axios.get(`${API_URL}/analytics/top-merchants?limit=8&t=${Date.now()}`).catch(() => ({ data: [] }))
+        axios.get(`${API_URL}/analytics/trends?days=${days}`),
+        axios.get(`${API_URL}/analytics/forecast`),
+        axios.get(`${API_URL}/analytics/summary`),
+        axios.get(`${API_URL}/analytics/top-merchants?limit=8`).catch(() => ({ data: [] }))
       ]);
       setTrends(trendsRes.data || { categories: [], daily_spending: [] });
       setForecast(forecastRes.data || { forecast_points: [], metrics: {}, status: 'insufficient_data' });

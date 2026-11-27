@@ -47,8 +47,7 @@ import {
 import IndiaPostModal from '../components/investments/IndiaPostModal';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../services/api';
 
 const ASSET_TYPES = [
   "Stocks",
@@ -117,8 +116,8 @@ const InvestmentsPage = () => {
     try {
       setLoading(true);
       const [invRes, actRes] = await Promise.all([
-        axios.get(`${API_URL}/investments?t=${Date.now()}`),
-        axios.get(`${API_URL}/investments/activity?t=${Date.now()}`).catch(() => ({ data: [] }))
+        axios.get(`${API_URL}/investments`),
+        axios.get(`${API_URL}/investments/activity`).catch(() => ({ data: [] }))
       ]);
       setData(invRes.data);
       setActivity(actRes.data || []);

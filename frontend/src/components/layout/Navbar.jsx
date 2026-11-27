@@ -5,8 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PariViewLogo from '../common/PariViewLogo';
 import { cachedGet } from '../../services/apiCache';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { API_URL } from '../../services/api';
 
 // Icon components using SVG — precise, lightweight lines (not generic lucide)
 const SunIcon = () => (
