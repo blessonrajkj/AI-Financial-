@@ -666,11 +666,11 @@ const Dashboard = () => {
       )}
 
       {/* ── Main two-column grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* Cashflow chart — 2/3 width */}
-        <div className="lg:col-span-2 doppel-shell min-h-[460px]">
-          <div className="doppel-core p-6 flex flex-col justify-between h-full">
+        <div className="lg:col-span-2 doppel-shell flex flex-col">
+          <div className="doppel-core p-5 sm:p-6 pb-4 sm:pb-4 flex flex-col h-full">
             {/* Header + Time range filters */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div>
@@ -744,7 +744,7 @@ const Dashboard = () => {
             </div>
 
             {/* Area Chart Canvas */}
-            <div className="h-[330px] w-full relative">
+            <div className="flex-1 min-h-[320px] w-full relative">
               {trendsLoading ? (
                 <div className="h-full w-full flex flex-col justify-center space-y-4 p-4">
                   <div className="h-4 w-48 skeleton rounded-lg" />
@@ -769,7 +769,7 @@ const Dashboard = () => {
                 </div>
               ) : trendsWithSavings.length > 0 && trendsWithSavings.some(t => (t.income || 0) > 0 || (t.expense || 0) > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trendsWithSavings} margin={{ top: 16, right: 10, left: -16, bottom: 4 }}>
+                  <AreaChart data={trendsWithSavings} margin={{ top: 16, right: 10, left: -16, bottom: 0 }}>
                     <defs>
                       <linearGradient id="cfIncomeGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#10b981" stopOpacity={0.12} />
@@ -882,8 +882,8 @@ const Dashboard = () => {
         </div>
 
         {/* Recent transactions — 1/3 width */}
-        <div className="doppel-shell min-h-[380px] lg:min-h-[460px] w-full flex flex-col">
-          <div className="doppel-core p-6 flex flex-col justify-between flex-1">
+        <div className="doppel-shell w-full flex flex-col">
+          <div className="doppel-core p-5 sm:p-6 flex flex-col h-full">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <span className="eyebrow-badge mb-1">Ledger</span>
@@ -915,7 +915,7 @@ const Dashboard = () => {
                 </button>
               </div>
             ) : summary?.recent_transactions?.length > 0 ? (
-              <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
+              <div className="space-y-1.5 flex-1 overflow-y-auto pr-1 max-h-[460px]">
                 {summary.recent_transactions.map(t => {
                   const isIncome = t.type?.toLowerCase() === 'income';
                   return (
