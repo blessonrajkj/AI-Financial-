@@ -120,7 +120,7 @@ def get_investments(
         if inv.purchase_date:
             p_date = inv.purchase_date
             if p_date.tzinfo is not None:
-                p_date = p_date.replace(tzinfo=None)
+                p_date = p_date.astimezone(timezone.utc).replace(tzinfo=None)
             delta = datetime.now(timezone.utc).replace(tzinfo=None) - p_date
             years = max(delta.days / 365.25, 0.08)
             
@@ -137,10 +137,13 @@ def get_investments(
         cashflows = []
         for itx in inv_txs:
             t_amt = float(itx.total_amount)
+            t_date = itx.transaction_date
+            if t_date is not None and t_date.tzinfo is not None:
+                t_date = t_date.astimezone(timezone.utc).replace(tzinfo=None)
             if itx.transaction_type == "BUY":
-                cashflows.append((itx.transaction_date, -t_amt))
+                cashflows.append((t_date, -t_amt))
             elif itx.transaction_type in ("SELL", "DIVIDEND"):
-                cashflows.append((itx.transaction_date, t_amt))
+                cashflows.append((t_date, t_amt))
 
         # Add current terminal value as an inflow today
         if c_val > 0:

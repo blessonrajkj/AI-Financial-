@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -47,7 +46,7 @@ import {
 import IndiaPostModal from '../components/investments/IndiaPostModal';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
-import { API_URL } from '../services/api';
+import api, { API_URL } from '../services/api';
 
 const ASSET_TYPES = [
   "Stocks",
@@ -116,14 +115,14 @@ const InvestmentsPage = () => {
     try {
       setLoading(true);
       const [invRes, actRes] = await Promise.all([
-        axios.get(`${API_URL}/investments`),
-        axios.get(`${API_URL}/investments/activity`).catch(() => ({ data: [] }))
+        api.get('/investments'),
+        api.get('/investments/activity').catch(() => ({ data: [] }))
       ]);
       setData(invRes.data);
       setActivity(actRes.data || []);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch investment records.');
+      setError(err.response?.data?.detail || 'Failed to fetch investment records.');
     } finally {
       setLoading(false);
     }
@@ -142,7 +141,7 @@ const InvestmentsPage = () => {
     const fetchTransactions = async () => {
       try {
         setDetailTxLoading(true);
-        const res = await axios.get(`${API_URL}/investments/${detailHolding.id}/transactions`);
+        const res = await api.get(`/investments/${detailHolding.id}/transactions`);
         setDetailTransactions(res.data || []);
       } catch (err) {
         console.error('Failed to fetch holding transactions', err);
@@ -403,7 +402,7 @@ const InvestmentsPage = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_URL}/investments/${sellHolding.id}/sell`, {
+      const res = await api.post(`/investments/${sellHolding.id}/sell`, {
         units: parseFloat(sellUnits),
         price_per_unit: parseFloat(sellPrice),
         transaction_date: sellDate + 'T12:00:00',
@@ -440,10 +439,10 @@ const InvestmentsPage = () => {
 
     try {
       if (editingId) {
-        await axios.put(`${API_URL}/investments/${editingId}`, payload);
+        await api.put(`/investments/${editingId}`, payload);
         setSuccess('Investment holding updated successfully!');
       } else {
-        await axios.post(`${API_URL}/investments`, payload);
+        await api.post('/investments', payload);
         if (matchedHolding) {
           setSuccess(`Lot added to existing position for ${matchedHolding.asset_name}! Average cost updated.`);
         } else {
@@ -465,7 +464,7 @@ const InvestmentsPage = () => {
     setError('');
     setSuccess('');
     try {
-      await axios.delete(`${API_URL}/investments/${id}`);
+      await api.delete(`/investments/${id}`);
       setSuccess('Investment record removed successfully.');
       fetchInvestments();
     } catch (err) {

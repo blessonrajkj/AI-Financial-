@@ -279,18 +279,23 @@ def calculate_real_xirr(cashflows: list[tuple[datetime, float]], fallback_cagr: 
     if not (has_negative and has_positive):
         return round(fallback_cagr, 2)
 
+    # Normalize all datetimes to naive UTC before sorting and comparison
+    clean_cashflows = []
+    for dt, amt in cashflows:
+        if isinstance(dt, datetime):
+            clean_dt = dt.astimezone(timezone.utc).replace(tzinfo=None) if dt.tzinfo is not None else dt
+        else:
+            clean_dt = dt
+        clean_cashflows.append((clean_dt, float(amt)))
+
     # Sort by date
-    sorted_cfs = sorted(cashflows, key=lambda x: x[0])
+    sorted_cfs = sorted(clean_cashflows, key=lambda x: x[0])
     d0 = sorted_cfs[0][0]
-    if d0.tzinfo is not None:
-        d0 = d0.replace(tzinfo=None)
 
     normalized = []
     for dt, amt in sorted_cfs:
-        if dt.tzinfo is not None:
-            dt = dt.replace(tzinfo=None)
         t_years = max((dt - d0).total_seconds() / (365.25 * 86400.0), 0.0)
-        normalized.append((t_years, float(amt)))
+        normalized.append((t_years, amt))
 
     # Initial guess
     r = fallback_cagr / 100.0 if fallback_cagr != 0.0 else 0.1
